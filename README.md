@@ -23,4 +23,4 @@ search and show imdb rating on watcha. running on [tampermonkey](https://www.tam
 7. support for uflix (but... now i don't have an account there)
 
 ## history
-later to be revealed. prototyping is done.
+code will be revealed later. prototyping is done.
