@@ -1,0 +1,42 @@
+.fy-item {
+  /*
+  position: absolute;
+  z-index: 999;
+  */
+}
+
+.fy-kl {
+  color: inherit;
+}
+
+
+.fy-imdb-rating {
+  color: black;
+}
+
+.fy-imdb-rating.over-8 {
+  background-color: #57e32c;
+}
+
+.fy-imdb-rating.over-6 {
+  background-color: #b7dd29;
+}
+
+.fy-imdb-rating.over-4 {
+  background-color: #ffe234;
+}
+
+.fy-imdb-rating.over-2 {
+  background-color: #ffa534;
+}
+
+.fy-imdb-rating.over-0 {
+  background-color: #ff4545;
+}
+
+
+/* not available yet */
+.fy-imdb-my-rating {
+  color: inherit;  /* todo+++ */
+  font-weight: bold;
+}
