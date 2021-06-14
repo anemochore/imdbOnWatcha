@@ -6,6 +6,9 @@ search and show imdb rating on watcha. running on [tampermonkey](https://www.tam
 2. searches english title on imdb and scrapes data using [this api](https://rapidapi.com/rapidapi/api/movie-database-imdb-alternative/).
 3. stores kl and imdb data cache on tampermonkey storage in json format.
 
+## screenshot (prototype)
+![sample](https://user-images.githubusercontent.com/8731054/121945768-1ddd6c80-cd8f-11eb-9d67-078e799f43e3.png)
+
 ## supported sites
 1. watcha.com
 2. todo: netflix?
