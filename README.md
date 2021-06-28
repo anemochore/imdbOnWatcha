@@ -41,59 +41,59 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 3. the accuracy of ratings getting via api is not quite good.
 
 ## history
-// ver 0.0.1 @ 2021-5-20
-//    first ver. naver crawling is almost done.
-// ver 0.0.2 @ 2021-5-21
-//    second ver. imdb crawling is blocked soon!
-// ver 0.0.3 @ 2021-5-22
-//    mutation observing (hopefully) perfectly done.
-// ver 0.0.4 @ 2021-5-24
-//    mutation observing fixed.
-// ver 0.0.6 @ 2021-5-28
-//    imdb api adopted (later changed): https://rapidapi.com/apidojo/api/imdb8/
-//    refactored async fetching
-// ver 0.0.8 @ 2021-5-31
-//    imdb searching and scraping on hold
-//    searches kinolights instead of naver movie
-// ver 0.0.11 @ 2021-6-10~2021-6-11
-//    search kinolights instead of naver movie via google cse prototyping done!
-//    removed large-div update
-//    imdb api reverted: https://rapidapi.com/rapidapi/api/movie-database-imdb-alternative/
-// ver 0.0.16 @ 2021-6-15
-//    div update (html tagging) bug fix
-//    imdb rating and flag refactored again
-//    kl searching improved
-//    css added per rating
-// ver 0.0.18 @ 2021-6-15
-//    abort fetching on-url-change (including changing search keyword when searching)
-//    reduced unnecessary multiple fetching (some kind of internal caching)
-// ver 0.0.19 @ 2021-6-16
-//    refactored on-url-change flow
-// ver 0.0.20 @ 2021-6-16
-//    now searches watcha pedia instead of kl
-//    imdb api changed: https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/
-// ver 0.0.21 @ 2021-6-17
-//    watcha pedia scraping ig not possible due to lazy loading. reverted to kl.
-// ver 0.0.25 @ 2021-6-18
-//    tried to improve kl searching in vain...
-//    revivaled large-div update to augment imperfect searching
-//    tried to improve kl searching again...
-//    fixed large div update
-// ver 0.0.26 @ 2021-6-18
-//    improved imdb searching slightly
-// ver 0.0.30 @ 2021-6-21
-//    now api keys should be manually set in tampermonkey setting
-//    when accessed imdb, the cache will be updated if the movie's flag is set
-//    improved imdb searching slightly
-//    now force a little sleep to toast to fade out
-// ver 0.0.36 @ 2021-6-23
-//    now searches and scrapes watcha pedia again (idk why but lazy loading is gone)
-//    watcha pedia language setting should be english!
-//    improved large div update (supports for /contents/ path too)
-//    improved imdb searching
-//    fixed imdb access codes
-//    fixed wrong cache use
-// ver 0.0.39 @ 2021-6-29
-//    fixed wrong divs update when navigating back and forth, etc
-//    refactored to class structure to enable ui
-//    added ui for manual update
+    // ver 0.0.1 @ 2021-5-20
+    //    first ver. naver crawling is almost done.
+    // ver 0.0.2 @ 2021-5-21
+    //    second ver. imdb crawling is blocked soon!
+    // ver 0.0.3 @ 2021-5-22
+    //    mutation observing (hopefully) perfectly done.
+    // ver 0.0.4 @ 2021-5-24
+    //    mutation observing fixed.
+    // ver 0.0.6 @ 2021-5-28
+    //    imdb api adopted (later changed): https://rapidapi.com/apidojo/api/imdb8/
+    //    refactored async fetching
+    // ver 0.0.8 @ 2021-5-31
+    //    imdb searching and scraping on hold
+    //    searches kinolights instead of naver movie
+    // ver 0.0.11 @ 2021-6-10~2021-6-11
+    //    search kinolights instead of naver movie via google cse prototyping done!
+    //    removed large-div update
+    //    imdb api reverted: https://rapidapi.com/rapidapi/api/movie-database-imdb-alternative/
+    // ver 0.0.16 @ 2021-6-15
+    //    div update (html tagging) bug fix
+    //    imdb rating and flag refactored again
+    //    kl searching improved
+    //    css added per rating
+    // ver 0.0.18 @ 2021-6-15
+    //    abort fetching on-url-change (including changing search keyword when searching)
+    //    reduced unnecessary multiple fetching (some kind of internal caching)
+    // ver 0.0.19 @ 2021-6-16
+    //    refactored on-url-change flow
+    // ver 0.0.20 @ 2021-6-16
+    //    now searches watcha pedia instead of kl
+    //    imdb api changed: https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/
+    // ver 0.0.21 @ 2021-6-17
+    //    watcha pedia scraping ig not possible due to lazy loading. reverted to kl.
+    // ver 0.0.25 @ 2021-6-18
+    //    tried to improve kl searching in vain...
+    //    revivaled large-div update to augment imperfect searching
+    //    tried to improve kl searching again...
+    //    fixed large div update
+    // ver 0.0.26 @ 2021-6-18
+    //    improved imdb searching slightly
+    // ver 0.0.30 @ 2021-6-21
+    //    now api keys should be manually set in tampermonkey setting
+    //    when accessed imdb, the cache will be updated if the movie's flag is set
+    //    improved imdb searching slightly
+    //    now force a little sleep to toast to fade out
+    // ver 0.0.36 @ 2021-6-23
+    //    now searches and scrapes watcha pedia again (idk why but lazy loading is gone)
+    //    watcha pedia language setting should be english!
+    //    improved large div update (supports for /contents/ path too)
+    //    improved imdb searching
+    //    fixed imdb access codes
+    //    fixed wrong cache use
+    // ver 0.0.39 @ 2021-6-29
+    //    fixed wrong divs update when navigating back and forth, etc
+    //    refactored to class structure to enable ui
+    //    added ui for manual update
