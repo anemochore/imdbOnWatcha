@@ -9,6 +9,15 @@
   color: inherit;
 }
 
+.fy-edit {
+  font-size: 60%;
+  text-decoration: underline;
+}
+
+.fy-edit:hover {
+  font-size: 120%;
+}
+
 
 .fy-imdb-rating {
   color: black;
