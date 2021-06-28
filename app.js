@@ -1071,7 +1071,7 @@ class FyGlobal {
       if(otDatum.otUrl)
         innerHtml += `</a>`;
 
-      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">(edit)</a> `;
+      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
 
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
@@ -1105,7 +1105,7 @@ class FyGlobal {
       if(otDatum.imdbUrl)
         innerHtml += `</a>`;
 
-      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">(edit)</a> `;
+      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
       div.innerHTML = innerHtml;
     }
   }
