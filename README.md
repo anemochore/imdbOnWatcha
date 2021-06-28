@@ -1,21 +1,21 @@
 # imdb on watcha
-search and show imdb rating on watcha. running on [tampermonkey](https://www.tampermonkey.net/).
+Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tampermonkey.net/).
 
 ## features
-1. searches korean titles on [watcha pedia](https://pedia.watcha.com/) to get english titles.
-2. searches english title on imdb and scrapes data using [this api](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
-3. stores watcha pedia and imdb data cache on tampermonkey storage.
-4. if search was imperfect, clicking an item (which reveals more infomation like release year) will initiate search again.
-5. if search was still imperfect, you can enter the correct url manually to update db.
+1. Searches Korean titles on [Watcha Pedia](https://pedia.watcha.com/) to get English titles.
+2. Searches English title on IMDb and scrapes data using [this API](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
+3. Stores Watcha Pedia and IMDb data cache on Tampermonkey storage.
+4. If search was imperfect, clicking an item (which reveals more infomation like release year) will initiate search again.
+5. If search was still imperfect, you can enter the correct url manually to update the cache.
 
 ## usage
-1. install tampermonkey if not installed.
-2. install `app.js` into tampermonkey.
-3. in tampermonkey setting, set 'Config Mode' to 'Advanced' and refresh in order to access 'Storage' tab for scripts.
-4. upon first run (accessing watcha.com), error popup says the api keys should be set. you should subscribe for free and get the key at [the api page](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
-5. now set the key at 'Storage' tab for the script in json format, eg: `"RAPID_API_KEY": "YOUR_LONG_API_KEY_BLAH_BLAH"`.
-6. now refreshing watcha.com will initiate the script run.
-7. processing details can be found in browser console.
+1. Install Tampermonkey(https://www.tampermonkey.net/) if not installed.
+2. Install `app.js` into Tampermonkey.
+3. In Tampermonkey setting, set 'Config Mode' to 'Advanced' and refresh in order to access 'Storage' tab for scripts.
+4. Upon first run (accessing watcha.com), error popup shows up saying the API keys should be set. You should subscribe for free and get the key at [the API page](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
+5. Set the key at 'Storage' tab for the script in JSON format, eg. `"RAPID_API_KEY": "YOUR_LONG_API_KEY_BLAH_BLAH"` and refresh.
+6. Now refreshing watcha.com will initiate the script run.
+7. Processing details can be found in browser console.
 
 ## screenshot (prototype)
 ![sample](https://user-images.githubusercontent.com/8731054/121945768-1ddd6c80-cd8f-11eb-9d67-078e799f43e3.png)
@@ -33,6 +33,7 @@ search and show imdb rating on watcha. running on [tampermonkey](https://www.tam
 6. augmenting search -> partially done, partially discarded to reduce queries.
 7. add ui to edit cache -> done.
 8. add support or another script to get ratings and store on cache when accessing imdb. -> done.
+9. 왓챠는 한국 사람이 쓰는 건데 왜 문서는 영어로 썼나...
 
 ## limitations
 1. there's no way to find out the release year of a movie in list screen. ie 헤드헌터 (2011), 헤드헌터 (1993), and 헤드헌터 (2018) cannot be distinguished from one another.
