@@ -416,8 +416,8 @@ class FyGlobal {
         item.insertBefore(div, item.querySelector(fy.subSelector));
       }
 
-      if(!item.querySelector(fy.titleSelector))
-        console.log(item);
+      //if(!item.querySelector(fy.titleSelector))
+        //console.log(item);
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
