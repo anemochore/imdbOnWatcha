@@ -158,6 +158,7 @@ class FyGlobal {
     if(!GM_getValue('OT_CACHE_WITH_IMDB_RATINGS'))
       GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', {});
 
+
     //imdb 접속 시 캐시 업데이트
     if(document.location.host == 'www.imdb.com') {
       const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
@@ -266,6 +267,7 @@ class FyGlobal {
       }
     }
 
+
     //to get the previous url. https://stackoverflow.com/a/52809105
     window.addEventListener('locationchange', e => {
       fy.entry();
@@ -291,6 +293,7 @@ class FyGlobal {
       window.dispatchEvent(new Event('locationchange'))
     });
 
+
     //check api keys
     if(!RAPID_API_KEY || RAPID_API_KEY == DEFAULT_MSG) {
       GM_setValue('RAPID_API_KEY', DEFAULT_MSG);
@@ -299,15 +302,18 @@ class FyGlobal {
       return;
     }
 
+
     //css 로딩
     const css = GM_getResourceText('CSS');
     GM_addStyle(css);
+
 
     //mutation observer
     fy.observer = new MutationObserver(fy.handler);
     fy.observerOption = {childList: true, subtree: true};
 
-    //entry point
+
+    //real entry point
     fy.entry();
   }
 
@@ -332,6 +338,7 @@ class FyGlobal {
     else
       toast.log('fy script initiating...');
 
+    let isExit = false;
     //check if the page is included in excludingPath
     let isExcludingPath = false;
     fy.excludingPaths.some(path => {
@@ -342,8 +349,7 @@ class FyGlobal {
     });
     if(fy.isExcludingPath) {
       toast.log('excluding page');
-      toast.log();
-      return;
+      isExit = true;
     }
 
     //check if the page is included in includingPath
@@ -356,14 +362,19 @@ class FyGlobal {
     });
     if(!isIncludingPath) {
       toast.log('not in including page');
-      toast.log();
-      return;
+      isExit = true;
     }
 
     //init
     fy.observer.disconnect();
-    await elementReady(fy.selectorForException + ', ' + fy.selector, fy.root);
-    fy.handler();  //force first run
+
+    if(isExit) {
+      toast.log();
+    }
+    else {
+      await elementReady(fy.selectorForException + ', ' + fy.selector, fy.root);
+      fy.handler();  //force first run
+    }
   }
 
   async handlerForWatcha(m, o) {
