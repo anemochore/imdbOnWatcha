@@ -104,3 +104,4 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    changed 'n/a' rating's font-color
     //    changed rating color scale (5 -> 10 colors)
     //    changed imdb update message
+    //    fixed large div selectors according to watcha dom change

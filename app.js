@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.44
+// @version      0.0.45
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -77,12 +77,13 @@
 //    fixed wrong divs update when navigating back and forth, etc
 //    refactored to class structure to enable ui
 //    added ui for manual update
-// ver 0.0.44 @ 2021-6-29
+// ver 0.0.45 @ 2021-6-29
 //    edited selectors according to watcha dom change
 //    improved imdb searching
 //    changed 'n/a' rating's font-color
 //    changed rating color scale (5 -> 10 colors)
 //    changed imdb update message
+//    fixed large div selectors according to watcha dom change
 */
 
 class FyGlobal {
@@ -103,7 +104,7 @@ class FyGlobal {
       'watcha.com': 'main',
     };
     const selectors = {
-      'watcha.com': 'li>div ul>li',
+      'watcha.com': 'li[class*="EmbedRow"]>div ul>li',
     };
     const selectorsForException = {
       'watcha.com': 'h1',
@@ -228,17 +229,14 @@ class FyGlobal {
       }
 
       if(idx > -1) {
-        if(flags[idx] == '') {
-          toast.log('imdb flag is not set, so no update.');
-        }
-        else {
-          const cache = otCache[keys[idx]];
+        const cache = otCache[keys[idx]];
+
+        if(flags[idx] != '') {
           if(imdbRating == 'n/a' && !isNaN(parseFloat(cache.imdbRating))) {
             toast.log('warning: imdb rating is n/a. so deleting the cache which is probably wrong!');
 
             cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
             cache.imdbRating = 'n/a';
-            cache.imdbRatingFetchedDate = new Date();
             cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
           }
           else if(Math.abs(cache.year - trueYear) > 1) {
@@ -246,26 +244,34 @@ class FyGlobal {
 
             cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
             cache.imdbRating = 'n/a';
-            cache.imdbRatingFetchedDate = new Date();
             cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
           }
           else {
-            toast.log(orgTitle + ' ('+trueYear+') was successfully updated on "imdb on watcha" cache.');
+            toast.log(orgTitle+' ('+trueYear+') was successfully updated on "imdb on watcha" cache.');
             cache.imdbRating = imdbRating;
-            cache.imdbRatingFetchedDate = new Date();
           }
           cache.imdbFlag = '';
 
+          cache.imdbRatingFetchedDate = new Date();
           GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
         }
-        toast.log();
-        return;
+        else if(imdbRating != cache.imdbRating) {
+          //another special... mis-working case of the api
+          toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
+          cache.imdbRating = imdbRating;
+
+          cache.imdbRatingFetchedDate = new Date();
+          GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
+        }
+        else {
+          toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
+        }
       }
       else {
         toast.log('this title is not yet stored on "imdb on watcha" cache.');
-        toast.log();
-        return;
       }
+      toast.log();
+      return;
     }
 
 
@@ -429,7 +435,7 @@ class FyGlobal {
       }
 
       //if(!item.querySelector(fy.titleSelector))
-        //console.log(item);
+        //console.log(item, fy.titleSelector);
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
@@ -1004,7 +1010,6 @@ class FyGlobal {
     const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
     await elementReady(trueYearSelector, largeDiv);
     const trueYear = largeDiv.querySelector(trueYearSelector).textContent.trim().slice(-5).slice(0, 4);
-
 
     /*
     let trueCat = largeDiv.querySelector('[data-select="content_meta"]').textContent;
