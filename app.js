@@ -77,13 +77,13 @@
 //    fixed wrong divs update when navigating back and forth, etc
 //    refactored to class structure to enable ui
 //    added ui for manual update
-// ver 0.0.45 @ 2021-6-29
+// ver 0.0.46 @ 2021-6-29
 //    edited selectors according to watcha dom change
 //    improved imdb searching
 //    changed 'n/a' rating's font-color
 //    changed rating color scale (5 -> 10 colors)
-//    changed imdb update message
-//    fixed large div selectors according to watcha dom change
+//    changed imdb update logic
+//    fixed large div selectors according to watcha dom change... twice
 */
 
 class FyGlobal {
@@ -104,13 +104,13 @@ class FyGlobal {
       'watcha.com': 'main',
     };
     const selectors = {
-      'watcha.com': 'li[class*="EmbedRow"]>div ul>li',
+      'watcha.com': 'li>div[class*="-Row"] ul>li',
     };
     const selectorsForException = {
       'watcha.com': 'h1',
     };
     const titleSelectors = {
-      'watcha.com': 'h1, div[class*="StyledText"]',
+      'watcha.com': 'h1, div[class*="-StyledText"]',
     };
     const largeDivSelectors = {
       'watcha.com': 'div.enter-done',
@@ -434,8 +434,8 @@ class FyGlobal {
         item.insertBefore(div, item.querySelector(fy.subSelector));
       }
 
-      //if(!item.querySelector(fy.titleSelector))
-        //console.log(item, fy.titleSelector);
+      if(!item.querySelector(fy.titleSelector))
+        console.log(item, fy.titleSelector);
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
