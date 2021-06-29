@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.43
+// @version      0.0.44
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -77,11 +77,12 @@
 //    fixed wrong divs update when navigating back and forth, etc
 //    refactored to class structure to enable ui
 //    added ui for manual update
-// ver 0.0.43 @ 2021-6-29
+// ver 0.0.44 @ 2021-6-29
 //    edited selectors according to watcha dom change
 //    improved imdb searching
 //    changed 'n/a' rating's font-color
 //    changed rating color scale (5 -> 10 colors)
+//    changed imdb update message
 */
 
 class FyGlobal {
@@ -228,7 +229,7 @@ class FyGlobal {
 
       if(idx > -1) {
         if(flags[idx] == '') {
-          toast.log('already updated.');
+          toast.log('imdb flag is not set, so no update.');
         }
         else {
           const cache = otCache[keys[idx]];
