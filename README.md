@@ -18,7 +18,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 6. Now refreshing watcha.com will initiate the script run.
 7. Processing details can be found in browser console.
 
-## screenshot (prototype)
+## screenshot
 ![sample](https://user-images.githubusercontent.com/8731054/123694785-bcd88d00-d894-11eb-9e37-a2ce4233448a.png)
 
 ## supported sites
