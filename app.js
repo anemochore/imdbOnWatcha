@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.39
+// @version      0.0.42
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -77,6 +77,10 @@
 //    fixed wrong divs update when navigating back and forth, etc
 //    refactored to class structure to enable ui
 //    added ui for manual update
+// ver 0.0.42 @ 2021-6-29
+//    edited selectors according to watcha dom change
+//    improved imdb searching
+//    changed 'n/a' rating's font-color
 */
 
 class FyGlobal {
@@ -97,22 +101,22 @@ class FyGlobal {
       'watcha.com': 'main',
     };
     const selectors = {
-      'watcha.com': 'li[data-select="row-item"]',
+      'watcha.com': 'li>div ul>li',
     };
     const selectorsForException = {
       'watcha.com': 'h1',
     };
     const titleSelectors = {
-      'watcha.com': 'h1, div[data-select="embed_title_text"]',
+      'watcha.com': 'h1, div[class*="StyledText"]',
     };
     const largeDivSelectors = {
-      'watcha.com': 'div[data-select="embed_fade"].enter-done',
+      'watcha.com': 'div.enter-done',
     };
     const largeDivSelectorsOnExit = {
       'watcha.com': 'div.exit-active',
     };
     const largeDivSelectorsExtra = {
-      'watcha.com': 'main>div>div>div>h1[data-select="embed_title"]',
+      'watcha.com': 'main>div div>h1',
     };
     const subSelectors = {
       'watcha.com': 'div',
@@ -411,6 +415,8 @@ class FyGlobal {
         item.insertBefore(div, item.querySelector(fy.subSelector));
       }
 
+      if(!item.querySelector(fy.titleSelector))
+        console.log(item);
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
@@ -745,7 +751,9 @@ class FyGlobal {
       //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지.
       let imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/search/';
       const tempYearString = trueYear ? '%20('+trueYear+')' : '';
-      let filtered = orgTitles.map((title, i) => title ? imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E')) + tempYearString : null);
+
+      //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다... 다른 문자가 더 있을지도...
+      let filtered = orgTitles.map((title, i) => title ? imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F')) + tempYearString : null);
       searchLength = filtered.filter(el => el).length;
       if(searchLength == 0) {
         console.log('nothing to search on imdb.');
@@ -980,7 +988,7 @@ class FyGlobal {
       largeDiv.setAttribute(FY_UNIQ_STRING, '');
     }
 
-    const trueYearSelector = 'div[data-select="embed_basic"] li:last-of-type>span>span:last-of-type';
+    const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
     await elementReady(trueYearSelector, largeDiv);
     const trueYear = largeDiv.querySelector(trueYearSelector).textContent.trim().slice(-5).slice(0, 4);
 
@@ -993,7 +1001,7 @@ class FyGlobal {
       trueCat = 'movie';
     */
 
-    const code = largeDiv.querySelector('[data-select="watch_link"]').href.split('/').pop();
+    const code = largeDiv.querySelector('a[aria-label="재생"]').href.split('/').pop();
     const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;  //english page
 
     if(isContensPage) {
@@ -1001,15 +1009,15 @@ class FyGlobal {
       fy.search([largeDiv], trueYear, trueUrl);
     }
     else {
-      const trueTitle = largeDiv.querySelector('h1[data-select="embed_title"]').textContent;
+      const trueTitle = largeDiv.querySelector('h1').textContent;
 
       //large div 페칭 후 업데이트할 아이템들. 페칭이 오래 걸리면 달라질 수도 있지만... 귀찮.
       const fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
-      .filter(item => item.querySelector('div[data-select="embed_title_text"]').textContent == trueTitle);
+      .filter(item => item.querySelector(fy.titleSelector).textContent == trueTitle);
       await elementReady('.content-preview-exit-done', fy.root);
 
       //현재 선택한 아이템
-      const fyItem = fyItems.filter(el => el.querySelector('div[data-select="embed_stillcut_container"]>div+div+div'))[0];
+      const fyItem = fyItems.filter(el => el.querySelector('.content-preview-exit-done'))[0];
 
       //when largeDiv is disappearing, there's nothing to do.
       //is this necessary??
@@ -1245,23 +1253,14 @@ function sleep(ms) {
 function elementReady(selector, baseEl = document.documentElement) {
   return new Promise((resolve, reject) => {
     let els = [...baseEl.querySelectorAll(selector)];
-    if(els.length > 0) resolve(els[els.length-1]);
+    if(els.length > 0)
+      resolve(els[els.length-1]);
 
-    let prevElNumber = els.length;
     new MutationObserver(async (m, o) => {
       let els = [...baseEl.querySelectorAll(selector)];
       if(els.length > 0) {
         o.disconnect();
         resolve(els[els.length-1]);
-
-        if(els.length > prevElNumber) {
-          prevElNumber = els.length;
-          await sleep(1000);  //dirty hack
-          if([...baseEl.querySelectorAll(selector)].length == prevElNumber) {
-            o.disconnect();
-            resolve(els[els.length-1]);
-          }
-        }
       }
     })
     .observe(baseEl, {

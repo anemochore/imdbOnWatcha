@@ -20,7 +20,7 @@
 
 
 .fy-imdb-rating {
-  color: black;
+  color: inherit;
 }
 
 .fy-imdb-rating.over-8 {
