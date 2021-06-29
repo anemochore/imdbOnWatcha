@@ -10,7 +10,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 6. Still, the API is not perfect. So when you visit the IMDb page, the script will try to update the cache if possible.
 
 ## usage
-1. Install Tampermonkey(https://www.tampermonkey.net/) if not installed.
+1. Install [Tampermonkey](https://www.tampermonkey.net/) if not installed.
 2. Install `app.js` into Tampermonkey.
 3. In Tampermonkey setting, set 'Config Mode' to 'Advanced' and refresh in order to access 'Storage' tab for scripts.
 4. Upon first run (accessing watcha.com), error popup shows up saying the API keys should be set. You should subscribe for free and get the key at [the API page](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
