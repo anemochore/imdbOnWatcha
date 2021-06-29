@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.42
+// @version      0.0.43
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -77,10 +77,11 @@
 //    fixed wrong divs update when navigating back and forth, etc
 //    refactored to class structure to enable ui
 //    added ui for manual update
-// ver 0.0.42 @ 2021-6-29
+// ver 0.0.43 @ 2021-6-29
 //    edited selectors according to watcha dom change
 //    improved imdb searching
 //    changed 'n/a' rating's font-color
+//    changed rating color scale (5 -> 10 colors)
 */
 
 class FyGlobal {
@@ -1089,10 +1090,11 @@ class FyGlobal {
         label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
       }
 
-      let rating = 'n/a', ratingCss = null;
+      let rating = 'n/a', ratingCss = 'na';
       if(otDatum.imdbRating && parseFloat(otDatum.imdbRating) >= 0) {
         rating = parseFloat(otDatum.imdbRating);
-        [8, 6, 4, 2, 0].some(n => {
+        [...Array(10).keys()].reverse().some(n => {
+          //[9, 8, 7, ..., 2, 1, 0]
           if(rating > n) {
             ratingCss = n;
             return true;
@@ -1105,10 +1107,7 @@ class FyGlobal {
       if(otDatum.imdbUrl)
         innerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
 
-      if(ratingCss)
-        innerHtml += `<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>`;
-      else
-        innerHtml += `<span class="fy-imdb-rating" flag="${flag}">${rating}${flag}</span>`;
+      innerHtml += `<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>`;
 
       if(otDatum.imdbUrl)
         innerHtml += `</a>`;

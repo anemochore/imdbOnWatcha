@@ -20,27 +20,53 @@
 
 
 .fy-imdb-rating {
-  color: inherit;
+  color: black;
+}
+
+/* from https://3oneseven.com/rating-system-movies/ */
+.fy-imdb-rating.over-9 {
+  background-color: #01cc34;
 }
 
 .fy-imdb-rating.over-8 {
-  background-color: #57e32c;
+  background-color: #99ff32;
+}
+
+.fy-imdb-rating.over-7 {
+  background-color: #ccff34;
 }
 
 .fy-imdb-rating.over-6 {
-  background-color: #b7dd29;
+  background-color: #ccff66;
+}
+
+.fy-imdb-rating.over-5 {
+  background-color: #ffff67;
 }
 
 .fy-imdb-rating.over-4 {
-  background-color: #ffe234;
+  background-color: #ffcc00;
+}
+
+.fy-imdb-rating.over-3 {
+  background-color: #ff9934;
 }
 
 .fy-imdb-rating.over-2 {
-  background-color: #ffa534;
+  background-color: #ff6634;
+}
+
+.fy-imdb-rating.over-1 {
+  background-color: #ff3334;
 }
 
 .fy-imdb-rating.over-0 {
-  background-color: #ff4545;
+  background-color: #cd3301;
+}
+
+.fy-imdb-rating.over-na {
+  color: inherit;
+  background-color: inherit;
 }
 
 
