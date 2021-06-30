@@ -35,6 +35,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 7. add ui to edit cache -> done.
 8. add support or another script to get ratings and store on cache when accessing imdb. -> done.
 9. 왓챠는 한국 사람이 쓰는 건데 왜 문서는 영어로 썼나...
+10. make it smoother and more efficient when clicking left/right arrows.
 
 ## limitations
 1. there's no way to find out the release year of a movie in list screen. ie 헤드헌터 (2011), 헤드헌터 (1993), and 헤드헌터 (2018) cannot be distinguished from one another.
@@ -105,3 +106,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    changed rating color scale (5 -> 10 colors)
     //    changed imdb update logic
     //    fixed large div selectors according to watcha dom change... twice
+    // ver 0.0.47 @ 2021-6-30
+    //    fixed large div selectors according to watcha dom change... again

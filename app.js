@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.45
+// @version      0.0.47
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -84,6 +84,8 @@
 //    changed rating color scale (5 -> 10 colors)
 //    changed imdb update logic
 //    fixed large div selectors according to watcha dom change... twice
+// ver 0.0.47 @ 2021-6-30
+//    fixed large div selectors according to watcha dom change... again
 */
 
 class FyGlobal {
@@ -98,13 +100,13 @@ class FyGlobal {
     };
     //todo+++
     const excludingSectionTexts = {
-      'watcha.com': ['혼자 보기 아쉬울 때, 같이 봐요 우리!'],
+      'watcha.com': ['새로운 에피소드', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
     };
     const roots = {
       'watcha.com': 'main',
     };
     const selectors = {
-      'watcha.com': 'li>div[class*="-Row"] ul>li',
+      'watcha.com': 'li div[class*="-Row"] ul>li',
     };
     const selectorsForException = {
       'watcha.com': 'h1',
@@ -391,7 +393,7 @@ class FyGlobal {
     let largeDiv = fy.root.querySelector(fy.largeDivSelectorOnExit);
     if(largeDiv) {
       //closing large div
-      console.debug('exiting large div...');
+      console.debug('exiting large div...');  //dev
       toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
     }
@@ -1035,7 +1037,7 @@ class FyGlobal {
       await elementReady('.content-preview-exit-done', fy.root);
 
       //현재 선택한 아이템
-      const fyItem = fyItems.filter(el => el.querySelector('.content-preview-exit-done'))[0];
+      const fyItem = fyItems.filter(el => el.querySelector('div[class*="-Content"]>div').childElementCount == 3).pop();
 
       //when largeDiv is disappearing, there's nothing to do.
       //is this necessary??
