@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.47
+// @version      0.0.48
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -86,6 +86,8 @@
 //    fixed large div selectors according to watcha dom change... twice
 // ver 0.0.47 @ 2021-6-30
 //    fixed large div selectors according to watcha dom change... again
+// ver 0.0.48 @ 2021-7-4
+//    fixed imdb code according to imdb dom change
 */
 
 class FyGlobal {
@@ -174,11 +176,11 @@ class FyGlobal {
       }
 
       const imdbId = path.split('/')[2];
-      let imdbRating = document.querySelector('.ratingValue span[itemprop="ratingValue"]');
+      let imdbRating = document.querySelector('span[class^="AggregateRatingButton_"]');
       if(imdbRating)
         imdbRating = imdbRating.textContent;
       else
-        imdbRating = 'n/a';
+        imdbRating = 'n/a!';
 
       let orgTitle = document.title.replace(/ - IMDb$/, '');
       orgTitle = orgTitle.replace(/ \(TV Episode( (\d{4})\)|\))$/, '');
