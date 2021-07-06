@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.50
+// @version      0.0.51
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -88,9 +88,10 @@
 //    fixed large div selectors according to watcha dom change... again
 // ver 0.0.48 @ 2021-7-4
 //    fixed imdb code according to imdb dom change
-// ver 0.0.50 @ 2021-7-7
+// ver 0.0.51 @ 2021-7-7
 //    fixed large div update code
 //    fixed manual update code
+//    fixed large div update flow
 */
 
 class FyGlobal {
@@ -415,6 +416,7 @@ class FyGlobal {
         toast.log('searching on wp or cache for', itemNum, 'items...');
 
         //change flow
+        fy.observer.disconnect();
         fy.search(itemDivs);
       }
       else {
@@ -540,6 +542,7 @@ class FyGlobal {
         if(searchLength == 0) {
           console.log('nothing to search on wp.');
           searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+          return;
         }
 
         if(trueYear || trueUrl || trueImdbUrl) {
@@ -563,6 +566,7 @@ class FyGlobal {
           if(searchLength == 0) {
             console.log('org. titles searching result is empty.');
             searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+            return;
           }
           else {
             console.log('org. titles searching done:', searchLength);  //dev
@@ -582,6 +586,7 @@ class FyGlobal {
           if(searchLength == 0) {
             console.log('org. titles scraping result is empty.');
             searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+            return;
           }
 
           console.log('org. titles scraping done:', searchLength);  //dev
@@ -775,7 +780,6 @@ class FyGlobal {
 
       //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
       //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다... 다른 문자가 더 있을지도...
-      console.log(...orgTitles);
       let filtered = orgTitles.map((title, i) => title ? imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F')) + tempYearString : null);
       searchLength = filtered.filter(el => el).length;
 
