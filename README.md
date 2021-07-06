@@ -112,5 +112,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed imdb code according to imdb dom change
     // ver 0.0.50 @ 2021-7-7
     //    fixed large div update code
-    //    fixed manual update code
+    //    fixed manual update code... twice
     //    fixed large div update flow

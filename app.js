@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.51
+// @version      0.0.52
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -88,9 +88,9 @@
 //    fixed large div selectors according to watcha dom change... again
 // ver 0.0.48 @ 2021-7-4
 //    fixed imdb code according to imdb dom change
-// ver 0.0.51 @ 2021-7-7
+// ver 0.0.52 @ 2021-7-7
 //    fixed large div update code
-//    fixed manual update code
+//    fixed manual update code... twice
 //    fixed large div update flow
 */
 
@@ -469,10 +469,14 @@ class FyGlobal {
 
       //캐시에 원제와 imdb 평점이 있다면 캐시 사용 대상
       if(cache.orgTitle && cache.imdbRating) {
-        //단, 캐시가 오래되었거나 원제가 없다면 다시 페칭
+        //단, 캐시가 오래되었거나 원제가 없다면 다시 페칭.
         const UPDATE_INTERVAL_DAYS = 30;  //in days
         if(dateDiffInDays(new Date(), new Date(cache.imdbRatingFetchedDate)) > UPDATE_INTERVAL_DAYS) {
           console.debug(title + ' cache is over than ' + UPDATE_INTERVAL_DAYS + ' days. so updating now...');  //dev (verbose)
+          titles[i] = title;
+        }
+        else if(trueUrl) {
+          //수동 업데이트 시에도 다시 페칭.
           titles[i] = title;
         }
         else {
