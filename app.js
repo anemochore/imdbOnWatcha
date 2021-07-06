@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.48
+// @version      0.0.50
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -88,6 +88,9 @@
 //    fixed large div selectors according to watcha dom change... again
 // ver 0.0.48 @ 2021-7-4
 //    fixed imdb code according to imdb dom change
+// ver 0.0.50 @ 2021-7-7
+//    fixed large div update code
+//    fixed manual update code
 */
 
 class FyGlobal {
@@ -438,8 +441,8 @@ class FyGlobal {
         item.insertBefore(div, item.querySelector(fy.subSelector));
       }
 
-      if(!item.querySelector(fy.titleSelector))
-        console.log(item, fy.titleSelector);
+      //if(!item.querySelector(fy.titleSelector))
+        //console.debug(item, fy.titleSelector);
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
@@ -470,10 +473,6 @@ class FyGlobal {
           console.debug(title + ' cache is over than ' + UPDATE_INTERVAL_DAYS + ' days. so updating now...');  //dev (verbose)
           titles[i] = title;
         }
-        else if(trueYear || trueUrl || trueImdbUrl) {
-          //large div 업데이트 시에는 날짜 상관없이 다시 페칭
-          titles[i] = title;
-        }
         else {
           console.debug(title + ' cache will be used: ' + cache.orgTitle+' ('+cache.year+')');
         }
@@ -481,7 +480,6 @@ class FyGlobal {
       else {
         //캐시에 없다면 당연히 페칭
         titles[i] = title;
-        otData[i] = {};
       }
       otData[i].query = title;
     });
@@ -543,35 +541,36 @@ class FyGlobal {
           console.log('nothing to search on wp.');
           searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
         }
+
+        if(trueYear || trueUrl || trueImdbUrl) {
+          //large div update or manual update
+          if(trueUrl) {
+            otData[0].otUrl = trueUrl;
+            otData[0].otFlag = '';
+          }
+          else if(trueImdbUrl) {
+            otData[0].imdbUrl = trueImdbUrl;
+            otData[0].imdbFlag = '';
+          }
+        }
         else {
-          if(trueYear || trueUrl || trueImdbUrl) {
-            //large div update or manual update
-            if(trueUrl) {
-              otData[0].otUrl = trueUrl;
-              otData[0].otFlag = '';
-            }
-            else if(trueImdbUrl) {
-              otData[0].imdbUrl = trueImdbUrl;
-              otData[0].imdbFlag = '';
-            }
+          //목록 업데이트
+          let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
+          //왓챠피디아는 .을 없애야 함...
+          const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null));
+          parseWpSearchResults_(otSearchResults);  //otData, etc. are passed.
+          searchLength = otSearchResults.filter(el => el).length;
+          if(searchLength == 0) {
+            console.log('org. titles searching result is empty.');
+            searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
           }
           else {
-            //목록 업데이트
-            let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
-            //왓챠피디아는 .을 없애야 함...
-            const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null));
-            parseWpSearchResults_(otSearchResults);  //otData, etc. are passed.
-            searchLength = otSearchResults.filter(el => el).length;
-            if(searchLength == 0) {
-              console.log('org. titles searching result is empty.');
-              searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-            }
-            else {
-              console.log('org. titles searching done:', searchLength);  //dev
-            }
+            console.log('org. titles searching done:', searchLength);  //dev
           }
+        }
 
-          //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
+        //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
+        if(!trueImdbUrl) {
           toast.log('scraping org. titles...');
           const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
             headers: {
@@ -579,17 +578,17 @@ class FyGlobal {
             },
           });
           searchLength = otScrapeResults.filter(el => el).length;
+
           if(searchLength == 0) {
             console.log('org. titles scraping result is empty.');
             searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
           }
-          else {
-            console.log('org. titles scraping done:', searchLength);  //dev
-            parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
 
-            searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-          }
+          console.log('org. titles scraping done:', searchLength);  //dev
+          parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
         }
+
+        searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
       }
       else {
         timeWaited += 500;
@@ -771,82 +770,80 @@ class FyGlobal {
         }
       });
 
-      //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지.
       let imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/search/';
       const tempYearString = trueYear ? '%20('+trueYear+')' : '';
 
+      //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
       //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다... 다른 문자가 더 있을지도...
+      console.log(...orgTitles);
       let filtered = orgTitles.map((title, i) => title ? imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F')) + tempYearString : null);
       searchLength = filtered.filter(el => el).length;
+
       if(searchLength == 0) {
         console.log('nothing to search on imdb.');
       }
+      else if(!trueImdbUrl) {
+        toast.log('now searching on imdb for',searchLength,'items...');
+
+        imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
+        searchLength = imdbResults.filter(el => el).length;
+      }
+
+      if(searchLength == 0) {
+        console.log('imdb searching result is empty.');
+      }
       else {
-        if(trueImdbUrl) {
-          searchLength = 1;
+        imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/film/';
+        if(!trueImdbUrl) {
+          console.log('imdb searching done:', searchLength);
+          imdbData = parseImdbResults_('search');  //imdbResults, etc are passed.
+
+          //get ratings. id가 있는 애들만 찾는다.
+          filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId : null);
+          searchLength = filtered.filter(el => el).length;
         }
         else {
-          toast.log('now searching on imdb for',searchLength,'items...');
-
-          imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
-          searchLength = imdbResults.filter(el => el).length;
+          const tempImdbId = trueImdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
+          filtered = [imdbPrefix + tempImdbId];
+          otData[0].imdbId = tempImdbId;
+          imdbData = [otData[0]];
         }
 
         if(searchLength == 0) {
-          console.log('imdb searching result is empty.');
+          console.log('nothing to get ratings on imdb.');
         }
         else {
-          imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/film/';
-          if(!trueImdbUrl) {
-            console.log('imdb searching done:', searchLength);
-            imdbData = parseImdbResults_('search');  //imdbResults, etc are passed.
+          toast.log('getting imdb ratings for',searchLength,'items...');
 
-            //get ratings. id가 있는 애들만 찾는다.
-            filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId : null);
-            searchLength = filtered.filter(el => el).length;
-          }
-          else {
-            const sImdbId = trueImdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
-            filtered = [imdbPrefix + sImdbId];
-            imdbData = [otData[0]];
-          }
-
+          imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
+          searchLength = imdbResults.filter(el => el).length;
           if(searchLength == 0) {
-            console.log('nothing to get ratings on imdb.');
+            console.log('imdb scraping result is empty.');
           }
           else {
-            toast.log('getting imdb ratings for',searchLength,'items...');
-
-            imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
-            searchLength = imdbResults.filter(el => el).length;
-            if(searchLength == 0) {
-              console.log('imdb scraping result is empty.');
-            }
-            else {
-              console.log('getting imdb ratings done:', searchLength);
-              newImdbData = parseImdbResults_('rating');  //imdbResults, imdbData, etc are passed.
-            }
+            console.log('getting imdb ratings done:', searchLength);
+            newImdbData = parseImdbResults_('rating');  //imdbResults, imdbData, etc are passed.
           }
-
-          imdbData.forEach((oldEl, i) => {
-            const el = newImdbData[i];
-            if(el && el.imdbRating) {
-              otData[i].imdbFlag = el.imdbFlag || '';
-              otData[i].imdbId = el.imdbId;
-              otData[i].imdbUrl = el.imdbUrl;
-              otData[i].imdbRating = el.imdbRating;
-              otData[i].imdbRatingFetchedDate = el.imdbRatingFetchedDate;
-              otData[i].query = allTitles[i];  //to update cache
-            }
-            else if(oldEl && oldEl.imdbUrl) {
-              otData[i].imdbFlag = oldEl.imdbFlag || '';
-              if(oldEl.imdbId)  //for special mis-working case
-                otData[i].imdbId = oldEl.imdbId;
-              otData[i].imdbUrl = oldEl.imdbUrl;  //검색 실패(또는 api 스크레이핑 실패)로 url만 건진 경우를 위해
-              otData[i].query = allTitles[i];  //to update cache
-            }
-          });
         }
+
+        imdbData.forEach((oldEl, i) => {
+          const el = newImdbData[i];
+          if(el && el.imdbRating) {
+            otData[i].imdbFlag = el.imdbFlag || '';
+            otData[i].imdbId = el.imdbId;
+            otData[i].imdbUrl = el.imdbUrl;
+            otData[i].imdbRating = el.imdbRating;
+            otData[i].imdbRatingFetchedDate = el.imdbRatingFetchedDate;
+            otData[i].query = allTitles[i];  //to update cache
+          }
+          else if(oldEl && oldEl.imdbUrl) {
+            otData[i].imdbFlag = oldEl.imdbFlag || '';
+            if(oldEl.imdbId)  //for special mis-working case
+              otData[i].imdbId = oldEl.imdbId;
+            otData[i].imdbUrl = oldEl.imdbUrl;  //검색 실패(또는 api 스크레이핑 실패)로 url만 건진 경우를 위해
+            otData[i].query = allTitles[i];  //to update cache
+          }
+        });
       }
 
       //내부 캐시 반영
@@ -1002,7 +999,7 @@ class FyGlobal {
   async largeDivUpdateForWatcha(largeDiv) {
     let isContensPage = false;
     if(largeDiv.nodeName == 'H1') {
-      toast.log('large div forced updating... (on a single content page)');
+      toast.log('large div updating... (on a single content page)');
       isContensPage = true;
       largeDiv = largeDiv.parentNode.parentNode.parentNode;
     }
@@ -1026,15 +1023,28 @@ class FyGlobal {
     const code = largeDiv.querySelector('a[aria-label="재생"]').href.split('/').pop();
     const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;  //english page
 
+    let forceUpdate = false;
+    let fyItems, otFlag, imdbFlag, tempYear;
     if(isContensPage) {
-      //change flow
-      fy.search([largeDiv], trueYear, trueUrl);
+      if(largeDiv.getAttribute(FY_UNIQ_STRING) == null) {
+        forceUpdate = true;
+        fyItems = [largeDiv];
+      }
+      else {
+        const sEl = largeDiv.querySelector('.fy-external-site');
+        tempYear = sEl.getAttribute('year');
+        imdbFlag = largeDiv.querySelector('.fy-imdb-rating').getAttribute('flag');
+
+        if(imdbFlag != '' || trueYear != tempYear) {
+          forceUpdate = true; 
+        }
+      }
     }
     else {
       const trueTitle = largeDiv.querySelector('h1').textContent;
 
       //large div 페칭 후 업데이트할 아이템들. 페칭이 오래 걸리면 달라질 수도 있지만... 귀찮.
-      const fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
+      fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
       .filter(item => item.querySelector(fy.titleSelector).textContent == trueTitle);
       await elementReady('.content-preview-exit-done', fy.root);
 
@@ -1050,20 +1060,23 @@ class FyGlobal {
       }
 
       const sEl = fyItem.querySelector('.fy-external-site');
-      const otFlag = sEl.getAttribute('flag');
-      const tempYear = sEl.getAttribute('year');
-      const imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
+      otFlag = sEl.getAttribute('flag');
+      tempYear = sEl.getAttribute('year');
+      imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
 
       //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
-      if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
-        //change flow
-        fy.search(fyItems, trueYear, trueUrl);
-      }
-      else {
-        toast.log('already updated.');
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
-      }
+      if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear)
+        forceUpdate = true;
+    }
+
+    if(forceUpdate) {
+      //change flow
+      fy.search(fyItems, trueYear, trueUrl);
+    }
+    else {
+      toast.log('already updated.');
+      toast.log();
+      fy.observer.observe(fy.root, fy.observerOption);
     }
 
   }
@@ -1159,6 +1172,7 @@ class FyGlobal {
       trueUrl = trueUrl.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '');
 
       //change flow
+      fy.observer.disconnect();
       fy.search([fyItem], null, trueUrl);
     }
     else if(type == 'imdb') {
@@ -1172,6 +1186,7 @@ class FyGlobal {
       trueUrl = trueUrl.trim().replace(/\/\?.*$/, '');
 
       //change flow
+      fy.observer.disconnect();
       fy.search([fyItem], null, null, trueUrl);
     }
   }
