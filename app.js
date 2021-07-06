@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.52
+// @version      0.0.53
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -88,10 +88,11 @@
 //    fixed large div selectors according to watcha dom change... again
 // ver 0.0.48 @ 2021-7-4
 //    fixed imdb code according to imdb dom change
-// ver 0.0.52 @ 2021-7-7
+// ver 0.0.53 @ 2021-7-7
 //    fixed large div update code
 //    fixed manual update code... twice
 //    fixed large div update flow
+//    fixed /contents large div update code
 */
 
 class FyGlobal {
@@ -127,7 +128,7 @@ class FyGlobal {
       'watcha.com': 'div.exit-active',
     };
     const largeDivSelectorsExtra = {
-      'watcha.com': 'main>div div>h1',
+      'watcha.com': 'main>div>div>div>h1:not([hidden])',
     };
     const subSelectors = {
       'watcha.com': 'div',
@@ -334,7 +335,7 @@ class FyGlobal {
 
   async entry() {
     //entry point
-    const curLocation= document.location;
+    const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
     if(fy.prevLocation.origin+fy.prevLocation.pathname != curLocation.origin+curLocation.pathname) {
@@ -1007,6 +1008,7 @@ class FyGlobal {
   async largeDivUpdateForWatcha(largeDiv) {
     let isContensPage = false;
     if(largeDiv.nodeName == 'H1') {
+      //if(document.location.pathname == '/contents')
       toast.log('large div updating... (on a single content page)');
       isContensPage = true;
       largeDiv = largeDiv.parentNode.parentNode.parentNode;
