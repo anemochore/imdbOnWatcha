@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.56
+// @version      0.0.57
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -93,9 +93,9 @@
 //    fixed manual update code... twice
 //    fixed large div update flow
 //    fixed /contents large div update code
-// ver 0.0.56 @ 2021-7-20
+// ver 0.0.57 @ 2021-7-20
 //    added /people path
-//    fixed /contents large div update code
+//    fixed /contents large div update code... twice
 //    changed imdb searching code and imdb access code
 */
 
@@ -378,7 +378,7 @@ class FyGlobal {
       }
     });
     if(fy.isExcludingPath) {
-      toast.log('excluding page');
+      toast.log('on excluding page');
       isExit = true;
     }
 
@@ -398,10 +398,8 @@ class FyGlobal {
     //init
     fy.observer.disconnect();
 
-    if(isExit) {
-      toast.log();
-    }
-    else {
+    toast.log();
+    if(!isExit) {
       await elementReady(fy.selectorForException + ', ' + fy.selector, fy.root);
       fy.handler();  //force first run
     }
@@ -415,7 +413,7 @@ class FyGlobal {
     if(largeDiv) {
       //closing large div
       console.debug('exiting large div...');  //dev
-      toast.log();
+      //toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
     }
     else {
@@ -436,7 +434,7 @@ class FyGlobal {
       }
       else {
         //nothing to do
-        toast.log();
+        //toast.log();
         fy.observer.observe(fy.root, fy.observerOption);
       }
     }
@@ -445,11 +443,14 @@ class FyGlobal {
   async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
+    //console.debug('on search func');
+    /*
     if(!itemDivs) {
       //nothing to do
       toast.log();
       return;
     }
+    */
 
     let otData = [];
     let titles = Array(itemDivs.length).fill(null);
@@ -1037,18 +1038,25 @@ class FyGlobal {
 
     if(largeDiv.nodeName == 'H1') {
       // /contents/ path
-      toast.log('large div updating... (on a single content page)');
       isContensPage = true;
       largeDiv = largeDiv.parentNode.parentNode.parentNode;
     }
-    else {
-      toast.log('large div updating...');
+    else
       largeDiv.setAttribute(FY_UNIQ_STRING, '');
-    }
+
+    const commonSelector = 'div[class*="-ContentMetaCreditWithPredicted"]';
+    await elementReady(commonSelector, largeDiv);
 
     const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
-    await elementReady(trueYearSelector, largeDiv);
-    const trueYear = largeDiv.querySelector(trueYearSelector).textContent.trim().slice(-5).slice(0, 4);
+    let trueYear = largeDiv.querySelector(trueYearSelector);
+    if(trueYear)
+      trueYear = trueYear.textContent.trim().slice(-5).slice(0, 4);
+    else {
+      //nothing to do (상세정보, 비슷한 작품 등의 탭을 눌렀을 때)
+      //toast.log();
+      fy.observer.observe(fy.root, fy.observerOption);
+      return;
+    }
 
     /*
     let trueCat = largeDiv.querySelector('[data-select="content_meta"]').textContent;
@@ -1091,14 +1099,6 @@ class FyGlobal {
       //현재 선택한 아이템
       const fyItem = fyItems.filter(el => el.querySelector('div[class*="-Content"]>div').childElementCount == 3).pop();
 
-      //when largeDiv is disappearing, there's nothing to do.
-      //is this necessary??
-      if(!fyItem) {
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
-        return;
-      }
-
       const sEl = fyItem.querySelector('.fy-external-site');
       otFlag = sEl.getAttribute('flag');
       tempYear = sEl.getAttribute('year');
@@ -1109,16 +1109,24 @@ class FyGlobal {
         forceUpdate = true;
     }
 
-    if(forceUpdate) {
+    if(forceUpdate && fyItems) {
       //change flow
+      if(isContensPage)
+        toast.log('large div updating... (on a single content page)');
+      else
+        toast.log('large div updating...');
+
       fy.search(fyItems, trueYear, trueUrl);
     }
-    else {
-      toast.log('already updated.');
-      toast.log();
+    else { 
+      if(fyItems) {
+        toast.log('already updated.');  //잘 안 나타나는 경우가 있다??
+        toast.log();
+      }
+
+      //nothing to do (보고싶어요 등에 마우스 오버, 아웃 시)
       fy.observer.observe(fy.root, fy.observerOption);
     }
-
   }
 
   updateDivs(itemDivs, otData) {
@@ -1310,7 +1318,7 @@ function fadingAlert() {
     if(txt.length == 0) {
       await sleep(1);
       this.div.style.opacity = 0;
-      this.div.style.transition = '5s';
+      this.div.style.transition = 'opacity 2s ease-in';
     }
     else {
       this.div.textContent = txt.join(' ');
