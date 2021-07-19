@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.53
+// @version      0.0.56
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -93,6 +93,10 @@
 //    fixed manual update code... twice
 //    fixed large div update flow
 //    fixed /contents large div update code
+// ver 0.0.56 @ 2021-7-20
+//    added /people path
+//    fixed /contents large div update code
+//    changed imdb searching code and imdb access code
 */
 
 class FyGlobal {
@@ -100,7 +104,7 @@ class FyGlobal {
   constructor() {
     //setting per sites
     const includingPathses = {
-      'watcha.com': ['/home', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents'],  //dev todo:  /  '/tutorial'],
+      'watcha.com': ['/home', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],  //dev todo:  /  '/tutorial'],
     };
     const excludingPathses = {
       'watcha.com': [],
@@ -128,7 +132,7 @@ class FyGlobal {
       'watcha.com': 'div.exit-active',
     };
     const largeDivSelectorsExtra = {
-      'watcha.com': 'main>div>div>div>h1:not([hidden])',
+      'watcha.com': 'main>div>div>div>h1:not([hidden]), main>div>div>div>h1+img',
     };
     const subSelectors = {
       'watcha.com': 'div',
@@ -174,7 +178,7 @@ class FyGlobal {
     if(document.location.host == 'www.imdb.com') {
       const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
-      const path = document.location.pathname;
+      let path = document.location.pathname;
       if(!path.startsWith('/title/') || path.endsWith('/episodes')) {
         toast.log();
         return;
@@ -256,7 +260,8 @@ class FyGlobal {
             cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
           }
           else {
-            toast.log(orgTitle+' ('+trueYear+') was successfully updated on "imdb on watcha" cache.');
+            toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on "imdb on watcha" cache.');
+
             cache.imdbRating = imdbRating;
           }
           cache.imdbFlag = '';
@@ -265,8 +270,17 @@ class FyGlobal {
           GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
         }
         else if(imdbRating != cache.imdbRating) {
-          //another special... mis-working case of the api
-          toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
+          if(cache.imdbRating == 'n/a') {
+            toast.log('updating the whole cache for '+orgTitle+' ('+trueYear+').');
+
+            cache.imdbId = imdbId;
+            if(path.endsWith('/'))
+              path = path.slice(0, -1);
+            cache.imdbUrl = 'https://www.imdb.com' + path;
+          }
+          else {
+            toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
+          }
           cache.imdbRating = imdbRating;
 
           cache.imdbRatingFetchedDate = new Date();
@@ -430,6 +444,12 @@ class FyGlobal {
 
   async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
+
+    if(!itemDivs) {
+      //nothing to do
+      toast.log();
+      return;
+    }
 
     let otData = [];
     let titles = Array(itemDivs.length).fill(null);
@@ -948,6 +968,7 @@ class FyGlobal {
                 }
               }
             });
+
             if(exactMatchCount > 1) {
               console.warn(exactMatchCount + ' multiple exact matches for ' + orgTitle + ' found on imdb. so taking the first exact match.');
               imdbDatum.imdbFlag = '?';
@@ -983,6 +1004,9 @@ class FyGlobal {
               const tempYear = res.year;
               const sTrueYear = trueYear || imdbDatum.year;
               const yearDiff = Math.abs(tempYear - sTrueYear);
+              //console.debug(yearDiff, tempYear, sTrueYear, trueYear, imdbDatum.year);
+
+              //if trueYear or imdbDatum.year is n/a, the difference cannot be checked.
               if(yearDiff == 1) {
                 console.debug('mild warning: year on imdb is ' + (tempYear || 'n/a') + ', which differs 1 year from ' + sTrueYear + ' for ' + orgTitle);
                 imdbDatum.imdbFlag = '?';
@@ -991,7 +1015,7 @@ class FyGlobal {
                 console.warn('year on imdb is ' + (tempYear || 'n/a') + ', which quite differs from ' + sTrueYear + ' for ' + orgTitle);
                 imdbDatum.imdbFlag = '??';
               }
-              else {
+              else if(!isNaN(yearDiff)) {
                 imdbDatum.imdbFlag = '';
               }
             }
@@ -1007,8 +1031,12 @@ class FyGlobal {
 
   async largeDivUpdateForWatcha(largeDiv) {
     let isContensPage = false;
+
+    if(largeDiv.nodeName == 'IMG')
+      largeDiv = largeDiv.previousSibling;
+
     if(largeDiv.nodeName == 'H1') {
-      //if(document.location.pathname == '/contents')
+      // /contents/ path
       toast.log('large div updating... (on a single content page)');
       isContensPage = true;
       largeDiv = largeDiv.parentNode.parentNode.parentNode;
@@ -1042,8 +1070,10 @@ class FyGlobal {
       }
       else {
         const sEl = largeDiv.querySelector('.fy-external-site');
-        tempYear = sEl.getAttribute('year');
-        imdbFlag = largeDiv.querySelector('.fy-imdb-rating').getAttribute('flag');
+        if(sEl) {
+          tempYear = sEl.getAttribute('year');
+          imdbFlag = largeDiv.querySelector('.fy-imdb-rating').getAttribute('flag');
+        }
 
         if(imdbFlag != '' || trueYear != tempYear) {
           forceUpdate = true; 
