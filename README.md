@@ -23,6 +23,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 
 ## supported sites
 1. watcha.com
+2. m.kinolights.com (only /title pages)
 2. todo: netflix?
 
 ## todo
@@ -119,3 +120,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    added /people path
     //    fixed /contents large div update code... twice
     //    changed imdb searching code and imdb access code
+    // ver 0.1.0 @ 2021-7-26
+    //    added m.kinolights.com site support (only /title pages)

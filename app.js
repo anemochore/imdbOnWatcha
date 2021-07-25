@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.0.57
+// @version      0.1.0
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
 // @include      https://watcha.com/*
 // @include      https://www.imdb.com/title/*
+// @include      https://m.kinolights.com/*
 //// @include      https://www.netflix.com/*
 // @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
 // @grant        GM_xmlhttpRequest
@@ -97,6 +98,8 @@
 //    added /people path
 //    fixed /contents large div update code... twice
 //    changed imdb searching code and imdb access code
+// ver 0.1.0 @ 2021-7-26
+//    added m.kinolights.com site support (only /title pages)
 */
 
 class FyGlobal {
@@ -105,16 +108,19 @@ class FyGlobal {
     //setting per sites
     const includingPathses = {
       'watcha.com': ['/home', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],  //dev todo:  /  '/tutorial'],
+      'm.kinolights.com': ['/title'],
     };
     const excludingPathses = {
       'watcha.com': [],
+      'm.kinolights.com': [],
     };
     //todo+++
     const excludingSectionTexts = {
       'watcha.com': ['새로운 에피소드', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
     };
-    const roots = {
+    const rootSelectors = {
       'watcha.com': 'main',
+      'm.kinolights.com': 'html',
     };
     const selectors = {
       'watcha.com': 'li div[class*="-Row"] ul>li',
@@ -124,46 +130,56 @@ class FyGlobal {
     };
     const titleSelectors = {
       'watcha.com': 'h1, div[class*="-StyledText"]',
+      'm.kinolights.com': 'h3.title-kr',
     };
     const largeDivSelectors = {
       'watcha.com': 'div.enter-done',
+      'm.kinolights.com': 'div.movie-title-wrap',
     };
     const largeDivSelectorsOnExit = {
       'watcha.com': 'div.exit-active',
     };
-    const largeDivSelectorsExtra = {
-      'watcha.com': 'main>div>div>div>h1:not([hidden]), main>div>div>div>h1+img',
-    };
     const subSelectors = {
       'watcha.com': 'div',
+      'm.kinolights.com': null,  //no insert
+    };
+    const extraSelectors = {
+      'm.kinolights.com': 'span.imdb-wrap>div.score',
     };
     const handlers = {
       'watcha.com': this.handlerForWatcha,
+      'm.kinolights.com': this.handlerForKino,
     };
     const largeDivUpdates = {
       'watcha.com': this.largeDivUpdateForWatcha,
+      'm.kinolights.com': this.largeDivUpdateForKino,
+    };
+    const preventMultipleUrlChanges = {
+      'watcha.com': false,
+      'm.kinolights.com': true,
     };
 
     //global vars & flags
     this.prevLocation = document.location;
     this.isFetching = false;
     this.isAborting = false;
-    
+
     //first setup
     const site = this.prevLocation.host;
 
     this.includingPaths = includingPathses[site];
     this.excludingPaths = excludingPathses[site];
-    this.root = document.querySelector(roots[site]);
+    this.rootSelector = rootSelectors[site];
     this.selector = selectors[site];
     this.selectorForException = selectorsForException[site];
     this.titleSelector = titleSelectors[site];
     this.largeDivSelector = largeDivSelectors[site];
     this.largeDivSelectorOnExit = largeDivSelectorsOnExit[site];
-    this.largeDivSelectorExtra  = largeDivSelectorsExtra[site];
     this.subSelector = subSelectors[site];
+    this.extraSelector = extraSelectors[site];
     this.handler = handlers[site];
     this.largeDivUpdate = largeDivUpdates[site];
+    this.preventMultipleUrlChange = preventMultipleUrlChanges[site];
   }
 
   run() {
@@ -297,10 +313,9 @@ class FyGlobal {
       return;
     }
 
-
     //to get the previous url. https://stackoverflow.com/a/52809105
     window.addEventListener('locationchange', e => {
-      fy.entry();
+      fy.entry(e);
     });
 
     history.pushState = (f => function pushState() {
@@ -347,14 +362,14 @@ class FyGlobal {
     fy.entry();
   }
 
-  async entry() {
+  async entry(e = null) {
     //entry point
+    fy.root = document.querySelector(fy.rootSelector);
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
     if(fy.prevLocation.origin+fy.prevLocation.pathname != curLocation.origin+curLocation.pathname) {
       toast.log('url changed. so aborting possible current fetching...');
-      //console.debug(fy.prevLocation.href, curLocation.href);
 
       if(fy.isFetching)
         fy.isAborting = true;
@@ -365,8 +380,6 @@ class FyGlobal {
         item.removeAttribute(FY_UNIQ_STRING);
       });
     }
-    else
-      toast.log('fy script initiating...');
 
     let isExit = false;
     //check if the page is included in excludingPath
@@ -399,10 +412,23 @@ class FyGlobal {
     fy.observer.disconnect();
 
     toast.log();
-    if(!isExit) {
-      await elementReady(fy.selectorForException + ', ' + fy.selector, fy.root);
+    if(!isExit && !(fy.preventMultipleUrlChange && fy.isFetching)) {
+      toast.log('fy script initiating...');
+      let selector = fy.selector;
+      if(!selector)
+        selector = fy.largeDivSelector;
+      if(fy.selectorForException)
+        selector = fy.selectorForException + ', ' + selector;
+      await elementReady(selector, fy.root);
+
       fy.handler();  //force first run
     }
+  }
+
+  async handlerForKino() {
+    const largeDiv = document.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+    if(largeDiv)
+      fy.largeDivUpdate(largeDiv);
   }
 
   async handlerForWatcha(m, o) {
@@ -417,8 +443,9 @@ class FyGlobal {
       fy.observer.observe(fy.root, fy.observerOption);
     }
     else {
+      const largeDivSelectorExtra = 'main>div>div>div>h1:not([hidden]), main>div>div>div>h1+img';
       largeDiv = fy.root.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])') ||
-        fy.root.querySelector(fy.largeDivSelectorExtra);
+        fy.root.querySelector(largeDivSelectorExtra);
 
       if(itemNum == 0 && largeDiv) {
         fy.observer.disconnect();
@@ -440,7 +467,7 @@ class FyGlobal {
     }
   }
 
-  async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null) {
+  async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
     //console.debug('on search func');
@@ -456,17 +483,9 @@ class FyGlobal {
     let titles = Array(itemDivs.length).fill(null);
     let allTitles = Array(itemDivs.length).fill(null);
 
-    itemDivs.forEach((item, i) => {
-      //div pre-update if not done yet
-      if(item.getAttribute(FY_UNIQ_STRING) == null) {
-        item.setAttribute(FY_UNIQ_STRING, '');
-        const div = document.createElement('div');
-        div.className = FY_UNIQ_STRING;
-        item.insertBefore(div, item.querySelector(fy.subSelector));
-      }
+    fy.preUpdateDivs(itemDivs);
 
-      //if(!item.querySelector(fy.titleSelector))
-        //console.debug(item, fy.titleSelector);
+    itemDivs.forEach((item, i) => {
       let title = item.querySelector(fy.titleSelector).textContent;
       allTitles[i] = title;
 
@@ -497,10 +516,12 @@ class FyGlobal {
           console.debug(title + ' cache is over than ' + UPDATE_INTERVAL_DAYS + ' days. so updating now...');  //dev (verbose)
           titles[i] = title;
         }
+        /*
         else if(trueUrl) {
           //수동 업데이트 시에도 다시 페칭.
           titles[i] = title;
         }
+        */
         else {
           console.debug(title + ' cache will be used: ' + cache.orgTitle+' ('+cache.year+')');
         }
@@ -581,6 +602,10 @@ class FyGlobal {
             otData[0].imdbUrl = trueImdbUrl;
             otData[0].imdbFlag = '';
           }
+          else if(trueYear && trueOrgTitle) {
+            otData[0].orgTitle = trueOrgTitle;
+            otData[0].year = trueYear;
+          }
         }
         else {
           //목록 업데이트
@@ -600,7 +625,7 @@ class FyGlobal {
         }
 
         //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
-        if(!trueImdbUrl) {
+        if(!trueImdbUrl && !trueOrgTitle) {
           toast.log('scraping org. titles...');
           const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
             headers: {
@@ -862,6 +887,7 @@ class FyGlobal {
             otData[i].imdbFlag = el.imdbFlag || '';
             otData[i].imdbId = el.imdbId;
             otData[i].imdbUrl = el.imdbUrl;
+            otData[i].year = el.year;
             otData[i].imdbRating = el.imdbRating;
             otData[i].imdbRatingFetchedDate = el.imdbRatingFetchedDate;
             otData[i].query = allTitles[i];  //to update cache
@@ -1000,6 +1026,9 @@ class FyGlobal {
               imdbDatum.imdbRatingFetchedDate = new Date();
             }
 
+            if(isNaN(parseInt(imdbDatum.year)) && !isNaN(parseInt(res.year)))
+              imdbDatum.year = res.year;
+
             //final! year difference check
             if(!trueImdbUrl) {
               const tempYear = res.year;
@@ -1017,7 +1046,10 @@ class FyGlobal {
                 imdbDatum.imdbFlag = '??';
               }
               else if(!isNaN(yearDiff)) {
-                imdbDatum.imdbFlag = '';
+                if(imdbDatum.imdbFlag == '??')
+                  imdbDatum.imdbFlag = '?';
+                else if(imdbDatum.imdbFlag == '?')
+                  imdbDatum.imdbFlag = '';
               }
             }
           }
@@ -1027,6 +1059,24 @@ class FyGlobal {
 
         return imdbData;
       }
+    }
+  }
+
+  async largeDivUpdateForKino(largeDiv) {
+    //no error-check
+    const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
+
+    if(isNaN(parseFloat(imdbRating))) {
+      toast.log('imdb rating is not present on kino. so updating...');
+
+      const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
+      const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
+
+      fy.search([largeDiv], trueYear, null, null, trueOrgTitle);
+    }
+    else {
+      toast.log('imdb rating is present. so nothing to do.');
+      toast.log();
     }
   }
 
@@ -1129,6 +1179,26 @@ class FyGlobal {
     }
   }
 
+  preUpdateDivs(itemDivs) {
+    //div pre-update if not done yet
+    if(fy.subSelector) {
+      itemDivs.forEach((item, i) => {
+        if(item.getAttribute(FY_UNIQ_STRING) == null) {
+          item.setAttribute(FY_UNIQ_STRING, '');
+          const div = document.createElement('div');
+          div.className = FY_UNIQ_STRING;
+          item.insertBefore(div, item.querySelector(fy.subSelector));
+        }
+      });
+    }
+    else {
+      //in case of kinolights
+      const el = itemDivs[0].querySelector(fy.extraSelector);
+      el.setAttribute(FY_UNIQ_STRING, '');
+      el.classList.add(FY_UNIQ_STRING);
+    }
+  }
+
   updateDivs(itemDivs, otData) {
     if(!fy.isAborting) {
       toast.log('updating divs...');
@@ -1146,9 +1216,13 @@ class FyGlobal {
 
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
-      const div = fyItemToUpdate.querySelector('div.' + FY_UNIQ_STRING);
-      if(!div)
+      const selector = fy.subSelector ? fy.subSelector + '.' + FY_UNIQ_STRING : fy.extraSelector;
+      const div = fyItemToUpdate.querySelector(selector);
+
+      if(!div) {
+        console.warn('no fy-item sub div found for ' + fyItemToUpdate);
         return;
+      }
 
       let flag = otDatum.otFlag || '';
       let year = otDatum.year || '';
@@ -1157,12 +1231,14 @@ class FyGlobal {
       if(otDatum.otUrl)
         innerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
 
-      innerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
+      if(fy.subSelector)
+        innerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
 
       if(otDatum.otUrl)
         innerHtml += `</a>`;
 
-      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+      if(fy.subSelector)
+        innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
 
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
@@ -1195,6 +1271,11 @@ class FyGlobal {
         innerHtml += `</a>`;
 
       innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
+
+      //in case of kinolights
+      if(!fy.subSelector)
+        innerHtml += ' · ';
+
       div.innerHTML = innerHtml;
     }
   }
@@ -1333,8 +1414,11 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function elementReady(selector, baseEl = document.documentElement) {
+function elementReady(selector, baseEl) {
   return new Promise((resolve, reject) => {
+    if(!baseEl)
+      baseEl = document.documentElement;
+
     let els = [...baseEl.querySelectorAll(selector)];
     if(els.length > 0)
       resolve(els[els.length-1]);
