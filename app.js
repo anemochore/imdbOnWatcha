@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.3
+// @version      0.1.4
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -100,10 +100,10 @@
 //    changed imdb searching code and imdb access code
 // ver 0.1.0 @ 2021-7-26
 //    added m.kinolights.com site support (only /title pages)
-// ver 0.1.3 @ 2021-7-26
+// ver 0.1.4 @ 2021-7-26
 //    kinolights handler logic fix
 //    improved imdb searching
-//    fixed imdb cache use
+//    fixed imdb cache use... twice
 */
 
 class FyGlobal {
@@ -953,17 +953,23 @@ class FyGlobal {
             if(res)
               console.debug(res);  //dev
 
-            if(imdbDatum.imdbFlag == '')
-              console.debug('cache flag is okay. so continue to use the cache flag.');
-            else
-              imdbDatum.imdbFlag = '??';
-
             if(res && res.id) {  //special mis-working case for this API
-              imdbDatum.imdbId = res.id;
-              imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
+              if(otData[i].imdbId && otData[i].imdbUrl && otData[i].imdbFlag == '') {
+                console.debug('cache flag is okay. so dicard search result and use the cache flag.');
+                imdbDatum.imdbFlag = '';
+              }
+              else {
+                imdbDatum.imdbId = res.id;
+                imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
+                if(imdbDatum.imdbFlag == '')
+                  imdbDatum.imdbFlag = '?';
+                else
+                  imdbDatum.imdbFlag = '??';
+              }
             }
             else {
               imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+              imdbDatum.imdbFlag = '??';
             }
           }
           else if(type == 'search') {

@@ -122,7 +122,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    changed imdb searching code and imdb access code
     // ver 0.1.0 @ 2021-7-26
     //    added m.kinolights.com site support (only /title pages)
-    // ver 0.1.3 @ 2021-7-26
+    // ver 0.1.4 @ 2021-7-26
     //    kinolights handler logic fix
     //    improved imdb searching
-    //    fixed imdb cache use
+    //    fixed imdb cache use... twice
