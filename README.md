@@ -24,7 +24,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 ## supported sites
 1. watcha.com
 2. m.kinolights.com (only /title pages)
-2. todo: netflix?
+2. todo: netflix
 
 ## todo
 1. support for imdb my rating -> not possible. scraping is being blocked sooner or later. user rating url sample: https://www.imdb.com/user/ur105461136/ratings
@@ -122,3 +122,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    changed imdb searching code and imdb access code
     // ver 0.1.0 @ 2021-7-26
     //    added m.kinolights.com site support (only /title pages)
+    // ver 0.1.3 @ 2021-7-26
+    //    kinolights handler logic fix
+    //    improved imdb searching
+    //    fixed imdb cache use

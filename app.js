@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.0
+// @version      0.1.3
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -100,6 +100,10 @@
 //    changed imdb searching code and imdb access code
 // ver 0.1.0 @ 2021-7-26
 //    added m.kinolights.com site support (only /title pages)
+// ver 0.1.3 @ 2021-7-26
+//    kinolights handler logic fix
+//    improved imdb searching
+//    fixed imdb cache use
 */
 
 class FyGlobal {
@@ -248,7 +252,7 @@ class FyGlobal {
         }
         else {
           orgTitles.some((sTitle, i) => {
-            if(sTitle && ((sTitle.replace(/ - /g, '').replace(/ /g, '') == orgTitle.replace(/ - /g, '').replace(/ /g, '')) || (sTitle.toLowerCase() == orgTitle.toLowerCase()) && years[i].year == trueYear)) {
+            if(sTitle && sTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() == orgTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() && years[i].year == trueYear) {
               //exact match (ignoring - & spaces and cases)
               idx = i;
               return true;  //break (take the first match)
@@ -379,6 +383,7 @@ class FyGlobal {
       itemDivs.forEach((item, i) => {
         item.removeAttribute(FY_UNIQ_STRING);
       });
+      return;
     }
 
     let isExit = false;
@@ -419,14 +424,15 @@ class FyGlobal {
         selector = fy.largeDivSelector;
       if(fy.selectorForException)
         selector = fy.selectorForException + ', ' + selector;
-      await elementReady(selector, fy.root);
 
+      await elementReady(selector, fy.root);
       fy.handler();  //force first run
     }
   }
 
   async handlerForKino() {
     const largeDiv = document.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+
     if(largeDiv)
       fy.largeDivUpdate(largeDiv);
   }
@@ -830,8 +836,12 @@ class FyGlobal {
       const tempYearString = trueYear ? '%20('+trueYear+')' : '';
 
       //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
-      //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다... 다른 문자가 더 있을지도...
-      let filtered = orgTitles.map((title, i) => title ? imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F')) + tempYearString : null);
+      //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다.
+      //다른 문자가 더 있을지도... [ ]도 삭제해야 한다(ex: [REC] 4: Apocalipsis).
+      let filtered = orgTitles.map((title, i) => title ? 
+        imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F').replace(/(\[|\])/g, '')) + tempYearString :
+        null
+      );
       searchLength = filtered.filter(el => el).length;
 
       if(searchLength == 0) {
@@ -940,11 +950,14 @@ class FyGlobal {
 
           if(!res || (type == 'search' && !res.titles) || (type == 'rating' && !res.rating)) {
             console.warn('searching or scraping', orgTitle, 'via API failed or no results on imdb!');
-
             if(res)
               console.debug(res);  //dev
 
-            imdbDatum.imdbFlag = '??';
+            if(imdbDatum.imdbFlag == '')
+              console.debug('cache flag is okay. so continue to use the cache flag.');
+            else
+              imdbDatum.imdbFlag = '??';
+
             if(res && res.id) {  //special mis-working case for this API
               imdbDatum.imdbId = res.id;
               imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
@@ -954,11 +967,6 @@ class FyGlobal {
             }
           }
           else if(type == 'search') {
-            /*
-            const titles = res.Search.map(el => el.Title);
-            const years = res.Search.map(el => el.Year);
-            const ids = res.Search.map(el => el.imdbID);
-            */
             const titles = res.titles.map(el => el.title);
             const ids = res.titles.map(el => el.id);
 
@@ -984,7 +992,7 @@ class FyGlobal {
                 }
                 exactMatchCount++;
               }
-              else if(sTitle.replace(/ /g, '') == orgTitle.replace(/ /g, '') || sTitle.toLowerCase() == orgTitle.toLowerCase()) {
+              else if(sTitle.replace(/ /g, '').toLowerCase() == orgTitle.replace(/ /g, '').toLowerCase()) {
                 //exact match (ignoring spaces and cases)
                 if(idx == -1) {
                   idx = j;
@@ -1067,7 +1075,7 @@ class FyGlobal {
     const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
 
     if(isNaN(parseFloat(imdbRating))) {
-      toast.log('imdb rating is not present on kino. so updating...');
+      toast.log('imdb rating is not present on kino. so forcing update...');
 
       const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
       const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
@@ -1162,9 +1170,9 @@ class FyGlobal {
     if(forceUpdate && fyItems) {
       //change flow
       if(isContensPage)
-        toast.log('large div updating... (on a single content page)');
+        toast.log('force large div updating... (on a single content page)');
       else
-        toast.log('large div updating...');
+        toast.log('force large div updating...');
 
       fy.search(fyItems, trueYear, trueUrl);
     }
@@ -1212,7 +1220,8 @@ class FyGlobal {
 
     //wrap up
     toast.log();
-    fy.observer.observe(fy.root, fy.observerOption);
+    if(!fy.preventMultipleUrlChange)
+      fy.observer.observe(fy.root, fy.observerOption);
 
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
