@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.5
+// @version      0.1.6
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -104,8 +104,9 @@
 //    kinolights handler logic fix
 //    improved imdb searching
 //    fixed imdb cache use... twice
-// ver 0.1.5 @ 2021-8-31
-//    runs when imdb rating is 0 in kinolights
+// ver 0.1.6 @ 2021-8-31
+//    also runs when imdb rating is 0 in kinolights
+//    now 'edit' works in kinolights
 */
 
 class FyGlobal {
@@ -957,7 +958,7 @@ class FyGlobal {
 
             if(res && res.id) {  //special mis-working case for this API
               if(otData[i].imdbId && otData[i].imdbUrl && otData[i].imdbFlag == '') {
-                console.debug('cache flag is okay. so dicard search result and use the cache flag.');
+                console.debug('cache flag is okay. so discard search result and use the cache flag.');
                 imdbDatum.imdbFlag = '';
               }
               else {
@@ -1302,8 +1303,17 @@ class FyGlobal {
   //watcha only for now
   edit(el, type) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');  //exported earlier
-    
-    const fyItem = el.parentNode.parentNode;
+
+    let fyItem;
+    switch(document.location.host) {
+      case 'm.kinolights.com':
+        fyItem = document.querySelector('div.movie-info-container');
+        break;
+      case 'watcha.com':
+        fyItem = el.parentNode.parentNode;
+        break;
+    }
+
     const title = fyItem.querySelector(fy.titleSelector).textContent;
     const otDatum = otCache[title];
 
