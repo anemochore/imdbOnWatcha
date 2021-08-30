@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.6
+// @version      0.1.7
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -104,9 +104,10 @@
 //    kinolights handler logic fix
 //    improved imdb searching
 //    fixed imdb cache use... twice
-// ver 0.1.6 @ 2021-8-31
+// ver 0.1.7 @ 2021-8-31
 //    also runs when imdb rating is 0 in kinolights
 //    now 'edit' works in kinolights
+//    fixed a bug that didn't remove a flag when large/manual update in watcha
 */
 
 class FyGlobal {
@@ -594,6 +595,12 @@ class FyGlobal {
         if(timeWaited > 0)
           toast.log('previous fetching aborting completed!');
 
+        if(trueUrl) {
+          //large div update or manual update
+          otData[0].otUrl = trueUrl;
+          otData[0].otFlag = '';
+        }
+
         let searchLength = titles.filter(el => el).length;
         if(searchLength == 0) {
           console.log('nothing to search on wp.');
@@ -601,13 +608,9 @@ class FyGlobal {
           return;
         }
 
-        if(trueYear || trueUrl || trueImdbUrl) {
+        if(trueYear || trueImdbUrl) {
           //large div update or manual update
-          if(trueUrl) {
-            otData[0].otUrl = trueUrl;
-            otData[0].otFlag = '';
-          }
-          else if(trueImdbUrl) {
+          if(trueImdbUrl) {
             otData[0].imdbUrl = trueImdbUrl;
             otData[0].imdbFlag = '';
           }

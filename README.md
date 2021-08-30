@@ -126,6 +126,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    kinolights handler logic fix
     //    improved imdb searching
     //    fixed imdb cache use... twice
-    // ver 0.1.6 @ 2021-8-31
+    // ver 0.1.7 @ 2021-8-31
     //    also runs when imdb rating is 0 in kinolights
     //    now 'edit' works in kinolights
+    //    fixed a bug that didn't remove a flag when large/manual update in watcha
