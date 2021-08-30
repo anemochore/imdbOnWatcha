@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.4
+// @version      0.1.5
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -104,6 +104,8 @@
 //    kinolights handler logic fix
 //    improved imdb searching
 //    fixed imdb cache use... twice
+// ver 0.1.5 @ 2021-8-31
+//    runs when imdb rating is 0 in kinolights
 */
 
 class FyGlobal {
@@ -1080,7 +1082,7 @@ class FyGlobal {
     //no error-check
     const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
 
-    if(isNaN(parseFloat(imdbRating))) {
+    if(isNaN(parseFloat(imdbRating)) || parseFloat(imdbRating) == 0) {
       toast.log('imdb rating is not present on kino. so forcing update...');
 
       const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
