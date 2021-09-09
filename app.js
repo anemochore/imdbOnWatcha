@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.7
+// @version      0.1.8
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -108,6 +108,8 @@
 //    also runs when imdb rating is 0 in kinolights
 //    now 'edit' works in kinolights
 //    fixed a bug that didn't remove a flag when large/manual update in watcha
+// ver 0.1.8 @ 2021-9-9
+//    fixed imdb code (cache setting)
 */
 
 class FyGlobal {
@@ -284,7 +286,16 @@ class FyGlobal {
             cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
           }
           else {
-            toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on "imdb on watcha" cache.');
+            if(cache.imdbUrl.startsWith('https://www.imdb.com/find?')) {
+              toast.log('updated the whole cache (id was not set) for '+orgTitle+' ('+trueYear+').');
+
+              cache.imdbId = imdbId;
+              if(path.endsWith('/'))
+                path = path.slice(0, -1);
+              cache.imdbUrl = 'https://www.imdb.com' + path;
+            }
+            else
+              toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on the cache.');
 
             cache.imdbRating = imdbRating;
           }
@@ -295,7 +306,7 @@ class FyGlobal {
         }
         else if(imdbRating != cache.imdbRating) {
           if(cache.imdbRating == 'n/a') {
-            toast.log('updating the whole cache for '+orgTitle+' ('+trueYear+').');
+            toast.log('updated the whole cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
 
             cache.imdbId = imdbId;
             if(path.endsWith('/'))
