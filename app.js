@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.8
+// @version      0.1.9
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -110,6 +110,8 @@
 //    fixed a bug that didn't remove a flag when large/manual update in watcha
 // ver 0.1.8 @ 2021-9-9
 //    fixed imdb code (cache setting)
+// ver 0.1.9 @ 2021-9-27
+//    fixed selectors according to watchapedia dom change
 */
 
 class FyGlobal {
@@ -699,7 +701,7 @@ class FyGlobal {
           el.remove();
         });
 
-        let sDivs = targetDoc.querySelectorAll('ul')[1];
+        let sDivs = targetDoc.querySelectorAll('div[class*="StyledTabContentContainer"] ul')[1];
         if(!sDivs) {
           console.warn(title, 'seems not found on wp!');
           console.debug(targetDoc.documentElement.outerHTML);
