@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.9
+// @version      0.1.10
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -112,6 +112,8 @@
 //    fixed imdb code (cache setting)
 // ver 0.1.9 @ 2021-9-27
 //    fixed selectors according to watchapedia dom change
+// ver 0.1.10 @ 2021-9-28
+//    fixed a bug that does not unset imdb flag when imdb manual updating
 */
 
 class FyGlobal {
@@ -608,10 +610,22 @@ class FyGlobal {
         if(timeWaited > 0)
           toast.log('previous fetching aborting completed!');
 
+        //large div update
+        if(trueYear && trueOrgTitle) {
+          otData[0].orgTitle = trueOrgTitle;
+          otData[0].year = trueYear;
+        }
+
+        //wp manual update
         if(trueUrl) {
-          //large div update or manual update
           otData[0].otUrl = trueUrl;
           otData[0].otFlag = '';
+        }
+
+        //imdb manual update
+        if(trueImdbUrl) {
+          otData[0].imdbUrl = trueImdbUrl;
+          otData[0].imdbFlag = '';
         }
 
         let searchLength = titles.filter(el => el).length;
@@ -621,17 +635,6 @@ class FyGlobal {
           return;
         }
 
-        if(trueYear || trueImdbUrl) {
-          //large div update or manual update
-          if(trueImdbUrl) {
-            otData[0].imdbUrl = trueImdbUrl;
-            otData[0].imdbFlag = '';
-          }
-          else if(trueYear && trueOrgTitle) {
-            otData[0].orgTitle = trueOrgTitle;
-            otData[0].year = trueYear;
-          }
-        }
         else {
           //목록 업데이트
           let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
@@ -788,7 +791,7 @@ class FyGlobal {
         const [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
 
-        //console.log(document.title, orgTitle, tempYear);
+        //console.debug(document.title, orgTitle, tempYear);  //dev
         if(orgTitle == '' || !tempYear) {
           console.warn('scraping failed on', otData[i].otUrl);
           console.debug(targetDoc.documentElement.outerHTML);
@@ -1059,15 +1062,17 @@ class FyGlobal {
               imdbDatum.imdbRatingFetchedDate = new Date();
             }
 
-            if(isNaN(parseInt(imdbDatum.year)) && !isNaN(parseInt(res.year)))
-              imdbDatum.year = res.year;
+            if(isNaN(parseInt(imdbDatum.year)))
+              imdbDatum.year = res.year || year;
 
             //final! year difference check
             if(!trueImdbUrl) {
               const tempYear = res.year;
               const sTrueYear = trueYear || imdbDatum.year;
-              const yearDiff = Math.abs(tempYear - sTrueYear);
-              //console.debug(yearDiff, tempYear, sTrueYear, trueYear, imdbDatum.year);
+              let yearDiff;
+              if(tempYear && sTrueYear)
+                yearDiff = Math.abs(tempYear - sTrueYear);
+              //console.debug(yearDiff, tempYear, sTrueYear, trueYear, imdbDatum.year);  //dev
 
               //if trueYear or imdbDatum.year is n/a, the difference cannot be checked.
               if(yearDiff == 1) {
