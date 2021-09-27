@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.11
+// @version      0.1.13
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -112,9 +112,11 @@
 //    fixed imdb code (cache setting)
 // ver 0.1.9 @ 2021-9-27
 //    fixed selectors according to watchapedia dom change
-// ver 0.1.11 @ 2021-9-28
+// ver 0.1.13 @ 2021-9-28
 //    fixed a bug that does not unset imdb flag when imdb manual updating
 //    fixed selectors according to watchapedia dom change again
+//    fixed a crash when 'image title' large div updating
+//    fixed a bug that searches wp unnecessarily when large div updating
 */
 
 class FyGlobal {
@@ -612,12 +614,11 @@ class FyGlobal {
           toast.log('previous fetching aborting completed!');
 
         //large div update
-        if(trueYear && trueOrgTitle) {
-          otData[0].orgTitle = trueOrgTitle;
+        if(trueYear) {
           otData[0].year = trueYear;
         }
 
-        //wp manual update
+        //large div update or wp manual update
         if(trueUrl) {
           otData[0].otUrl = trueUrl;
           otData[0].otFlag = '';
@@ -629,14 +630,18 @@ class FyGlobal {
           otData[0].imdbFlag = '';
         }
 
+        //kino update
+        if(trueOrgTitle) {
+          otData[0].orgTitle = trueOrgTitle;
+        }
+
         let searchLength = titles.filter(el => el).length;
         if(searchLength == 0) {
-          console.log('nothing to search on wp.');
+          console.log('nothing to search or scrape on wp.');
           searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
           return;
         }
-
-        else {
+        else if(!trueUrl) {
           //목록 업데이트
           let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
           //왓챠피디아는 .을 없애야 함...
@@ -720,7 +725,6 @@ class FyGlobal {
 
         let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0;
         sTitles.forEach((sTitle, j) => {
-          console.log(sTitle);
           if(sTitle) {
             if(sTitle == title
               && (!trueYear || (trueYear && trueYear == sYears[j]))) {
@@ -790,7 +794,7 @@ class FyGlobal {
         const orgTitle = cm.engTitle;
         const tempYear = cm.year;
         */
-        const [orgTitle, tempYear] = targetDoc.title
+        let [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
 
         //console.debug(document.title, orgTitle, tempYear);  //dev
@@ -1179,7 +1183,11 @@ class FyGlobal {
       }
     }
     else {
-      const trueTitle = largeDiv.querySelector('h1').textContent;
+      let trueTitle = largeDiv.querySelector('h1');
+      if(trueTitle)
+        trueTitle = trueTitle.textContent;
+      else
+        trueTitle = largeDiv.querySelector('img').alt
 
       //large div 페칭 후 업데이트할 아이템들. 페칭이 오래 걸리면 달라질 수도 있지만... 귀찮.
       fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]

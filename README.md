@@ -134,6 +134,8 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed imdb code (cache setting)
     // ver 0.1.9 @ 2021-9-27
     //    fixed selectors according to watchapedia dom change
-    // ver 0.1.11 @ 2021-9-28
+    // ver 0.1.13 @ 2021-9-28
     //    fixed a bug that does not unset imdb flag when imdb manual updating
     //    fixed selectors according to watchapedia dom change again
+    //    fixed a crash when 'image title' large div updating
+    //    fixed a bug that searches wp unnecessarily when large div updating
