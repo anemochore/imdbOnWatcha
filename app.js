@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.10
+// @version      0.1.11
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -112,8 +112,9 @@
 //    fixed imdb code (cache setting)
 // ver 0.1.9 @ 2021-9-27
 //    fixed selectors according to watchapedia dom change
-// ver 0.1.10 @ 2021-9-28
+// ver 0.1.11 @ 2021-9-28
 //    fixed a bug that does not unset imdb flag when imdb manual updating
+//    fixed selectors according to watchapedia dom change again
 */
 
 class FyGlobal {
@@ -704,7 +705,7 @@ class FyGlobal {
           el.remove();
         });
 
-        let sDivs = targetDoc.querySelectorAll('div[class*="StyledTabContentContainer"] ul')[1];
+        let sDivs = targetDoc.querySelector('div[class*="StyledTabContentContainer"] section>section:first-child ul');
         if(!sDivs) {
           console.warn(title, 'seems not found on wp!');
           console.debug(targetDoc.documentElement.outerHTML);
@@ -712,13 +713,14 @@ class FyGlobal {
           return;  //continue
         }
 
-        sDivs = [...sDivs.querySelectorAll('li>a>div:last-child>div[class]')];
+        sDivs = [...sDivs.querySelectorAll('li>a>div:last-child')];
         const sTitles = sDivs.map(el => el.children[0].textContent);
         const sYears  = sDivs.map(el => el.children[1].textContent.split(' ・ ')[0]);
         //카테고리(영화, TV 프로그램 등)는 레이지 로딩이라 스크레이핑 불가
 
         let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0;
         sTitles.forEach((sTitle, j) => {
+          console.log(sTitle);
           if(sTitle) {
             if(sTitle == title
               && (!trueYear || (trueYear && trueYear == sYears[j]))) {
@@ -755,7 +757,7 @@ class FyGlobal {
           otData[i].otFlag = '??';
         }
 
-        const code = sDivs[idx].parentNode.parentNode.href.split('/').pop();
+        const code = sDivs[idx].parentNode.href.split('/').pop();
         otData[i].otUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;
       });
     }
