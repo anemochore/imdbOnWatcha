@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.13
+// @version      0.1.14
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -117,6 +117,8 @@
 //    fixed selectors according to watchapedia dom change again
 //    fixed a crash when 'image title' large div updating
 //    fixed a bug that searches wp unnecessarily when large div updating
+// ver 0.1.14 @ 2021-9-29
+//    now force update on kino even if rating is already present
 */
 
 class FyGlobal {
@@ -495,7 +497,7 @@ class FyGlobal {
     }
   }
 
-  async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null) {
+  async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null, fallbackImdbRating = null) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
     //console.debug('on search func');
@@ -989,8 +991,15 @@ class FyGlobal {
               else {
                 imdbDatum.imdbId = res.id;
                 imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
-                if(imdbDatum.imdbFlag == '')
-                  imdbDatum.imdbFlag = '?';
+                if(imdbDatum.imdbFlag == '') {  //if search was successful
+                  if(fallbackImdbRating) {
+                    console.debug('scraping was unsuccessful. so just use kino data.');
+                    imdbDatum.imdbRating = fallbackImdbRating;
+                    imdbDatum.imdbRatingFetchedDate = new Date();
+                  }
+                  else
+                    imdbDatum.imdbFlag = '?';
+                }
                 else
                   imdbDatum.imdbFlag = '??';
               }
@@ -1064,9 +1073,7 @@ class FyGlobal {
               console.warn('imdb rating is not a number: ' + imdbDatum.imdbRating);
               imdbDatum.imdbFlag = '??';
             }
-            else {
-              imdbDatum.imdbRatingFetchedDate = new Date();
-            }
+            imdbDatum.imdbRatingFetchedDate = new Date();
 
             if(isNaN(parseInt(imdbDatum.year)))
               imdbDatum.year = res.year || year;
@@ -1110,18 +1117,19 @@ class FyGlobal {
     //no error-check
     const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
 
-    if(isNaN(parseFloat(imdbRating)) || parseFloat(imdbRating) == 0) {
-      toast.log('imdb rating is not present on kino. so forcing update...');
+    //if(isNaN(parseFloat(imdbRating)) || parseFloat(imdbRating) == 0) {
+      //toast.log('imdb rating is not present on kino. so forcing update...');
+      toast.log('forcing update...');
 
       const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
       const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
 
-      fy.search([largeDiv], trueYear, null, null, trueOrgTitle);
-    }
-    else {
-      toast.log('imdb rating is present. so nothing to do.');
-      toast.log();
-    }
+      fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
+    //}
+    //else {
+      //toast.log('imdb rating is present. so nothing to do.');
+      //toast.log();
+    //}
   }
 
   async largeDivUpdateForWatcha(largeDiv) {

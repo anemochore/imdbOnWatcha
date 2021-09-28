@@ -139,3 +139,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed selectors according to watchapedia dom change again
     //    fixed a crash when 'image title' large div updating
     //    fixed a bug that searches wp unnecessarily when large div updating
+    // ver 0.1.14 @ 2021-9-29
+    //    now force update on kino even if rating is already present
