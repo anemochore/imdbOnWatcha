@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.1.14
+// @version      0.2.0
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -119,6 +119,8 @@
 //    fixed a bug that searches wp unnecessarily when large div updating
 // ver 0.1.14 @ 2021-9-29
 //    now force update on kino even if rating is already present
+// ver 0.2.0 @ 2022-1-4
+//    now abort immediately previous fetching when url changed
 */
 
 class FyGlobal {
@@ -173,18 +175,14 @@ class FyGlobal {
       'watcha.com': this.largeDivUpdateForWatcha,
       'm.kinolights.com': this.largeDivUpdateForKino,
     };
-    const preventMultipleUrlChanges = {
-      'watcha.com': false,
-      'm.kinolights.com': true,
-    };
 
     //global vars & flags
-    this.prevLocation = document.location;
+    this.prevLocationOriginPathname = document.location.origin+document.location.pathname;
     this.isFetching = false;
-    this.isAborting = false;
+    this.XHR = null;
 
     //first setup
-    const site = this.prevLocation.host;
+    const site = document.location.host;
 
     this.includingPaths = includingPathses[site];
     this.excludingPaths = excludingPathses[site];
@@ -198,7 +196,6 @@ class FyGlobal {
     this.extraSelector = extraSelectors[site];
     this.handler = handlers[site];
     this.largeDivUpdate = largeDivUpdates[site];
-    this.preventMultipleUrlChange = preventMultipleUrlChanges[site];
   }
 
   run() {
@@ -347,7 +344,7 @@ class FyGlobal {
     });
 
     history.pushState = (f => function pushState() {
-      fy.prevLocation = document.location;
+      fy.prevLocationOriginPathname = document.location.origin+document.location.pathname;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('pushstate'));
       window.dispatchEvent(new Event('locationchange'));
@@ -355,7 +352,7 @@ class FyGlobal {
     })(history.pushState);
 
     history.replaceState = (f => function replaceState() {
-      fy.prevLocation = document.location;
+      fy.prevLocationOriginPathname = document.location.origin+document.location.pathname;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('replacestate'));
       window.dispatchEvent(new Event('locationchange'));
@@ -396,18 +393,16 @@ class FyGlobal {
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
-    if(fy.prevLocation.origin+fy.prevLocation.pathname != curLocation.origin+curLocation.pathname) {
-      toast.log('url changed. so aborting possible current fetching...');
-
-      if(fy.isFetching)
-        fy.isAborting = true;
+    if(fy.prevLocationOriginPathname != curLocation.origin+curLocation.pathname && fy.isFetching) {
+      toast.log('url changed. so aborting current fetching...');
+      fy.XHR.abort();
+      fy.isFetching = false;
 
       //reset fy-item attributs
       const itemDivs = [...fy.root.querySelectorAll('['+FY_UNIQ_STRING+']')];
       itemDivs.forEach((item, i) => {
         item.removeAttribute(FY_UNIQ_STRING);
       });
-      return;
     }
 
     let isExit = false;
@@ -441,7 +436,7 @@ class FyGlobal {
     fy.observer.disconnect();
 
     toast.log();
-    if(!isExit && !(fy.preventMultipleUrlChange && fy.isFetching)) {
+    if(!isExit && !fy.isFetching) {
       toast.log('fy script initiating...');
       let selector = fy.selector;
       if(!selector)
@@ -500,7 +495,6 @@ class FyGlobal {
   async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null, fallbackImdbRating = null) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
-    //console.debug('on search func');
     /*
     if(!itemDivs) {
       //nothing to do
@@ -608,12 +602,12 @@ class FyGlobal {
     }
     */
 
-    //searching start
+    //start searching
     let timeWaited = 0;
     (async function waitForFetchingDone_() {
       if(!fy.isFetching) {
         if(timeWaited > 0)
-          toast.log('previous fetching aborting completed!');
+          toast.log('previous fetching completed!');
 
         //large div update
         if(trueYear) {
@@ -1256,20 +1250,15 @@ class FyGlobal {
   }
 
   updateDivs(itemDivs, otData) {
-    if(!fy.isAborting) {
-      toast.log('updating divs...');
-      itemDivs.forEach((item, i) => {
-        updateDiv_(item, otData[i]);
-      });
-      toast.log('divs updated!');
-    }
-    else
-      fy.isAborting = false;
+    toast.log('updating divs...');
+    itemDivs.forEach((item, i) => {
+      updateDiv_(item, otData[i]);
+    });
+    toast.log('divs updated!');
 
     //wrap up
     toast.log();
-    if(!fy.preventMultipleUrlChange)
-      fy.observer.observe(fy.root, fy.observerOption);
+    fy.observer.observe(fy.root, fy.observerOption);
 
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
@@ -1389,11 +1378,6 @@ class FyGlobal {
 
   //utils (private...)
   async fetchAll(urls, headers = {}, delay = 0) {  //, order = false) {
-    if(fy.isAborting) {
-      fy.isFetching = false;
-      return [];
-    }
-
     fy.isFetching = true;
     const results = [];
 
@@ -1422,8 +1406,8 @@ class FyGlobal {
       return new Promise((resolve, reject) => {
         if(!url)
           resolve(null);
-        else
-          GM_xmlhttpRequest({
+        else {
+          fy.XHR = GM_xmlhttpRequest({
             method: 'GET',
             headers: headers,
             url: url,
@@ -1434,6 +1418,7 @@ class FyGlobal {
               reject(err);
             },
           });
+        }
       });
     }
   }
