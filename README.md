@@ -143,3 +143,6 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    now force update on kino even if rating is already present
     // ver 0.2.0 @ 2022-1-4
     //    now abort immediately previous fetching when url changed
+    // ver 0.2.2 @ 2022-1-4
+    //    removed unnecessary lines after v0.2.0
+    //    changed the first message (splash)

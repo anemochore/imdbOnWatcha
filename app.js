@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0
+// @version      0.2.2
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -121,6 +121,9 @@
 //    now force update on kino even if rating is already present
 // ver 0.2.0 @ 2022-1-4
 //    now abort immediately previous fetching when url changed
+// ver 0.2.2 @ 2022-1-4
+//    removed unnecessary lines after v0.2.0
+//    changed the first message (splash)
 */
 
 class FyGlobal {
@@ -444,6 +447,7 @@ class FyGlobal {
       if(fy.selectorForException)
         selector = fy.selectorForException + ', ' + selector;
 
+      toast.log('waiting for page loading...');
       await elementReady(selector, fy.root);
       fy.handler();  //force first run
     }
@@ -603,85 +607,73 @@ class FyGlobal {
     */
 
     //start searching
-    let timeWaited = 0;
-    (async function waitForFetchingDone_() {
-      if(!fy.isFetching) {
-        if(timeWaited > 0)
-          toast.log('previous fetching completed!');
+    //large div update
+    if(trueYear) {
+      otData[0].year = trueYear;
+    }
 
-        //large div update
-        if(trueYear) {
-          otData[0].year = trueYear;
-        }
+    //large div update or wp manual update
+    if(trueUrl) {
+      otData[0].otUrl = trueUrl;
+      otData[0].otFlag = '';
+    }
 
-        //large div update or wp manual update
-        if(trueUrl) {
-          otData[0].otUrl = trueUrl;
-          otData[0].otFlag = '';
-        }
+    //imdb manual update
+    if(trueImdbUrl) {
+      otData[0].imdbUrl = trueImdbUrl;
+      otData[0].imdbFlag = '';
+    }
 
-        //imdb manual update
-        if(trueImdbUrl) {
-          otData[0].imdbUrl = trueImdbUrl;
-          otData[0].imdbFlag = '';
-        }
+    //kino update
+    if(trueOrgTitle) {
+      otData[0].orgTitle = trueOrgTitle;
+    }
 
-        //kino update
-        if(trueOrgTitle) {
-          otData[0].orgTitle = trueOrgTitle;
-        }
-
-        let searchLength = titles.filter(el => el).length;
-        if(searchLength == 0) {
-          console.log('nothing to search or scrape on wp.');
-          searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-          return;
-        }
-        else if(!trueUrl) {
-          //목록 업데이트
-          let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
-          //왓챠피디아는 .을 없애야 함...
-          const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null));
-          parseWpSearchResults_(otSearchResults);  //otData, etc. are passed.
-          searchLength = otSearchResults.filter(el => el).length;
-          if(searchLength == 0) {
-            console.log('org. titles searching result is empty.');
-            searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-            return;
-          }
-          else {
-            console.log('org. titles searching done:', searchLength);  //dev
-          }
-        }
-
-        //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
-        if(!trueImdbUrl && !trueOrgTitle) {
-          toast.log('scraping org. titles...');
-          const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
-            headers: {
-              'Accept-Language': 'en-KR',
-            },
-          });
-          searchLength = otScrapeResults.filter(el => el).length;
-
-          if(searchLength == 0) {
-            console.log('org. titles scraping result is empty.');
-            searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-            return;
-          }
-
-          console.log('org. titles scraping done:', searchLength);  //dev
-          parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
-        }
-
+    let searchLength = titles.filter(el => el).length;
+    if(searchLength == 0) {
+      console.log('nothing to search or scrape on wp.');
+      searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+      return;
+    }
+    else if(!trueUrl) {
+      //목록 업데이트
+      let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
+      //왓챠피디아는 .을 없애야 함...
+      const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null));
+      parseWpSearchResults_(otSearchResults);  //otData, etc. are passed.
+      searchLength = otSearchResults.filter(el => el).length;
+      if(searchLength == 0) {
+        console.log('org. titles searching result is empty.');
         searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+        return;
       }
       else {
-        timeWaited += 500;
-        toast.log('...waiting for previous fetching done for', timeWaited, 'ms...');
-        setTimeout(waitForFetchingDone_, 500);
+        console.log('org. titles searching done:', searchLength);  //dev
       }
-    })();
+    }
+
+    //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
+    if(!trueImdbUrl && !trueOrgTitle) {
+      toast.log('scraping org. titles...');
+      const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
+        headers: {
+          'Accept-Language': 'en-KR',
+        },
+      });
+      searchLength = otScrapeResults.filter(el => el).length;
+
+      if(searchLength == 0) {
+        console.log('org. titles scraping result is empty.');
+        searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+        return;
+      }
+
+      console.log('org. titles scraping done:', searchLength);  //dev
+      parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
+    }
+
+    searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+
     //end of flow
 
 
