@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.2
+// @version      0.2.3
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -124,6 +124,8 @@
 // ver 0.2.2 @ 2022-1-4
 //    removed unnecessary lines after v0.2.0
 //    changed the first message (splash)
+// ver 0.2.3 @ 2022-1-26
+//    fixed infinite running on kinolights (bug caused by v0.2.2)
 */
 
 class FyGlobal {
@@ -178,6 +180,9 @@ class FyGlobal {
       'watcha.com': this.largeDivUpdateForWatcha,
       'm.kinolights.com': this.largeDivUpdateForKino,
     };
+    const preventMultipleUrlChanges = {
+      'm.kinolights.com': true,
+    };
 
     //global vars & flags
     this.prevLocationOriginPathname = document.location.origin+document.location.pathname;
@@ -199,6 +204,7 @@ class FyGlobal {
     this.extraSelector = extraSelectors[site];
     this.handler = handlers[site];
     this.largeDivUpdate = largeDivUpdates[site];
+    this.preventMultipleUrlChange = preventMultipleUrlChanges[site];
   }
 
   run() {
@@ -375,16 +381,13 @@ class FyGlobal {
       return;
     }
 
-
     //css 로딩
     const css = GM_getResourceText('CSS');
     GM_addStyle(css);
 
-
     //mutation observer
     fy.observer = new MutationObserver(fy.handler);
     fy.observerOption = {childList: true, subtree: true};
-
 
     //real entry point
     fy.entry();
@@ -437,15 +440,19 @@ class FyGlobal {
 
     //init
     fy.observer.disconnect();
-
     toast.log();
+
     if(!isExit && !fy.isFetching) {
       toast.log('fy script initiating...');
+
       let selector = fy.selector;
       if(!selector)
         selector = fy.largeDivSelector;
       if(fy.selectorForException)
         selector = fy.selectorForException + ', ' + selector;
+
+      if(fy.preventMultipleUrlChange)
+        fy.isFetching = true;  //hack for kino
 
       toast.log('waiting for page loading...');
       await elementReady(selector, fy.root);
@@ -454,8 +461,9 @@ class FyGlobal {
   }
 
   async handlerForKino() {
-    const largeDiv = document.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+    fy.isFetching = false;  //hack for kino
 
+    const largeDiv = document.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
     if(largeDiv)
       fy.largeDivUpdate(largeDiv);
   }
@@ -671,8 +679,10 @@ class FyGlobal {
       console.log('org. titles scraping done:', searchLength);  //dev
       parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
     }
-
-    searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+    else {
+      searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+      return;
+    }
 
     //end of flow
 
@@ -812,7 +822,6 @@ class FyGlobal {
         otData[i].year = tempYear;
       });
     }
-
 
     async function searchImdbAndWrapUp_(itemDivs) {
       const HEADERS = {
@@ -1110,6 +1119,7 @@ class FyGlobal {
       const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
       const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
 
+      fy.observer.disconnect();
       fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
     //}
     //else {
@@ -1250,7 +1260,8 @@ class FyGlobal {
 
     //wrap up
     toast.log();
-    fy.observer.observe(fy.root, fy.observerOption);
+    if(!fy.preventMultipleUrlChange)
+      fy.observer.observe(fy.root, fy.observerOption);
 
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
