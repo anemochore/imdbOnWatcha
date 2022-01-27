@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.3
+// @version      0.2.4
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -20,113 +20,6 @@
 // @connect      pedia.watcha.com
 // @connect      imdb-internet-movie-database-unofficial.p.rapidapi.com
 // ==/UserScript==
-
-/*
-// ver 0.0.1 @ 2021-5-20
-//    first ver. naver crawling is almost done.
-// ver 0.0.2 @ 2021-5-21
-//    second ver. imdb crawling is blocked soon!
-// ver 0.0.3 @ 2021-5-22
-//    mutation observing (hopefully) perfectly done.
-// ver 0.0.4 @ 2021-5-24
-//    mutation observing fixed.
-// ver 0.0.6 @ 2021-5-28
-//    imdb api adopted (later changed): https://rapidapi.com/apidojo/api/imdb8/
-//    refactored async fetching
-// ver 0.0.8 @ 2021-5-31
-//    imdb searching and scraping on hold
-//    searches kinolights instead of naver movie
-// ver 0.0.11 @ 2021-6-10~2021-6-11
-//    search kinolights instead of naver movie via google cse prototyping done!
-//    removed large-div update
-//    imdb api reverted: https://rapidapi.com/rapidapi/api/movie-database-imdb-alternative/
-// ver 0.0.16 @ 2021-6-15
-//    div update (html tagging) bug fix
-//    imdb rating and flag refactored again
-//    kl searching improved
-//    css added per rating
-// ver 0.0.18 @ 2021-6-15
-//    abort fetching on-url-change (including changing search keyword when searching)
-//    reduced unnecessary multiple fetching (some kind of internal caching)
-// ver 0.0.19 @ 2021-6-16
-//    refactored on-url-change flow
-// ver 0.0.20 @ 2021-6-16
-//    now searches watcha pedia instead of kl
-//    imdb api changed: https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/
-// ver 0.0.21 @ 2021-6-17
-//    watcha pedia scraping ig not possible due to lazy loading. reverted to kl.
-// ver 0.0.25 @ 2021-6-18
-//    tried to improve kl searching in vain...
-//    revivaled large-div update to augment imperfect searching
-//    tried to improve kl searching again...
-//    fixed large div update
-// ver 0.0.26 @ 2021-6-18
-//    improved imdb searching slightly
-// ver 0.0.30 @ 2021-6-21
-//    now api keys should be manually set in tampermonkey setting
-//    when accessed imdb, the cache will be updated if the movie's flag is set
-//    improved imdb searching slightly
-//    now force a little sleep to toast to fade out
-// ver 0.0.36 @ 2021-6-23
-//    now searches and scrapes watcha pedia again (idk why but lazy loading is gone)
-//    watcha pedia language setting should be english!
-//    improved large div update (supports for /contents/ path too)
-//    improved imdb searching
-//    fixed imdb access codes
-//    fixed wrong cache use
-// ver 0.0.39 @ 2021-6-29
-//    fixed wrong divs update when navigating back and forth, etc
-//    refactored to class structure to enable ui
-//    added ui for manual update
-// ver 0.0.46 @ 2021-6-29
-//    edited selectors according to watcha dom change
-//    improved imdb searching
-//    changed 'n/a' rating's font-color
-//    changed rating color scale (5 -> 10 colors)
-//    changed imdb update logic
-//    fixed large div selectors according to watcha dom change... twice
-// ver 0.0.47 @ 2021-6-30
-//    fixed large div selectors according to watcha dom change... again
-// ver 0.0.48 @ 2021-7-4
-//    fixed imdb code according to imdb dom change
-// ver 0.0.53 @ 2021-7-7
-//    fixed large div update code
-//    fixed manual update code... twice
-//    fixed large div update flow
-//    fixed /contents large div update code
-// ver 0.0.57 @ 2021-7-20
-//    added /people path
-//    fixed /contents large div update code... twice
-//    changed imdb searching code and imdb access code
-// ver 0.1.0 @ 2021-7-26
-//    added m.kinolights.com site support (only /title pages)
-// ver 0.1.4 @ 2021-7-26
-//    kinolights handler logic fix
-//    improved imdb searching
-//    fixed imdb cache use... twice
-// ver 0.1.7 @ 2021-8-31
-//    also runs when imdb rating is 0 in kinolights
-//    now 'edit' works in kinolights
-//    fixed a bug that didn't remove a flag when large/manual update in watcha
-// ver 0.1.8 @ 2021-9-9
-//    fixed imdb code (cache setting)
-// ver 0.1.9 @ 2021-9-27
-//    fixed selectors according to watchapedia dom change
-// ver 0.1.13 @ 2021-9-28
-//    fixed a bug that does not unset imdb flag when imdb manual updating
-//    fixed selectors according to watchapedia dom change again
-//    fixed a crash when 'image title' large div updating
-//    fixed a bug that searches wp unnecessarily when large div updating
-// ver 0.1.14 @ 2021-9-29
-//    now force update on kino even if rating is already present
-// ver 0.2.0 @ 2022-1-4
-//    now abort immediately previous fetching when url changed
-// ver 0.2.2 @ 2022-1-4
-//    removed unnecessary lines after v0.2.0
-//    changed the first message (splash)
-// ver 0.2.3 @ 2022-1-26
-//    fixed infinite running on kinolights (bug caused by v0.2.2)
-*/
 
 class FyGlobal {
 
@@ -217,133 +110,7 @@ class FyGlobal {
 
     //imdb 접속 시 캐시 업데이트
     if(document.location.host == 'www.imdb.com') {
-      const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
-
-      let path = document.location.pathname;
-      if(!path.startsWith('/title/') || path.endsWith('/episodes')) {
-        toast.log();
-        return;
-      }
-
-      const imdbId = path.split('/')[2];
-      let imdbRating = document.querySelector('span[class^="AggregateRatingButton_"]');
-      if(imdbRating)
-        imdbRating = imdbRating.textContent;
-      else
-        imdbRating = 'n/a!';
-
-      let orgTitle = document.title.replace(/ - IMDb$/, '');
-      orgTitle = orgTitle.replace(/ \(TV Episode( (\d{4})\)|\))$/, '');
-
-      //ex: \"The Kill Count\" Saw 3D (2010) (TV Episode 2018)
-      //ex: \"Review It\" Spider-Man 2 (2004) (TV Episode)
-      let trueYear;
-      [orgTitle, trueYear] = orgTitle.split(' (');
-
-      //ex1: \"We Eat Films\" Saw 3D (TV Episode 2010)
-      //ex2: Majutsushi Orphen Mubouhen (TV Series 1998–1999)
-      //ex3: Sorcerous Stabber Orphen (TV Series 2020– )
-      if(!trueYear || isNaN(parseInt(trueYear.slice(0, 4))))
-        trueYear = document.title.replace(/ - IMDb$/, '').match(/(\d{4})(– |)\)$/)[1];
-      else
-        trueYear = trueYear.slice(0, 4);
-
-      const keys = Object.keys(otCache);
-      const values = Object.values(otCache);
-      const ids = values.map(el => el.imdbId);
-      const orgTitles = values.map(el => el.orgTitle);
-      const years = values.map(el => el.year);
-      const flags = values.map(el => el.imdbFlag);
-
-      let idx = -1;
-      if(imdbId && ids.includes(imdbId)) {
-        idx = ids.indexOf(imdbId);
-      }
-      else {
-        idx = orgTitles.indexOf(orgTitle);
-
-        if(idx > -1) {
-          orgTitles.slice(idx).some((sTitle, i) => {
-            if(sTitle == orgTitle && years[i].year == trueYear) {
-              //exact match
-              idx = i;
-              return true;  //break (take the first match)
-            }
-          });
-        }
-        else {
-          orgTitles.some((sTitle, i) => {
-            if(sTitle && sTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() == orgTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() && years[i].year == trueYear) {
-              //exact match (ignoring - & spaces and cases)
-              idx = i;
-              return true;  //break (take the first match)
-            }
-          });
-        }
-      }
-
-      if(idx > -1) {
-        const cache = otCache[keys[idx]];
-
-        if(flags[idx] != '') {
-          if(imdbRating == 'n/a' && !isNaN(parseFloat(cache.imdbRating))) {
-            toast.log('warning: imdb rating is n/a. so deleting the cache which is probably wrong!');
-
-            cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
-            cache.imdbRating = 'n/a';
-            cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
-          }
-          else if(Math.abs(cache.year - trueYear) > 1) {
-            toast.log('warning: year on imdb is ' + (trueYear || 'n/a') + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
-
-            cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
-            cache.imdbRating = 'n/a';
-            cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
-          }
-          else {
-            if(cache.imdbUrl.startsWith('https://www.imdb.com/find?')) {
-              toast.log('updated the whole cache (id was not set) for '+orgTitle+' ('+trueYear+').');
-
-              cache.imdbId = imdbId;
-              if(path.endsWith('/'))
-                path = path.slice(0, -1);
-              cache.imdbUrl = 'https://www.imdb.com' + path;
-            }
-            else
-              toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on the cache.');
-
-            cache.imdbRating = imdbRating;
-          }
-          cache.imdbFlag = '';
-
-          cache.imdbRatingFetchedDate = new Date();
-          GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
-        }
-        else if(imdbRating != cache.imdbRating) {
-          if(cache.imdbRating == 'n/a') {
-            toast.log('updated the whole cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
-
-            cache.imdbId = imdbId;
-            if(path.endsWith('/'))
-              path = path.slice(0, -1);
-            cache.imdbUrl = 'https://www.imdb.com' + path;
-          }
-          else {
-            toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
-          }
-          cache.imdbRating = imdbRating;
-
-          cache.imdbRatingFetchedDate = new Date();
-          GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
-        }
-        else {
-          toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
-        }
-      }
-      else {
-        toast.log('this title is not yet stored on "imdb on watcha" cache.');
-      }
-      toast.log();
+      fy.imdbRun();
       return;
     }
 
@@ -1331,8 +1098,139 @@ class FyGlobal {
 
 
   //public members
-  //watcha only for now
+  imdbRun() {
+    const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
+
+    let path = document.location.pathname;
+    if(!path.startsWith('/title/') || path.endsWith('/episodes')) {
+      toast.log();
+      return;
+    }
+
+    const imdbId = path.split('/')[2];
+    let imdbRating = document.querySelector('span[class^="AggregateRatingButton_"]');
+    if(imdbRating)
+      imdbRating = imdbRating.textContent;
+    else
+      imdbRating = 'n/a!';
+
+    let orgTitle = document.title.replace(/ - IMDb$/, '');
+    orgTitle = orgTitle.replace(/ \(TV Episode( (\d{4})\)|\))$/, '');
+
+    //ex: \"The Kill Count\" Saw 3D (2010) (TV Episode 2018)
+    //ex: \"Review It\" Spider-Man 2 (2004) (TV Episode)
+    let trueYear;
+    [orgTitle, trueYear] = orgTitle.split(' (');
+
+    //ex1: \"We Eat Films\" Saw 3D (TV Episode 2010)
+    //ex2: Majutsushi Orphen Mubouhen (TV Series 1998–1999)
+    //ex3: Sorcerous Stabber Orphen (TV Series 2020– )
+    if(!trueYear || isNaN(parseInt(trueYear.slice(0, 4))))
+      trueYear = document.title.replace(/ - IMDb$/, '').match(/(\d{4})(– |)\)$/)[1];
+    else
+      trueYear = trueYear.slice(0, 4);
+
+    const keys = Object.keys(otCache);
+    const values = Object.values(otCache);
+    const ids = values.map(el => el.imdbId);
+    const orgTitles = values.map(el => el.orgTitle);
+    const years = values.map(el => el.year);
+    const flags = values.map(el => el.imdbFlag);
+
+    let idx = -1;
+    if(imdbId && ids.includes(imdbId)) {
+      idx = ids.indexOf(imdbId);
+    }
+    else {
+      idx = orgTitles.indexOf(orgTitle);
+
+      if(idx > -1) {
+        orgTitles.slice(idx).some((sTitle, i) => {
+          if(sTitle == orgTitle && years[i].year == trueYear) {
+            //exact match
+            idx = i;
+            return true;  //break (take the first match)
+          }
+        });
+      }
+      else {
+        orgTitles.some((sTitle, i) => {
+          if(sTitle && sTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() == orgTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() && years[i].year == trueYear) {
+            //exact match (ignoring - & spaces and cases)
+            idx = i;
+            return true;  //break (take the first match)
+          }
+        });
+      }
+    }
+
+    if(idx > -1) {
+      const cache = otCache[keys[idx]];
+
+      if(flags[idx] != '') {
+        if(imdbRating == 'n/a' && !isNaN(parseFloat(cache.imdbRating))) {
+          toast.log('warning: imdb rating is n/a. so deleting the cache which is probably wrong!');
+
+          cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
+          cache.imdbRating = 'n/a';
+          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
+        }
+        else if(Math.abs(cache.year - trueYear) > 1) {
+          toast.log('warning: year on imdb is ' + (trueYear || 'n/a') + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
+
+          cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
+          cache.imdbRating = 'n/a';
+          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
+        }
+        else {
+          if(cache.imdbUrl.startsWith('https://www.imdb.com/find?')) {
+            toast.log('updated the whole cache (id was not set) for '+orgTitle+' ('+trueYear+').');
+
+            cache.imdbId = imdbId;
+            if(path.endsWith('/'))
+              path = path.slice(0, -1);
+            cache.imdbUrl = 'https://www.imdb.com' + path;
+          }
+          else
+            toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on the cache.');
+
+          cache.imdbRating = imdbRating;
+        }
+        cache.imdbFlag = '';
+
+        cache.imdbRatingFetchedDate = new Date();
+        GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
+      }
+      else if(imdbRating != cache.imdbRating) {
+        if(cache.imdbRating == 'n/a') {
+          toast.log('updated the whole cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
+
+          cache.imdbId = imdbId;
+          if(path.endsWith('/'))
+            path = path.slice(0, -1);
+          cache.imdbUrl = 'https://www.imdb.com' + path;
+        }
+        else {
+          toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
+        }
+        cache.imdbRating = imdbRating;
+
+        cache.imdbRatingFetchedDate = new Date();
+        GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
+      }
+      else {
+        toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
+      }
+    }
+    else {
+      toast.log('this title is not yet stored on "imdb on watcha" cache.');
+    }
+    toast.log();
+    return;
+  }
+
   edit(el, type) {
+    //watcha only for now
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');  //exported earlier
 
     let fyItem;
