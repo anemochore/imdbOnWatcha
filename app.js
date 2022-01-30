@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.4
+// @version      0.2.5
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -30,29 +30,26 @@ class FyGlobal {
       'm.kinolights.com': ['/title'],
     };
     const excludingPathses = {
-      'watcha.com': [],
-      'm.kinolights.com': [],
+      //todo?: if needed.
     };
-    //todo+++
-    const excludingSectionTexts = {
+    /*
+    const excludingSectionTexts = {  //todo+++
       'watcha.com': ['새로운 에피소드', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
     };
+    */
     const rootSelectors = {
       'watcha.com': 'main',
       'm.kinolights.com': 'html',
     };
     const selectors = {
-      'watcha.com': 'li div[class*="-Row"] ul>li',
-    };
-    const selectorsForException = {
-      'watcha.com': 'h1',
+      'watcha.com': 'ul>li>article[class*="-Cell"]>a>div',  //parent of parent of IMG
     };
     const titleSelectors = {
-      'watcha.com': 'h1, div[class*="-StyledText"]',
+      'watcha.com': 'div[aria-hidden]>p, img[alt]',  //former: list item, latter: on large div
       'm.kinolights.com': 'h3.title-kr',
     };
     const largeDivSelectors = {
-      'watcha.com': 'div.enter-done',
+      'watcha.com': 'section>div>div.enter-done',  //parent of parent of parent of IMG
       'm.kinolights.com': 'div.movie-title-wrap',
     };
     const largeDivSelectorsOnExit = {
@@ -60,11 +57,11 @@ class FyGlobal {
     };
     const subSelectors = {
       'watcha.com': 'div',
-      'm.kinolights.com': null,  //no insert
     };
     const extraSelectors = {
       'm.kinolights.com': 'span.imdb-wrap>div.score',
     };
+
     const handlers = {
       'watcha.com': this.handlerForWatcha,
       'm.kinolights.com': this.handlerForKino,
@@ -86,10 +83,9 @@ class FyGlobal {
     const site = document.location.host;
 
     this.includingPaths = includingPathses[site];
-    this.excludingPaths = excludingPathses[site];
+    this.excludingPaths = excludingPathses[site] || [];
     this.rootSelector = rootSelectors[site];
     this.selector = selectors[site];
-    this.selectorForException = selectorsForException[site];
     this.titleSelector = titleSelectors[site];
     this.largeDivSelector = largeDivSelectors[site];
     this.largeDivSelectorOnExit = largeDivSelectorsOnExit[site];
@@ -98,6 +94,8 @@ class FyGlobal {
     this.handler = handlers[site];
     this.largeDivUpdate = largeDivUpdates[site];
     this.preventMultipleUrlChange = preventMultipleUrlChanges[site];
+
+    this.root = null;
   }
 
   run() {
@@ -106,7 +104,6 @@ class FyGlobal {
     //캐시 없으면 생성
     if(!GM_getValue('OT_CACHE_WITH_IMDB_RATINGS'))
       GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', {});
-
 
     //imdb 접속 시 캐시 업데이트
     if(document.location.host == 'www.imdb.com') {
@@ -138,7 +135,6 @@ class FyGlobal {
     window.addEventListener('popstate', () => {
       window.dispatchEvent(new Event('locationchange'))
     });
-
 
     //check api keys
     if(!RAPID_API_KEY || RAPID_API_KEY == DEFAULT_MSG) {
@@ -212,11 +208,7 @@ class FyGlobal {
     if(!isExit && !fy.isFetching) {
       toast.log('fy script initiating...');
 
-      let selector = fy.selector;
-      if(!selector)
-        selector = fy.largeDivSelector;
-      if(fy.selectorForException)
-        selector = fy.selectorForException + ', ' + selector;
+      const selector = fy.selector || fy.largeDivSelector;
 
       if(fy.preventMultipleUrlChange)
         fy.isFetching = true;  //hack for kino
@@ -242,33 +234,27 @@ class FyGlobal {
     let largeDiv = fy.root.querySelector(fy.largeDivSelectorOnExit);
     if(largeDiv) {
       //closing large div
-      console.debug('exiting large div...');  //dev
+      console.debug('exiting or awating large div...');  //dev
       //toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
+      return;
+    }
+
+    largeDiv = fy.root.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+
+    if(itemNum == 0 && largeDiv) {
+      toast.log('updating large div...');
+      fy.largeDivUpdate(largeDiv);
+    }
+    else if(itemNum > 0) {
+      toast.log('searching on wp or cache for', itemNum, 'items...');
+      fy.search(itemDivs);
     }
     else {
-      const largeDivSelectorExtra = 'main>div>div>div>h1:not([hidden]), main>div>div>div>h1+img';
-      largeDiv = fy.root.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])') ||
-        fy.root.querySelector(largeDivSelectorExtra);
-
-      if(itemNum == 0 && largeDiv) {
-        fy.observer.disconnect();
-        fy.largeDivUpdate(largeDiv);
-      }
-      else if(itemNum > 0) {
-        fy.observer.disconnect();
-        toast.log('searching on wp or cache for', itemNum, 'items...');
-
-        //change flow
-        fy.observer.disconnect();
-        fy.search(itemDivs);
-      }
-      else {
-        //nothing to do
-        //toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
-      }
+      //toast.log('nothing to do (on list screen)');
+      fy.observer.observe(fy.root, fy.observerOption);
     }
+
   }
 
   async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null, fallbackImdbRating = null) {
@@ -879,121 +865,99 @@ class FyGlobal {
     //no error-check
     const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
 
-    //if(isNaN(parseFloat(imdbRating)) || parseFloat(imdbRating) == 0) {
-      //toast.log('imdb rating is not present on kino. so forcing update...');
-      toast.log('forcing update...');
+    toast.log('forcing update...');
 
-      const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
-      const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
+    const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
+    const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
 
-      fy.observer.disconnect();
-      fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
-    //}
-    //else {
-      //toast.log('imdb rating is present. so nothing to do.');
-      //toast.log();
-    //}
+    fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
   }
 
   async largeDivUpdateForWatcha(largeDiv) {
-    let isContensPage = false;
-
-    if(largeDiv.nodeName == 'IMG')
-      largeDiv = largeDiv.previousSibling;
-
-    if(largeDiv.nodeName == 'H1') {
-      // /contents/ path
-      isContensPage = true;
+    let isContentPage = false;
+    if(largeDiv.nodeName == 'IMG') {  //on single content page
       largeDiv = largeDiv.parentNode.parentNode.parentNode;
+      isContentPage = true;
+      console.debug('isContentPage turned on');
     }
-    else
-      largeDiv.setAttribute(FY_UNIQ_STRING, '');
 
-    const commonSelector = 'div[class*="-ContentMetaCreditWithPredicted"]';
-    await elementReady(commonSelector, largeDiv);
+    const metaSelector = 'div[class*="-ContentMetaCreditWithPredicted"]';
+    await elementReady(metaSelector, largeDiv);
 
     const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
     let trueYear = largeDiv.querySelector(trueYearSelector);
-    if(trueYear)
+    if(trueYear) {
       trueYear = trueYear.textContent.trim().slice(-5).slice(0, 4);
+    }
     else {
       //nothing to do (상세정보, 비슷한 작품 등의 탭을 눌렀을 때)
-      //toast.log();
+      toast.log('nothing to do');
       fy.observer.observe(fy.root, fy.observerOption);
       return;
     }
 
-    /*
-    let trueCat = largeDiv.querySelector('[data-select="content_meta"]').textContent;
-    if(trueCat.includes('에피소드'))
-      trueCat = 'tv';
-    else
-      trueCat = 'movie';
-    */
-
+    const trueTitle = largeDiv.querySelector(fy.titleSelector).alt;  //no error-check, intentionally
     const code = largeDiv.querySelector('a[aria-label="재생"]').href.split('/').pop();
     const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;  //english page
 
-    let forceUpdate = false;
-    let fyItems, otFlag, imdbFlag, tempYear;
-    if(isContensPage) {
+    let fyItems = [];
+    let otFlag, tempYear, imdbFlag;
+    let forceUpdate = false;  //only becomes true on single content page
+    if(!isContentPage) {
+      //리스트 아이템 중 선택한 영화와 제목이 같은 애들. 얘들도 페칭 후 업데이트해야 함.
+      fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
+      .filter(item => item.querySelector(fy.titleSelector).textContent == trueTitle);
+
       if(largeDiv.getAttribute(FY_UNIQ_STRING) == null) {
+        console.debug('large div is never updated one');
+        //선택한 게 업데이트된 적이 없는 타이틀
         forceUpdate = true;
-        fyItems = [largeDiv];
+        fyItems.push(largeDiv);
+        //todo+++ (평점이 제대로 안 나옴. 링크도 클릭이 안 됨!)
       }
       else {
-        const sEl = largeDiv.querySelector('.fy-external-site');
+        //선택한 게 이미 리스트 화면에서 업데이트된 타이틀
+        //선택한 게 제목이 같은 애들 중에서 첫 번째 거라고 가정... 다른 방법이 없다-_-
+        const fyItem = fyItems[0];
+        const sEl = fyItem.querySelector('.fy-external-site');
         if(sEl) {
           tempYear = sEl.getAttribute('year');
-          imdbFlag = largeDiv.querySelector('.fy-imdb-rating').getAttribute('flag');
+          imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
         }
 
-        if(imdbFlag != '' || trueYear != tempYear) {
-          forceUpdate = true; 
+        //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
+        console.log(otFlag, imdbFlag, trueYear, tempYear);
+        if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
+          forceUpdate = true;
+          fyItems.push(fyItem);
         }
       }
     }
     else {
-      let trueTitle = largeDiv.querySelector('h1');
-      if(trueTitle)
-        trueTitle = trueTitle.textContent;
-      else
-        trueTitle = largeDiv.querySelector('img').alt
-
-      //large div 페칭 후 업데이트할 아이템들. 페칭이 오래 걸리면 달라질 수도 있지만... 귀찮.
-      fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
-      .filter(item => item.querySelector(fy.titleSelector).textContent == trueTitle);
-      await elementReady('.content-preview-exit-done', fy.root);
-
-      //현재 선택한 아이템
-      const fyItem = fyItems.filter(el => el.querySelector('div[class*="-Content"]>div').childElementCount == 3).pop();
-
-      const sEl = fyItem.querySelector('.fy-external-site');
-      otFlag = sEl.getAttribute('flag');
-      tempYear = sEl.getAttribute('year');
-      imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
-
-      //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
-      if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear)
-        forceUpdate = true;
+      forceUpdate = true;
+      fyItems.push(largeDiv);
     }
 
-    if(forceUpdate && fyItems) {
+    console.debug('fyItems: ', fyItems);
+    //await elementReady('.content-preview-exit-done', fy.root);
+
+    if(forceUpdate) {
       //change flow
-      if(isContensPage)
+      if(isContentPage)
         toast.log('force large div updating... (on a single content page)');
       else
         toast.log('force large div updating...');
 
       fy.search(fyItems, trueYear, trueUrl);
     }
-    else { 
+    else {
       if(fyItems) {
-        toast.log('already updated.');  //잘 안 나타나는 경우가 있다??
+        toast.log('already updated.');  //안 나타나는 경우가 있다??
         toast.log();
       }
 
-      //nothing to do (보고싶어요 등에 마우스 오버, 아웃 시)
+      //보고싶어요 등에 마우스 오버, 아웃 시
+      toast.log('nothing to do');
       fy.observer.observe(fy.root, fy.observerOption);
     }
   }
@@ -1018,7 +982,7 @@ class FyGlobal {
     }
   }
 
-  updateDivs(itemDivs, otData) {
+  async updateDivs(itemDivs, otData) {
     toast.log('updating divs...');
     itemDivs.forEach((item, i) => {
       updateDiv_(item, otData[i]);
@@ -1036,7 +1000,7 @@ class FyGlobal {
       const div = fyItemToUpdate.querySelector(selector);
 
       if(!div) {
-        console.warn('no fy-item sub div found for ' + fyItemToUpdate);
+        console.warn('no fy-item sub div found for ', fyItemToUpdate);
         return;
       }
 

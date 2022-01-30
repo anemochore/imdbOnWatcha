@@ -150,3 +150,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed infinite running on kinolights (bug caused by v0.2.2)
     // ver 0.2.4 @ 2022-1-28
     //    trivial refactoring
+    // ver 0.2.5 @ 2022-1-30
+    //    temporary fix for watch dom changes (list screen only for now)
