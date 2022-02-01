@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.7
+// @version      0.2.9
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -33,7 +33,7 @@ class FyGlobal {
       //todo?: if needed.
     };
     /*
-    const excludingSectionTexts = {  //todo+++
+    const excludingSectionTexts = {  //todo***
       'watcha.com': ['새로운 에피소드', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
     };
     */
@@ -51,9 +51,6 @@ class FyGlobal {
     const largeDivSelectors = {
       'watcha.com': 'section>div>div.enter-done',  //parent of parent of parent of IMG
       'm.kinolights.com': 'div.movie-title-wrap',
-    };
-    const largeDivSelectorsOnExit = {
-      'watcha.com': 'div.exit-active',
     };
     const subSelectors = {
       'watcha.com': 'div',
@@ -88,7 +85,6 @@ class FyGlobal {
     this.selector = selectors[site];
     this.titleSelector = titleSelectors[site];
     this.largeDivSelector = largeDivSelectors[site];
-    this.largeDivSelectorOnExit = largeDivSelectorsOnExit[site];
     this.subSelector = subSelectors[site];
     this.extraSelector = extraSelectors[site];
     this.handler = handlers[site];
@@ -158,14 +154,16 @@ class FyGlobal {
 
   async entry(e = null) {
     //entry point
+    fy.observer.disconnect();
+    console.debug('observer disconncted on entry()!');
+
     fy.root = document.querySelector(fy.rootSelector);
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
     if(fy.prevLocationOriginPathname != curLocation.origin+curLocation.pathname && fy.isFetching) {
       toast.log('url changed. so aborting current fetching...');
-      fy.XHR.abort();
-      fy.isFetching = false;
+      fy.xhrAbort();
 
       //reset fy-item attributs
       const itemDivs = [...fy.root.querySelectorAll('['+FY_UNIQ_STRING+']')];
@@ -202,12 +200,10 @@ class FyGlobal {
     }
 
     //init
-    fy.observer.disconnect();
     toast.log();
 
     if(!isExit && !fy.isFetching) {
       toast.log('fy script initiating...');
-
       const selector = fy.selector || fy.largeDivSelector;
 
       if(fy.preventMultipleUrlChange)
@@ -228,23 +224,22 @@ class FyGlobal {
   }
 
   async handlerForWatcha(m, o) {
+    //console.log(m);  //dev++
+    fy.observer.disconnect();
+
     const itemDivs = [...fy.root.querySelectorAll(fy.selector+':not(['+FY_UNIQ_STRING+'])')];
     const itemNum = itemDivs.length;
 
-    let largeDiv = fy.root.querySelector(fy.largeDivSelectorOnExit);
-    //todo: 다른 행 선택 시 두 번 실행되고, 같은 행 안에서는 한 번밖에 실행이 안 됨-_- +++
-    if(largeDiv) {
-      //closing large div
-      console.debug('exiting or awating large div...');  //dev
-      //toast.log();
-      fy.observer.observe(fy.root, fy.observerOption);
-      return;
-    }
+    //todo: single page에서 실행 안 됨-_- waiting for...에서 멈춤... +++
+    let isLargeDivExited = false;
+    if(m && m[0].removedNodes && m[0].removedNodes[0])
+      isLargeDivExited = [...m[0].removedNodes[0]?.classList.values()].includes('exit-done');
 
-    largeDiv = fy.root.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+    let largeDiv = fy.root.querySelector(fy.largeDivSelector);
+    if(isLargeDivExited && !largeDiv)
+      largeDiv = await elementReady(fy.largeDivSelector, fy.root);
 
-    if(itemNum == 0 && largeDiv) {
-      toast.log('updating large div...');
+    if(itemNum == 0 && isLargeDivExited) {
       fy.largeDivUpdate(largeDiv);
     }
     else if(itemNum > 0) {
@@ -252,10 +247,17 @@ class FyGlobal {
       fy.search(itemDivs);
     }
     else {
-      //toast.log('nothing to do (on list screen)');
+      //toast.log('nothing to do (on list screen with or without large div)');
       fy.observer.observe(fy.root, fy.observerOption);
+      //console.debug('observer reconnected (nothing to do) on handlerForWatcha()~');  //dev
+      return;
     }
 
+  }
+
+  xhrAbort() {
+    fy.XHR.abort();
+    fy.isFetching = false;
   }
 
   async search(itemDivs, trueYear = null, trueUrl = null, trueImdbUrl = null, trueOrgTitle = null, fallbackImdbRating = null) {
@@ -392,12 +394,9 @@ class FyGlobal {
       console.log('org. titles scraping done:', searchLength);  //dev
       parseWpScrapeResults_(otScrapeResults);  //otData, etc. are passed.
     }
-    else {
-      searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
-      return;
-    }
 
-    //end of flow
+    searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
+
 
     function setInternalCache_(arr, cachedIndexes) {
       //똑같은 검색어가 여러 개라면 내부 캐싱(앞에 똑같은 검색어가 있다면 뒤에 나오는 애는 캐싱)
@@ -416,7 +415,7 @@ class FyGlobal {
         }
       });
 
-      return cachedIndexes.filter(el => el).length;
+      return arr.filter(el => el).length;
     }
 
     function getInternalCache_(cachedIndexes) {
@@ -889,6 +888,7 @@ class FyGlobal {
       //nothing to do (상세정보, 비슷한 작품 등의 탭을 눌렀을 때)
       toast.log('nothing to do');
       fy.observer.observe(fy.root, fy.observerOption);
+      //console.debug('observer reconnected (nothing to do) on largeDivUpdateForWatcha()~');  //dev
       return;
     }
 
@@ -900,40 +900,31 @@ class FyGlobal {
     let otFlag, tempYear, imdbFlag;
     let forceUpdate = false;  //only becomes true on single content page
     if(!isContentPage) {
-      //리스트 아이템 중 선택한 영화와 제목이 같은 애들. 얘들도 페칭 후 업데이트해야 함.
-      fyItems = [...fy.root.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')]
-      .filter(item => item.querySelector(fy.titleSelector).textContent == trueTitle);
+      //리스트 아이템 중 선택한 거 찾기. 여러 개면 안습... 부모 중 li의 클래스를 찾는다.
+      fyItems = [...largeDiv.parentNode.querySelectorAll(fy.selector + '['+FY_UNIQ_STRING+']')];
+      const classes = fyItems.map(el => el.parentNode.parentNode.parentNode.className);
 
-      if(largeDiv.getAttribute(FY_UNIQ_STRING) == null) {
-        console.debug('large div is never updated one');
-        //선택한 게 업데이트된 적이 없는 타이틀
+      //li 중에서 클래스가 하나만 다른 애가 선택한 애...
+      //https://stackoverflow.com/a/66002712/6153990
+      const counts = classes.reduce((acc, curr) => (acc[curr] = (acc[curr] || 0) + 1, acc), {});
+
+      const selectedClass = Object.keys(counts).find(key => counts[key] == 1);
+      const fyItem = fyItems[classes.indexOf(selectedClass)];
+      const sEl = fyItem.querySelector('.fy-external-site');
+      if(sEl) {
+        otFlag = sEl.getAttribute('flag');
+        tempYear = sEl.getAttribute('year');
+        imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
+      }
+
+      //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
+      if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear)
         forceUpdate = true;
-        fyItems.push(largeDiv);
-      }
-      else {
-        //선택한 게 이미 리스트 화면에서 업데이트된 타이틀
-        //선택한 게 제목이 같은 애들 중에서 첫 번째 거라고 가정... 다른 방법이 없다-_-
-        const fyItem = fyItems[0];
-        const sEl = fyItem.querySelector('.fy-external-site');
-        if(sEl) {
-          tempYear = sEl.getAttribute('year');
-          imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
-        }
-
-        //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
-        if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
-          forceUpdate = true;
-          fyItems.push(fyItem);
-        }
-      }
     }
     else {
       forceUpdate = true;
       fyItems.push(largeDiv);
     }
-
-    //console.debug('fyItems: ', fyItems);
-    //await elementReady('.content-preview-exit-done', fy.root);
 
     if(forceUpdate) {
       toast.log(`force large div updating... with isContentPage: ${isContentPage}`);
@@ -947,7 +938,9 @@ class FyGlobal {
         //보고싶어요 등에 마우스 오버, 아웃 시
         toast.log('nothing to do');
       }
+      toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
+      //console.debug('observer reconnected (no update) on largeDivUpdateForWatcha()~');  //dev
     }
   }
 
@@ -1044,6 +1037,10 @@ class FyGlobal {
       //in case of kinolights
       if(!fy.subSelector)
         targetInnerHtml += ' · ';
+
+      //dev: todo+++
+      if(div.innerHTML != '')
+        console.log('todo: add some effects to show updated!');
 
       div.innerHTML = targetInnerHtml;
     }
@@ -1192,7 +1189,7 @@ class FyGlobal {
         fyItem = document.querySelector('div.movie-info-container');
         break;
       case 'watcha.com':
-        fyItem = el.parentNode.parentNode;
+        fyItem = el.parentNode.parentNode;  //todo+++
         break;
     }
 

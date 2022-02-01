@@ -155,4 +155,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     // ver 0.2.6 @ 2022-2-1
     //    fixed a bug that does not use fallback imdb rating on kinolights
     // ver 0.2.7 @ 2022-2-1
-    //    temporary fix for watch dom changes #2 (large div is worngly only once or twice updated)
+    //    temporary fix for watch dom changes #2 (still large div is worngly only once or twice updated)
+    // ver 0.2.9 @ 2022-2-2
+    //    now internally caches queries when imdb searching too
+    //    temporary fix for watch dom changes #3 (large div handling fixed and related code refactored)
