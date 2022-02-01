@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.5
+// @version      0.2.6
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -739,7 +739,7 @@ class FyGlobal {
               else {
                 imdbDatum.imdbId = res.id;
                 imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
-                if(imdbDatum.imdbFlag == '') {  //if search was successful
+                if(imdbDatum.imdbFlag != '??') {  //if search was successful
                   if(fallbackImdbRating) {
                     console.debug('scraping was unsuccessful. so just use kino data.');
                     imdbDatum.imdbRating = fallbackImdbRating;
@@ -863,13 +863,16 @@ class FyGlobal {
 
   async largeDivUpdateForKino(largeDiv) {
     //no error-check
-    const imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
+    let imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
+    if(isNaN(imdbRating))
+      imdbRating = null;
+    else
+      console.debug('imdb rating already present:', imdbRating);
 
     toast.log('forcing update...');
 
     const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
     const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
-
     fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
   }
 
@@ -1131,7 +1134,7 @@ class FyGlobal {
     if(idx > -1) {
       const cache = otCache[keys[idx]];
 
-      if(flags[idx] != '') {
+      if(cache.imdbFlag != '') {
         if(imdbRating == 'n/a' && !isNaN(parseFloat(cache.imdbRating))) {
           toast.log('warning: imdb rating is n/a. so deleting the cache which is probably wrong!');
 
