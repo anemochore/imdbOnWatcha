@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.6
+// @version      0.2.7
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -232,6 +232,7 @@ class FyGlobal {
     const itemNum = itemDivs.length;
 
     let largeDiv = fy.root.querySelector(fy.largeDivSelectorOnExit);
+    //todo: 다른 행 선택 시 두 번 실행되고, 같은 행 안에서는 한 번밖에 실행이 안 됨-_- +++
     if(largeDiv) {
       //closing large div
       console.debug('exiting or awating large div...');  //dev
@@ -269,13 +270,13 @@ class FyGlobal {
     */
 
     let otData = [];
-    let titles = Array(itemDivs.length).fill(null);
-    let allTitles = Array(itemDivs.length).fill(null);
+    let allTitles = Array(itemDivs.length).fill(null);  //all titles
+    let titles = Array(itemDivs.length).fill(null);     //titles to search
 
     fy.preUpdateDivs(itemDivs);
 
     itemDivs.forEach((item, i) => {
-      let title = item.querySelector(fy.titleSelector).textContent;
+      let title = item.querySelector(fy.titleSelector).textContent || item.querySelector(fy.titleSelector).alt;
       allTitles[i] = title;
 
       //드라마의 경우, 불필요한 텍스트 치환
@@ -322,50 +323,6 @@ class FyGlobal {
       otData[i].query = title;
     });
 
-    //똑같은 검색어가 여러 개라면 내부 캐싱(앞에 똑같은 검색어가 있다면 뒤에 나오는 애는 캐싱)
-    const indexCaches = [];
-    titles.slice(1).forEach((title, i) => {
-      if(title) {
-        const prevIdx = titles.slice(0, 1+i).indexOf(title);
-        if(prevIdx > -1) {
-          indexCaches[1+i] = String(prevIdx);  //to use with filter
-          titles[1+i] = null;
-          otData[1+i] = {};
-        }
-      }
-    });
-
-    /*
-    //augmenting search (removing 'subtitles')
-    const augTitlesShort = Array(titles.length).fill(null);
-    const REGS_TO_REMOVE = [/: | : |:/, / - /];
-    titles.forEach((title, i) => {
-      if(title) {
-        REGS_TO_REMOVE.some(reg => {
-          if(title.match(reg))
-            augTitlesShort[i] = title.slice(0, title.match(reg).index);
-        });
-      }
-    });
-
-    //additional augmenting search (replacing roman numbers to arabic numbers)
-    //ex: 블레이드 III -> 블레이드 3
-    const augTitlesArabic = Array(titles.length).fill(null);
-    augTitlesShort.forEach((title, i) => {
-      if(title && title.match(SMALL_ROMANS_AT_THE_END)) {
-        const match = title.match(SMALL_ROMANS_AT_THE_END)[0];
-        if(match != '')
-          augTitlesArabic[i] = title.replace(SMALL_ROMANS_AT_THE_END, roman2arabic(match));
-      }
-    });
-
-    //aug 서치에 맞게 titles 등도 늘린다.
-    if(augTitlesShort.filter(el => el).length > 0 || augTitlesArabic.filter(el => el).length > 0) {
-      titles = titles.concat(augTitlesShort).concat(augTitlesArabic);
-      allTitles = allTitles.concat(allTitles).concat(allTitles);
-      otData = otData.concat(otData).concat(otData);
-    }
-    */
 
     //start searching
     //large div update
@@ -390,7 +347,11 @@ class FyGlobal {
       otData[0].orgTitle = trueOrgTitle;
     }
 
-    let searchLength = titles.filter(el => el).length;
+
+    //찾을 제목에 대해 내부 캐시 적용.
+    let indexCaches = [];
+    let searchLength = setInternalCache_(titles, indexCaches);
+
     if(searchLength == 0) {
       console.log('nothing to search or scrape on wp.');
       searchImdbAndWrapUp_(itemDivs);  //otData, etc. are passed.
@@ -413,7 +374,6 @@ class FyGlobal {
       }
     }
 
-    //이 부분도 내부 캐싱이 가능하긴 할 텐데 귀찮으니 그냥 두자.
     if(!trueImdbUrl && !trueOrgTitle) {
       toast.log('scraping org. titles...');
       const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
@@ -439,6 +399,38 @@ class FyGlobal {
 
     //end of flow
 
+    function setInternalCache_(arr, cachedIndexes) {
+      //똑같은 검색어가 여러 개라면 내부 캐싱(앞에 똑같은 검색어가 있다면 뒤에 나오는 애는 캐싱)
+      //otData를 직접 수정
+      if(!cachedIndexes)
+        cachedIndexes = [];
+
+      arr.slice(1).forEach((title, i) => {
+        if(title) {
+          const prevIdx = arr.slice(0, 1+i).indexOf(title);
+          if(prevIdx > -1) {
+            cachedIndexes[1+i] = String(prevIdx);  //to use with filter
+            arr[1+i] = null;
+            otData[1+i] = {};
+          }
+        }
+      });
+
+      return cachedIndexes.filter(el => el).length;
+    }
+
+    function getInternalCache_(cachedIndexes) {
+      //내부 캐시 반영
+      //otData를 직접 수정
+      if(cachedIndexes.filter(el => el).length == 0)
+        return;
+
+      console.debug('internal cache used for ' + cachedIndexes.filter(el => el).length + ' titles');
+      cachedIndexes.forEach((cache, i) => {
+        if(cache)
+          otData[i] = otData[cache];  //referenced-cloning is okay.
+      });
+    }
 
     function parseWpSearchResults_(results) {
       results.forEach((result, i) => {
@@ -583,9 +575,12 @@ class FyGlobal {
       };
       const FETCH_INTERVAL = 0;  //dev. seems ok.
 
+      //원제 찾을 때 내부 캐시 사용했으면 일단 여기서 캐시 사용 해제.
+      getInternalCache_(indexCaches);
+
       //id나 평점이 없으면 imdb 찾음.
       //혹은 trueYear/trueUrl/trueImdbUrl이 있어도 이 배열에 넣고 실제로 찾지는 않음.
-      const otDataFiltered = otData.map(el => (!el.imdbId || !el.imdbRating || trueYear || trueUrl || trueImdbUrl) ? el : {});  
+      const otDataFiltered = otData.map(el => (!el.imdbId || !el.imdbRating || trueYear || trueUrl || trueImdbUrl) ? el : {});
       const orgTitles = otDataFiltered.map(el => el.orgTitle);
       const years = otDataFiltered.map(el => el.year);
 
@@ -624,8 +619,12 @@ class FyGlobal {
 
       if(searchLength == 0) {
         console.log('nothing to search on imdb.');
+        searchLength = -1;
       }
       else if(!trueImdbUrl) {
+        //여기서도 내부 캐시 적용
+        searchLength = setInternalCache_(filtered, indexCaches);
+
         toast.log('now searching on imdb for',searchLength,'items...');
 
         imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
@@ -635,7 +634,7 @@ class FyGlobal {
       if(searchLength == 0) {
         console.log('imdb searching result is empty.');
       }
-      else {
+      else if(searchLength > 0) {
         imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/film/';
         if(!trueImdbUrl) {
           console.log('imdb searching done:', searchLength);
@@ -690,16 +689,10 @@ class FyGlobal {
         });
       }
 
-      //내부 캐시 반영
-      if(indexCaches.filter(el => el).length > 0) {
-        console.debug('internal cache used for ' + indexCaches.filter(el => el).length + ' titles');
-        indexCaches.forEach((indexCache, i) => {
-          if(indexCache)
-            otData[i] = otData[indexCache];  //referenced-cloning is okay.
-        });
-      }
+      //내부 캐시 사용했다면 적용
+      getInternalCache_(indexCaches);
 
-      //캐싱
+      //캐시 반영
       setGMCache('OT_CACHE_WITH_IMDB_RATINGS', otData);
 
       //change flow: update divs
@@ -916,7 +909,6 @@ class FyGlobal {
         //선택한 게 업데이트된 적이 없는 타이틀
         forceUpdate = true;
         fyItems.push(largeDiv);
-        //todo+++ (평점이 제대로 안 나옴. 링크도 클릭이 안 됨!)
       }
       else {
         //선택한 게 이미 리스트 화면에서 업데이트된 타이틀
@@ -929,7 +921,6 @@ class FyGlobal {
         }
 
         //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
-        console.log(otFlag, imdbFlag, trueYear, tempYear);
         if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
           forceUpdate = true;
           fyItems.push(fyItem);
@@ -941,26 +932,21 @@ class FyGlobal {
       fyItems.push(largeDiv);
     }
 
-    console.debug('fyItems: ', fyItems);
+    //console.debug('fyItems: ', fyItems);
     //await elementReady('.content-preview-exit-done', fy.root);
 
     if(forceUpdate) {
-      //change flow
-      if(isContentPage)
-        toast.log('force large div updating... (on a single content page)');
-      else
-        toast.log('force large div updating...');
-
+      toast.log(`force large div updating... with isContentPage: ${isContentPage}`);
       fy.search(fyItems, trueYear, trueUrl);
     }
     else {
       if(fyItems) {
         toast.log('already updated.');  //안 나타나는 경우가 있다??
-        toast.log();
       }
-
-      //보고싶어요 등에 마우스 오버, 아웃 시
-      toast.log('nothing to do');
+      else {
+        //보고싶어요 등에 마우스 오버, 아웃 시
+        toast.log('nothing to do');
+      }
       fy.observer.observe(fy.root, fy.observerOption);
     }
   }
@@ -985,7 +971,7 @@ class FyGlobal {
     }
   }
 
-  async updateDivs(itemDivs, otData) {
+  updateDivs(itemDivs, otData) {
     toast.log('updating divs...');
     itemDivs.forEach((item, i) => {
       updateDiv_(item, otData[i]);
@@ -1009,19 +995,19 @@ class FyGlobal {
 
       let flag = otDatum.otFlag || '';
       let year = otDatum.year || '';
-      let innerHtml = '';
+      let targetInnerHtml = '';
 
       if(otDatum.otUrl)
-        innerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
+        targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
 
       if(fy.subSelector)
-        innerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
+        targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
 
       if(otDatum.otUrl)
-        innerHtml += `</a>`;
+        targetInnerHtml += `</a>`;
 
       if(fy.subSelector)
-        innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+        targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
 
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
@@ -1046,20 +1032,20 @@ class FyGlobal {
 
       flag = otDatum.imdbFlag || '';
       if(otDatum.imdbUrl)
-        innerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
+        targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
 
-      innerHtml += `<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>`;
+      targetInnerHtml += `<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>`;
 
       if(otDatum.imdbUrl)
-        innerHtml += `</a>`;
+        targetInnerHtml += `</a>`;
 
-      innerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
+      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
 
       //in case of kinolights
       if(!fy.subSelector)
-        innerHtml += ' · ';
+        targetInnerHtml += ' · ';
 
-      div.innerHTML = innerHtml;
+      div.innerHTML = targetInnerHtml;
     }
   }
 
@@ -1210,7 +1196,7 @@ class FyGlobal {
         break;
     }
 
-    const title = fyItem.querySelector(fy.titleSelector).textContent;
+    const title = fyItem.querySelector(fy.titleSelector).textContent || item.querySelector(fy.titleSelector).alt;
     const otDatum = otCache[title];
 
     if(type == 'ot') {
