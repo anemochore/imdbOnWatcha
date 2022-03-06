@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.9
+// @version      0.2.10
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -26,17 +26,15 @@ class FyGlobal {
   constructor() {
     //setting per sites
     const includingPathses = {
-      'watcha.com': ['/home', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],  //dev todo:  /  '/tutorial'],
+      'watcha.com': ['/browse', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],  //dev todo:  /  '/tutorial'],
       'm.kinolights.com': ['/title'],
     };
     const excludingPathses = {
       //todo?: if needed.
     };
-    /*
     const excludingSectionTexts = {  //todo***
-      'watcha.com': ['새로운 에피소드', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
+      'watcha.com': ['새로 올라왔어요', '추천 리스트', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
     };
-    */
     const rootSelectors = {
       'watcha.com': 'main',
       'm.kinolights.com': 'html',
@@ -45,7 +43,7 @@ class FyGlobal {
       'watcha.com': 'ul>li>article[class*="-Cell"]>a>div',  //parent of parent of IMG
     };
     const titleSelectors = {
-      'watcha.com': 'div[aria-hidden]>p, img[alt]',  //former: list item, latter: on large div
+      'watcha.com': 'div[aria-hidden]>p, img[alt], h4[class]',  //order: list item, on large div, on main screen
       'm.kinolights.com': 'h3.title-kr',
     };
     const largeDivSelectors = {
@@ -79,8 +77,9 @@ class FyGlobal {
     //first setup
     const site = document.location.host;
 
-    this.includingPaths = includingPathses[site];
+    this.includingPaths = includingPathses[site] || [];
     this.excludingPaths = excludingPathses[site] || [];
+    this.excludingSectionText = excludingSectionTexts[site] || [];
     this.rootSelector = rootSelectors[site];
     this.selector = selectors[site];
     this.titleSelector = titleSelectors[site];
@@ -278,7 +277,11 @@ class FyGlobal {
     fy.preUpdateDivs(itemDivs);
 
     itemDivs.forEach((item, i) => {
-      let title = item.querySelector(fy.titleSelector).textContent || item.querySelector(fy.titleSelector).alt;
+      let title = item.querySelector(fy.titleSelector)?.textContent || item.querySelector(fy.titleSelector)?.alt;
+
+      if(!title)
+        return;
+
       allTitles[i] = title;
 
       //드라마의 경우, 불필요한 텍스트 치환

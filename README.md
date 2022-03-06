@@ -159,3 +159,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     // ver 0.2.9 @ 2022-2-2
     //    now internally caches queries when imdb searching too
     //    temporary fix for watch dom changes #3 (large div handling fixed and related code refactored)
+    // ver 0.2.10 @ 2022-3-7
+    //    temporary fix for watch dom changes #4 (now works on main page partly and doesn't break)
