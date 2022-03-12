@@ -168,3 +168,8 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed for watch dom changes #5 (large div handling on single page)
     //    removed old commented lines (wp html parsing)
     //    now imdb year is prefered to wp year
+    // ver 0.3.0 @ 2022-3-13
+    //    seperated setting file (still many selectors are hard-coded)
+    //    fixed bugs related with large div
+    //    now when updating large div, selected list-item info-box blinks for 2s
+    //    some refactoring and removed some commented lines
