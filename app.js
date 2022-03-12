@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.10
+// @version      0.2.11
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -694,9 +694,6 @@ class FyGlobal {
       //내부 캐시 사용했다면 적용
       getInternalCache_(indexCaches);
 
-      //캐시 반영
-      setGMCache('OT_CACHE_WITH_IMDB_RATINGS', otData);
-
       //change flow: update divs
       fy.updateDivs(itemDivs, otData);
 
@@ -738,7 +735,7 @@ class FyGlobal {
                   if(fallbackImdbRating) {
                     console.debug('scraping was unsuccessful. so just use kino data.');
                     imdbDatum.imdbRating = fallbackImdbRating;
-                    imdbDatum.imdbRatingFetchedDate = new Date();
+                    imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
                   }
                   else
                     imdbDatum.imdbFlag = '?';
@@ -816,7 +813,7 @@ class FyGlobal {
               console.warn('imdb rating is not a number: ' + imdbDatum.imdbRating);
               imdbDatum.imdbFlag = '??';
             }
-            imdbDatum.imdbRatingFetchedDate = new Date();
+            imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
 
             if(isNaN(parseInt(imdbDatum.year)))
               imdbDatum.year = res.year || year;
@@ -974,11 +971,39 @@ class FyGlobal {
     });
     toast.log('divs updated!');
 
+    //캐시 반영
+    setGMCache_('OT_CACHE_WITH_IMDB_RATINGS', otData);
+
     //wrap up
     toast.log();
     if(!fy.preventMultipleUrlChange)
       fy.observer.observe(fy.root, fy.observerOption);
 
+    //end of flow
+
+
+    function setGMCache_(GMKey, array) {
+      //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
+      //다른 비동기 호출이 실행 도중일 수도 있으므로... really??
+
+      //array to obj
+      const obj = {};
+      array.forEach((el, i) => {
+        const title = el.query;
+        if(title) {
+          delete el.query;
+          obj[title] = el;
+        }
+
+        delete el.tempYear;
+        delete el.cat;
+      });
+
+      const targetObj = GM_getValue(GMKey);
+      Object.assign(targetObj, obj);
+      GM_setValue(GMKey, targetObj);
+      console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
+    }
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
       const selector = fy.subSelector ? fy.subSelector + '.' + FY_UNIQ_STRING : fy.extraSelector;
@@ -1008,9 +1033,15 @@ class FyGlobal {
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
         let yourDate = new Date(otDatum.imdbRatingFetchedDate);
-        const offset = yourDate.getTimezoneOffset();
-        yourDate = new Date(yourDate.getTime() - (offset*60*1000));
-        label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
+        if(isNaN(yourDate)) {
+          otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
+          console.debug('fixed invalid fetched-date in cache for '+otDatum.orgTitle);
+        }
+        else {
+          const offset = yourDate.getTimezoneOffset();
+          yourDate = new Date(yourDate.getTime() - (offset*60*1000));
+          label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
+        }
       }
 
       let rating = 'n/a', ratingCss = 'na';
@@ -1340,29 +1371,6 @@ function elementReady(selector, baseEl) {
       subtree: true
     });
   });
-}
-
-function setGMCache(GMKey, array) {
-  //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
-  //다른 비동기 호출이 실행 도중일 수도 있으므로... really??
-
-  //array to obj
-  const obj = {};
-  array.forEach((el, i) => {
-    const title = el.query;
-    if(title) {
-      delete el.query;
-      obj[title] = el;
-    }
-
-    delete el.tempYear;
-    delete el.cat;
-  });
-
-  const targetObj = GM_getValue(GMKey);
-  Object.assign(targetObj, obj);
-  GM_setValue(GMKey, targetObj);
-  console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
 }
 
 function specialRoman2roman(s) {
