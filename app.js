@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.2.11
+// @version      0.2.12
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -50,10 +50,11 @@ class FyGlobal {
       'watcha.com': 'section>div>div.enter-done',  //parent of parent of parent of IMG
       'm.kinolights.com': 'div.movie-title-wrap',
     };
-    const subSelectors = {
-      'watcha.com': 'div',
-    };
-    const extraSelectors = {
+    const specialSelectors = {
+      'watcha.com': {
+        numberToParent: 2,
+        selector: 'div',
+      },
       'm.kinolights.com': 'span.imdb-wrap>div.score',
     };
 
@@ -64,6 +65,11 @@ class FyGlobal {
     const largeDivUpdates = {
       'watcha.com': this.largeDivUpdateForWatcha,
       'm.kinolights.com': this.largeDivUpdateForKino,
+    };
+    const preUpdateDivses = {
+      //div pre-update if not done yet
+      'watcha.com': this.preUpdateDivsForWatcha,
+      'm.kinolights.com': this.preUpdateDivsForKino,
     };
     const preventMultipleUrlChanges = {
       'm.kinolights.com': true,
@@ -84,10 +90,11 @@ class FyGlobal {
     this.selector = selectors[site];
     this.titleSelector = titleSelectors[site];
     this.largeDivSelector = largeDivSelectors[site];
-    this.subSelector = subSelectors[site];
-    this.extraSelector = extraSelectors[site];
+    this.specialSelector = specialSelectors[site];
+
     this.handler = handlers[site];
     this.largeDivUpdate = largeDivUpdates[site];
+    this.preUpdateDivs = preUpdateDivses[site];
     this.preventMultipleUrlChange = preventMultipleUrlChanges[site];
 
     this.root = null;
@@ -855,7 +862,7 @@ class FyGlobal {
 
   async largeDivUpdateForKino(largeDiv) {
     //no error-check
-    let imdbRating = largeDiv.querySelector(fy.extraSelector).textContent.trim().replace(' ·', '');
+    let imdbRating = largeDiv.querySelector(fy.specialSelector).textContent.trim().replace(' ·', '');
     if(isNaN(imdbRating))
       imdbRating = null;
     else
@@ -944,24 +951,23 @@ class FyGlobal {
     }
   }
 
-  preUpdateDivs(itemDivs) {
-    //div pre-update if not done yet
-    if(fy.subSelector) {
-      itemDivs.forEach((item, i) => {
-        if(item.getAttribute(FY_UNIQ_STRING) == null) {
-          item.setAttribute(FY_UNIQ_STRING, '');
-          const div = document.createElement('div');
-          div.className = FY_UNIQ_STRING;
-          item.insertBefore(div, item.querySelector(fy.subSelector));
-        }
-      });
-    }
-    else {
-      //in case of kinolights
-      const el = itemDivs[0].querySelector(fy.extraSelector);
-      el.setAttribute(FY_UNIQ_STRING, '');
-      el.classList.add(FY_UNIQ_STRING);
-    }
+  preUpdateDivsForWatcha(itemDivs) {
+    itemDivs.forEach((item, i) => {
+      item = item.parentNode.parentNode;
+      if(item.getAttribute(FY_UNIQ_STRING) == null) {
+        item.setAttribute(FY_UNIQ_STRING, '');
+        const div = document.createElement('div');
+        div.className = FY_UNIQ_STRING;
+        const ref = item.firstChild;  //<a ...>
+        item.insertBefore(div, ref);
+      }
+    });
+  }
+  
+  preUpdateDivsForKino(itemDivs) {
+    const el = itemDivs[0].querySelector(fy.specialSelector);
+    el.setAttribute(FY_UNIQ_STRING, '');
+    el.classList.add(FY_UNIQ_STRING);
   }
 
   updateDivs(itemDivs, otData) {
@@ -1006,11 +1012,16 @@ class FyGlobal {
     }
 
     function updateDiv_(fyItemToUpdate, otDatum = {}) {
-      const selector = fy.subSelector ? fy.subSelector + '.' + FY_UNIQ_STRING : fy.extraSelector;
-      const div = fyItemToUpdate.querySelector(selector);
+      let selector = fy.specialSelector, div = fyItemToUpdate;
+      if(fy.specialSelector.numberToParent && fy.specialSelector.selector) {
+        for(let i = 0; i<fy.specialSelector.numberToParent; i++)
+          div = div.parentNode;
+        selector = fy.specialSelector.selector;
+      }
+      div = div.querySelector(selector);
 
       if(!div) {
-        console.warn('no fy-item sub div found for ', fyItemToUpdate);
+        console.warn('no (fy-item) sub div found for ', fyItemToUpdate);
         return;
       }
 
@@ -1021,13 +1032,12 @@ class FyGlobal {
       if(otDatum.otUrl)
         targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
 
-      if(fy.subSelector)
-        targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
+      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
 
       if(otDatum.otUrl)
         targetInnerHtml += `</a>`;
 
-      if(fy.subSelector)
+      if(fy.specialSelector)
         targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
 
       let label = 'n/a';
@@ -1069,7 +1079,7 @@ class FyGlobal {
       targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
 
       //in case of kinolights
-      if(!fy.subSelector)
+      if(!fy.specialSelector)
         targetInnerHtml += ' · ';
 
       //dev: todo+++

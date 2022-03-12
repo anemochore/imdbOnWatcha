@@ -163,3 +163,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    temporary fix for watch dom changes #4 (now works on main page partly and doesn't break)
     // ver 0.2.11 @ 2022-3-12
     //    fixed a crash when fetched-date is invalid in cache
+    // ver 0.2.12 @ 2022-3-13
+    //    fixed info box position (no longer <a> under <a>)
