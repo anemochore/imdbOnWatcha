@@ -40,7 +40,7 @@ class FyGlobal {
       'm.kinolights.com': 'html',
     };
     const selectors = {
-      'watcha.com': 'ul>li>article[class*="-Cell"]>a>div',  //parent of parent of IMG
+      'watcha.com': 'ul>li>article[class*="-Cell"]>a>div, img[alt]',  //parent of parent of IMG
     };
     const titleSelectors = {
       'watcha.com': 'div[aria-hidden]>p, img[alt], h4[class]',  //order: list item, on large div, on main screen
@@ -178,36 +178,10 @@ class FyGlobal {
       });
     }
 
-    let isExit = false;
-    //check if the page is included in excludingPath
-    let isExcludingPath = false;
-    fy.excludingPaths.some(path => {
-      if(curLocation.pathname.startsWith(path)) {
-        fy.isExcludingPath = true;
-        return true;  //break
-      }
-    });
-    if(fy.isExcludingPath) {
-      toast.log('on excluding page');
-      isExit = true;
-    }
-
-    //check if the page is included in includingPath
-    let isIncludingPath = false;
-    fy.includingPaths.some(path => {
-      if(curLocation.pathname.startsWith(path)) {
-        isIncludingPath = true;
-        return true;  //break
-      }
-    });
-    if(!isIncludingPath) {
-      toast.log('not in including page');
-      isExit = true;
-    }
-
     //init
     toast.log();
 
+    const isExit = determineExit_();
     if(!isExit && !fy.isFetching) {
       toast.log('fy script initiating...');
       const selector = fy.selector || fy.largeDivSelector;
@@ -218,6 +192,38 @@ class FyGlobal {
       toast.log('waiting for page loading...');
       await elementReady(selector, fy.root);
       fy.handler();  //force first run
+    }
+    
+    function determineExit_() {
+      let result = false;
+
+      //check if the page is included in excludingPath
+      let isExcludingPath = false;
+      fy.excludingPaths.some(path => {
+        if(curLocation.pathname.startsWith(path)) {
+          fy.isExcludingPath = true;
+          return true;  //break
+        }
+      });
+      if(fy.isExcludingPath) {
+        toast.log('on excluding page');
+        result = true;
+      }
+
+      //check if the page is included in includingPath
+      let isIncludingPath = false;
+      fy.includingPaths.some(path => {
+        if(curLocation.pathname.startsWith(path)) {
+          isIncludingPath = true;
+          return true;  //break
+        }
+      });
+      if(!isIncludingPath) {
+        toast.log('not in including page');
+        result = true;
+      }
+
+      return result;
     }
   }
 
@@ -236,16 +242,22 @@ class FyGlobal {
     const itemDivs = [...fy.root.querySelectorAll(fy.selector+':not(['+FY_UNIQ_STRING+'])')];
     const itemNum = itemDivs.length;
 
-    //todo: single page에서 실행 안 됨-_- waiting for...에서 멈춤... +++
     let isLargeDivExited = false;
     if(m && m[0].removedNodes && m[0].removedNodes[0])
       isLargeDivExited = [...m[0].removedNodes[0]?.classList.values()].includes('exit-done');
+    else if(document.location.pathname.startsWith('/contents/'))
+      isLargeDivExited = 'single page';
 
     let largeDiv = fy.root.querySelector(fy.largeDivSelector);
-    if(isLargeDivExited && !largeDiv)
-      largeDiv = await elementReady(fy.largeDivSelector, fy.root);
+    if(!largeDiv) {
+      if(isLargeDivExited == true && !largeDiv)
+        largeDiv = await elementReady(fy.largeDivSelector, fy.root);
+      if(isLargeDivExited == 'single page')
+        largeDiv = fy.root.querySelector(fy.titleSelector).parentNode;
+    }
 
-    if(itemNum == 0 && isLargeDivExited) {
+    if((itemNum == 0 || itemNum == 1) && isLargeDivExited) {
+      //itemNum = 1: single page
       fy.largeDivUpdate(largeDiv);
     }
     else if(itemNum > 0) {
@@ -339,7 +351,9 @@ class FyGlobal {
     //start searching
     //large div update
     if(trueYear) {
-      otData[0].year = trueYear;
+      //imdb 연도를 우선함
+      if(otData[0].otFlag != '')
+        otData[0].year = trueYear;
     }
 
     //large div update or wp manual update
@@ -525,27 +539,6 @@ class FyGlobal {
 
         const targetDoc = new DOMParser().parseFromString(result, 'text/html');
 
-        /*
-        const startIdx = result.indexOf('개요<!--');
-        const endIdx = result.slice(startIdx).indexOf('년</span>');
-        const tempYear2 = result.slice(startIdx, startIdx+endIdx).slice(-4);
-        */
-
-        /*
-        const fy.rootObj = JSON.parse(targetDoc.querySelector('div#fy.root').getAttribute('data-initial-state'));
-        if(!fy.rootObj) {
-          console.warn('scraping failed on', otData[i].otUrl);
-          console.debug(targetDoc.documentElement.outerHTML);
-          otData[i].otFlag = '??';
-
-          return;  //continue
-        }
-
-        const code = otData[i].otUrl.split('/').pop();
-        const cm = fy.rootObj.contentManager.byCode[code].byUrlKey['/api/contents/:code'];
-        const orgTitle = cm.engTitle;
-        const tempYear = cm.year;
-        */
         let [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
 
@@ -562,7 +555,7 @@ class FyGlobal {
         if(trueYear) {
           const yearDiff = Math.abs(tempYear - trueYear);
           if(yearDiff == 1) {
-            console.debug('very mild warning: year on wp is ' + tempYear + ', which differs 1 year from ' + trueYear + ' for ' + orgTitle + '. discarding it.');
+            console.debug('very mild warning: year on wp is ' + tempYear + ', which differs 1 year from ' + trueYear + ' for ' + orgTitle + '. discarding wp year.');
             tempYear = trueYear;
           }
           else if(yearDiff > 1) {
@@ -732,8 +725,9 @@ class FyGlobal {
 
             if(res && res.id) {  //special mis-working case for this API
               if(otData[i].imdbId && otData[i].imdbUrl && otData[i].imdbFlag == '') {
-                console.debug('cache flag is okay. so discard search result and use the cache flag.');
+                console.debug('cache flag is okay. so discard search result and use the cache data for ' + otData[i].orgTitle + ' (' + otData[i].year + ')');
                 imdbDatum.imdbFlag = '';
+                imdbDatum = otData[i];
               }
               else {
                 imdbDatum.imdbId = res.id;
@@ -877,8 +871,8 @@ class FyGlobal {
 
   async largeDivUpdateForWatcha(largeDiv) {
     let isContentPage = false;
-    if(largeDiv.nodeName == 'IMG') {  //on single content page
-      largeDiv = largeDiv.parentNode.parentNode.parentNode;
+    if(document.location.pathname.startsWith('/contents/')) {
+      //on single content page
       isContentPage = true;
       console.debug('isContentPage turned on');
     }
@@ -1045,7 +1039,7 @@ class FyGlobal {
         let yourDate = new Date(otDatum.imdbRatingFetchedDate);
         if(isNaN(yourDate)) {
           otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
-          console.debug('fixed invalid fetched-date in cache for '+otDatum.orgTitle);
+          console.debug('fixed invalid fetched-date in cache for ' + otDatum.orgTitle);
         }
         else {
           const offset = yourDate.getTimezoneOffset();
@@ -1177,22 +1171,23 @@ class FyGlobal {
           cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
         }
         else {
-          if(cache.imdbUrl.startsWith('https://www.imdb.com/find?')) {
-            toast.log('updated the whole cache (id was not set) for '+orgTitle+' ('+trueYear+').');
+          if(cache.imdbUrl.startsWith('https://www.imdb.com/find?') || cache.imdbFlag == '??') {
+            toast.log('updated the whole cache (id was not set or flag is ??) for '+orgTitle+' ('+trueYear+').');
 
             cache.imdbId = imdbId;
             if(path.endsWith('/'))
               path = path.slice(0, -1);
             cache.imdbUrl = 'https://www.imdb.com' + path;
+            cache.year = trueYear;
           }
           else
-            toast.log('rating for '+orgTitle+' ('+trueYear+') was successfully updated on the cache.');
+            toast.log('rating (only) for '+orgTitle+' ('+trueYear+') was successfully updated on the cache.');
 
           cache.imdbRating = imdbRating;
         }
         cache.imdbFlag = '';
 
-        cache.imdbRatingFetchedDate = new Date();
+        cache.imdbRatingFetchedDate = new Date().toISOString();
         GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
       }
       else if(imdbRating != cache.imdbRating) {
@@ -1203,13 +1198,14 @@ class FyGlobal {
           if(path.endsWith('/'))
             path = path.slice(0, -1);
           cache.imdbUrl = 'https://www.imdb.com' + path;
+          cache.year = trueYear;
         }
         else {
-          toast.log('imdb rating differs from the cache, so updating the cache for '+orgTitle+' ('+trueYear+').');
+          toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+trueYear+').');
         }
         cache.imdbRating = imdbRating;
 
-        cache.imdbRatingFetchedDate = new Date();
+        cache.imdbRatingFetchedDate = new Date().toISOString();
         GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
       }
       else {
