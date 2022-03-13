@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.3
+// @version      0.3.4
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -304,6 +304,7 @@ class FyGlobal {
 
         //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
         if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
+          console.log(trueYear, tempYear)
           forceUpdate = true;
           fyItems = [fyItem.querySelector('a>div')];  //또 하드코딩
         }
@@ -879,29 +880,43 @@ class FyGlobal {
             if(isNaN(parseInt(imdbDatum.year)))
               imdbDatum.year = res.year || year;
 
-            //final! year difference check
-            if(!trueImdbUrl) {
-              const tempYear = res.year;
-              const sTrueYear = trueYear || imdbDatum.year;
-              let yearDiff;
-              if(tempYear && sTrueYear)
-                yearDiff = Math.abs(tempYear - sTrueYear);
-              //console.debug(yearDiff, tempYear, sTrueYear, trueYear, imdbDatum.year);  //dev
+            //year difference check
+            const tempYear = res.year;
+            const sTrueYear = trueYear || imdbDatum.year;
 
-              //if trueYear or imdbDatum.year is n/a, the difference cannot be checked.
-              if(yearDiff == 1) {
-                console.debug('mild warning: year on imdb is ' + (tempYear || 'n/a') + ', which differs 1 year from ' + sTrueYear + ' for ' + orgTitle);
+            //if trueYear or imdbDatum.year is n/a, the difference cannot be checked.
+            let yearDiff;
+            if(tempYear && sTrueYear)
+              yearDiff = Math.abs(tempYear - sTrueYear);
+            if(yearDiff == 1) {
+              console.debug('mild warning: year on imdb is ' + (tempYear || 'n/a') + ', which differs 1 year from ' + sTrueYear + ' for ' + orgTitle);
+              imdbDatum.imdbFlag = '?';
+            }
+            else if(yearDiff > 1) {
+              console.warn('year on imdb is ' + (tempYear || 'n/a') + ', which quite differs from ' + sTrueYear + ' for ' + orgTitle);
+              imdbDatum.imdbFlag = '??';
+            }
+            else if(!isNaN(yearDiff)) {
+              if(imdbDatum.imdbFlag == '??')
                 imdbDatum.imdbFlag = '?';
+              else if(imdbDatum.imdbFlag == '?')
+                imdbDatum.imdbFlag = '';
+            }
+
+            if(trueImdbUrl) {
+              console.debug(res);  //dev++++
+              if(res.title != orgTitle) {
+                console.debug('title fixed:',orgTitle,'->',res.title);
+                imdbDatum.orgTitle = res.title;
               }
-              else if(yearDiff > 1) {
-                console.warn('year on imdb is ' + (tempYear || 'n/a') + ', which quite differs from ' + sTrueYear + ' for ' + orgTitle);
-                imdbDatum.imdbFlag = '??';
-              }
-              else if(!isNaN(yearDiff)) {
-                if(imdbDatum.imdbFlag == '??')
-                  imdbDatum.imdbFlag = '?';
-                else if(imdbDatum.imdbFlag == '?')
+              if(res.year != sTrueYear) {
+                console.debug('year fixed:',sTrueYear,'->',res.year);
+                imdbDatum.year = res.year;
+
+                if(imdbDatum.imdbRating != 'N/A' && !isNaN(parseFloat(imdbDatum.imdbRating)) && imdbDatum.imdbFlag != '') {
+                  console.warn('false flag due to year-difference was reset.')
                   imdbDatum.imdbFlag = '';
+                }
               }
             }
           }
