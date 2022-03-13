@@ -173,3 +173,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed bugs related with large div
     //    now when updating large div, selected list-item info-box blinks for 2s
     //    some refactoring and removed some commented lines
+    // ver 0.3.3 @ 2022-3-14
+    //    fixed 'edit' not working bug
+    //    modified selectors (for watcha home screen, etc)
+    //    refactored more
