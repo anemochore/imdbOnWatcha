@@ -178,3 +178,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    modified selectors (for watcha home screen, etc)
     //    now fix wrong title or year after manually updating imdb url
     //    refactored more
+    // ver 0.3.5 @ 2022-3-20
+    //    fixed imdb selector according to dom change

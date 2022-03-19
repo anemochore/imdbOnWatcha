@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.4
+// @version      0.3.5
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1084,7 +1084,7 @@ class FyGlobal {
     }
 
     const imdbId = path.split('/')[2];
-    let imdbRating = document.querySelector('span[class^="AggregateRatingButton_"]');
+    let imdbRating = document.querySelector('div[data-testid$="aggregate-rating__score"]>span[class]');
     if(imdbRating)
       imdbRating = imdbRating.textContent;
     else
