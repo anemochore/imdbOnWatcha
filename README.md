@@ -15,8 +15,9 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 3. In Tampermonkey setting, set 'Config Mode' to 'Advanced' and refresh in order to access 'Storage' tab for scripts.
 4. Upon first run (accessing watcha.com), an error popup will show up saying the API keys should be set. You should subscribe for free and get the key at [the API page](https://rapidapi.com/hmerritt/api/imdb-internet-movie-database-unofficial/).
 5. Set the key at 'Storage' tab for the script in JSON format, eg. `"RAPID_API_KEY": "YOUR_LONG_API_KEY_BLAH_BLAH"` and refresh.
-6. Now refreshing watcha.com will initiate the script run.
-7. Processing details can be found in browser console.
+6. **IMPORTANT: Now, before accesing watcha.com, please logout on pedia.watcha.com and then re-login on watcha.com!
+7. Now refreshing watcha.com will initiate the script run.
+8. Processing details can be found in browser console.
 
 ## screenshot
 ![sample](https://user-images.githubusercontent.com/8731054/123694785-bcd88d00-d894-11eb-9e37-a2ce4233448a.png)
@@ -27,6 +28,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 2. todo: netflix
 
 ## todo
+0. fix (remove) large-div handling on watcha & improve click-ability on fy-item links
 1. support for imdb my rating -> not possible. scraping is being blocked sooner or later. user rating url sample: https://www.imdb.com/user/ur105461136/ratings
 2. css tuning... -> partially done.
 3. support for fetching rating per single season/episode in case of drama on imdb. maybe later...
@@ -178,5 +180,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    modified selectors (for watcha home screen, etc)
     //    now fix wrong title or year after manually updating imdb url
     //    refactored more
-    // ver 0.3.5 @ 2022-3-20
+    // ver 0.3.7 @ 2022-3-20
     //    fixed imdb selector according to dom change
+    //    changed imdb api (previous api was removed on rapidapi suddenly...)
+    //    fixed org-titles searching and updated readme

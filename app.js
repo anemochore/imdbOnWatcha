@@ -19,7 +19,8 @@
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // @connect      pedia.watcha.com
-// @connect      imdb-internet-movie-database-unofficial.p.rapidapi.com
+// @connect      data-imdb1.p.rapidapi.com
+
 // ==/UserScript==
 
 
@@ -31,7 +32,8 @@ toast.log();
 //global consts
 const SMALL_ROMANS_AT_THE_END = /IX|IV|V?I{0,3}$/;
 
-const RAPID_API_HOST = 'imdb-internet-movie-database-unofficial.p.rapidapi.com';
+const RAPID_API_HOST = 'data-imdb1.p.rapidapi.com';
+
 const RAPID_API_KEY = GM_getValue('RAPID_API_KEY');
 const DEFAULT_MSG = '입력하세요';
 
@@ -448,7 +450,11 @@ class FyGlobal {
       //목록 업데이트
       let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
       //왓챠피디아는 .을 없애야 함...
-      const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null));
+      const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null), {
+        headers: {
+          'Accept-Language': 'ko-KR',
+        },
+      });
       parseWpSearchResults_(otSearchResults);  //otData, etc. are passed.
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
@@ -537,21 +543,38 @@ class FyGlobal {
           el.remove();
         });
 
-        let sDivs = targetDoc.querySelector('div[class*="StyledTabContentContainer"] section>section:first-child ul');
-        if(!sDivs) {
+        const selector = 'div[class*="StyledTabContentContainer"] section>section ';
+        let sDivs = [...targetDoc.querySelectorAll(selector)];
+
+        //최상위 섹션, 영화, TV 프로그램만 처리
+        const sUrls = [], sTitles = [], sYears  = [];
+        sDivs.forEach((sDiv, i) => {
+          const header = sDiv.querySelector('header>h2');
+          //첫 번째(최상위) 섹션은 헤더가 없음
+          if(!header && i == 0) {
+            const info = [...sDiv.querySelectorAll('ul>li>a>div:last-child')];
+            sUrls  .push(...info.map(el => el.parentNode.href));
+            sTitles.push(...info.map(el => el.children[0].textContent));
+            sYears .push(...info.map(el => el.children[1].textContent.split(' ・ ')[0]));
+          }
+          else if(header.textContent == '영화' || header.textContent == 'TV 프로그램') {
+            const info = [...sDiv.querySelectorAll('ul>li>a>div:last-child>div[class]')];
+            sUrls  .push(...info.map(el => el.parentNode.parentNode.href));
+            sTitles.push(...info.map(el => el.children[0].textContent));
+            sYears .push(...info.map(el => el.children[1].textContent.split(' ・ ')[0]));
+          }
+        });
+
+        if(sDivs.length == 0) {
           console.warn(title, 'seems not found on wp!');
           console.debug(targetDoc.documentElement.outerHTML);
           otData[i].otFlag = '??';
           return;  //continue
         }
 
-        sDivs = [...sDivs.querySelectorAll('li>a>div:last-child')];
-        const sTitles = sDivs.map(el => el.children[0].textContent);
-        const sYears  = sDivs.map(el => el.children[1].textContent.split(' ・ ')[0]);
-        //카테고리(영화, TV 프로그램 등)는 레이지 로딩이라 스크레이핑 불가
-
         let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0;
         sTitles.forEach((sTitle, j) => {
+          console.log(sTitle, title, trueYear, sYears[j]);
           if(sTitle) {
             if(sTitle == title
               && (!trueYear || (trueYear && trueYear == sYears[j]))) {
@@ -588,7 +611,7 @@ class FyGlobal {
           otData[i].otFlag = '??';
         }
 
-        const code = sDivs[idx].parentNode.href.split('/').pop();
+        const code = sUrls[idx].split('/').pop();
         otData[i].otUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;
       });
     }
@@ -668,14 +691,14 @@ class FyGlobal {
         }
       });
 
-      let imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/search/';
-      const tempYearString = trueYear ? '%20('+trueYear+')' : '';
+      let imdbPrefix = 'https://data-imdb1.p.rapidapi.com/titles/search/title/';
+      const tempYearString = trueYear ? '?year='+trueYear : '';
 
       //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
       //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다.
       //다른 문자가 더 있을지도... [ ]도 삭제해야 한다(ex: [REC] 4: Apocalipsis).
       let filtered = orgTitles.map((title, i) => title ? 
-        imdbPrefix + encodeURIComponent(orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F').replace(/(\[|\])/g, '')) + tempYearString :
+        imdbPrefix + encodeURIComponent('"'+orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F').replace(/(\[|\])/g, '')+'"') + tempYearString :
         null
       );
       searchLength = filtered.filter(el => el).length;
@@ -698,18 +721,18 @@ class FyGlobal {
         console.log('imdb searching result is empty.');
       }
       else if(searchLength > 0) {
-        imdbPrefix = 'https://imdb-internet-movie-database-unofficial.p.rapidapi.com/film/';
+        imdbPrefix = 'https://data-imdb1.p.rapidapi.com/titles/';
         if(!trueImdbUrl) {
           console.log('imdb searching done:', searchLength);
           imdbData = parseImdbResults_('search');  //imdbResults, etc are passed.
 
           //get ratings. id가 있는 애들만 찾는다.
-          filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId : null);
+          filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId + '/ratings': null);
           searchLength = filtered.filter(el => el).length;
         }
         else {
           const tempImdbId = trueImdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
-          filtered = [imdbPrefix + tempImdbId];
+          filtered = [imdbPrefix + tempImdbId + '/ratings'];
           otData[0].imdbId = tempImdbId;
           imdbData = [otData[0]];
         }
@@ -779,11 +802,12 @@ class FyGlobal {
             console.warn('parsing error: ', r);
           }
 
-          if(!res || (type == 'search' && !res.titles) || (type == 'rating' && !res.rating)) {
+          if(!res || !res.results) {
             console.warn('searching or scraping', orgTitle, 'via API failed or no results on imdb!');
             if(res)
               console.debug(res);  //dev
 
+            /*            
             if(res && res.id) {  //special mis-working case for this API
               if(otData[i].imdbId && otData[i].imdbUrl && otData[i].imdbFlag == '') {
                 console.debug('cache flag is okay. so discard search result and use the cache data for ' + otData[i].orgTitle + ' (' + otData[i].year + ')');
@@ -807,16 +831,18 @@ class FyGlobal {
               }
             }
             else {
+            */
               imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
               imdbDatum.imdbFlag = '??';
-            }
+            //}
           }
           else if(type == 'search') {
-            const titles = res.titles.map(el => el.title);
-            const ids = res.titles.map(el => el.id);
+            const titles = res.results.map(el => el.titleText.text);
+            const ids = res.results.map(el => el.id);
 
             //검색 결과에 대한 제목 정리
             //ex: Spider-Man II -> Spider-Man 2
+            //todo: check this again
             if(!titles.includes(orgTitle) && orgTitle.match(SMALL_ROMANS_AT_THE_END)) {
               const match = orgTitle.match(SMALL_ROMANS_AT_THE_END)[0];
               const possibleTitle = orgTitle.replace(SMALL_ROMANS_AT_THE_END, roman2arabic(match));
@@ -867,33 +893,25 @@ class FyGlobal {
             imdbDatum.imdbId = ids[idx];
             if(imdbDatum.imdbId)
               imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + imdbDatum.imdbId;
-          }
-          else if(type == 'rating') {
-            //imdbDatum.imdbRating = res.imdbRating;
-            imdbDatum.imdbRating = res.rating;
-            if(imdbDatum.imdbRating != 'N/A' && isNaN(parseFloat(imdbDatum.imdbRating))) {
-              console.warn('imdb rating is not a number: ' + imdbDatum.imdbRating);
-              imdbDatum.imdbFlag = '??';
-            }
-            imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
-
-            if(isNaN(parseInt(imdbDatum.year)))
-              imdbDatum.year = res.year || year;
 
             //year difference check
-            const tempYear = res.year;
+            const resYear = res.results[idx]?.releaseDate?.year;  //may be null
+            if(isNaN(parseInt(imdbDatum.year)))
+              imdbDatum.year = resYear || year;
+
             const sTrueYear = trueYear || imdbDatum.year;
 
             //if trueYear or imdbDatum.year is n/a, the difference cannot be checked.
+            //todo: this case won't occur now, i think+++
             let yearDiff;
-            if(tempYear && sTrueYear)
-              yearDiff = Math.abs(tempYear - sTrueYear);
+            if(resYear && sTrueYear)
+              yearDiff = Math.abs(resYear - sTrueYear);
             if(yearDiff == 1) {
-              console.debug('mild warning: year on imdb is ' + (tempYear || 'n/a') + ', which differs 1 year from ' + sTrueYear + ' for ' + orgTitle);
+              console.debug('mild warning: year on imdb is ' + (resYear || 'n/a') + ', which differs 1 year from ' + sTrueYear + ' for ' + orgTitle);
               imdbDatum.imdbFlag = '?';
             }
             else if(yearDiff > 1) {
-              console.warn('year on imdb is ' + (tempYear || 'n/a') + ', which quite differs from ' + sTrueYear + ' for ' + orgTitle);
+              console.warn('year on imdb is ' + (resYear || 'n/a') + ', which quite differs from ' + sTrueYear + ' for ' + orgTitle);
               imdbDatum.imdbFlag = '??';
             }
             else if(!isNaN(yearDiff)) {
@@ -904,14 +922,9 @@ class FyGlobal {
             }
 
             if(trueImdbUrl) {
-              console.debug(res);  //dev++++
-              if(res.title != orgTitle) {
-                console.debug('title fixed:',orgTitle,'->',res.title);
-                imdbDatum.orgTitle = res.title;
-              }
-              if(res.year != sTrueYear) {
-                console.debug('year fixed:',sTrueYear,'->',res.year);
-                imdbDatum.year = res.year;
+              if(resYear != sTrueYear) {
+                console.debug('year fixed:',sTrueYear,'->',resYear);
+                imdbDatum.year = resYear;
 
                 if(imdbDatum.imdbRating != 'N/A' && !isNaN(parseFloat(imdbDatum.imdbRating)) && imdbDatum.imdbFlag != '') {
                   console.warn('false flag due to year-difference was reset.')
@@ -919,6 +932,24 @@ class FyGlobal {
                 }
               }
             }
+          }
+          else if(type == 'rating') {
+            imdbDatum.imdbRating = res.results.averageRating;
+            if(imdbDatum.imdbRating != 'N/A' && isNaN(parseFloat(imdbDatum.imdbRating))) {
+              console.warn('imdb rating is not a number: ' + imdbDatum.imdbRating);
+              imdbDatum.imdbFlag = '??';
+            }
+            imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
+
+            /*
+            //this cannot be done via imdb-data v2 api
+            if(trueImdbUrl) {
+              if(res.title != orgTitle) {
+                console.debug('title fixed:',orgTitle,'->',res.title);
+                imdbDatum.orgTitle = res.title;
+              }
+            }
+            */
           }
 
           imdbData[i] = imdbDatum;
@@ -960,8 +991,8 @@ class FyGlobal {
           obj[title] = el;
         }
 
-        delete el.tempYear;
-        delete el.cat;
+        //delete el.tempYear;
+        //delete el.cat;
       });
 
       const targetObj = GM_getValue(GMKey);
