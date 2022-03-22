@@ -184,3 +184,8 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed imdb selector according to dom change
     //    changed imdb api (previous api was removed on rapidapi suddenly...)
     //    fixed org-titles searching and updated readme
+    // ver 0.3.9 @ 2022-3-20
+    //    fixed org-titles searching again
+    //    fixed a bug on imdbRun()
+    //    TODO: use base_info instead of mini_info
+    //    NOTE: new api is faster but search accuracy is rather dissapointing

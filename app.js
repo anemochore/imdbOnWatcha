@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.5
+// @version      0.3.9
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -306,7 +306,6 @@ class FyGlobal {
 
         //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
         if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
-          console.log(trueYear, tempYear)
           forceUpdate = true;
           fyItems = [fyItem.querySelector('a>div')];  //또 하드코딩
         }
@@ -547,11 +546,11 @@ class FyGlobal {
         let sDivs = [...targetDoc.querySelectorAll(selector)];
 
         //최상위 섹션, 영화, TV 프로그램만 처리
-        const sUrls = [], sTitles = [], sYears  = [];
-        sDivs.forEach((sDiv, i) => {
+        const sUrls = [], sTitles = [], sYears = [];
+        sDivs.forEach((sDiv, j) => {
           const header = sDiv.querySelector('header>h2');
           //첫 번째(최상위) 섹션은 헤더가 없음
-          if(!header && i == 0) {
+          if(!header && j == 0) {
             const info = [...sDiv.querySelectorAll('ul>li>a>div:last-child')];
             sUrls  .push(...info.map(el => el.parentNode.href));
             sTitles.push(...info.map(el => el.children[0].textContent));
@@ -565,16 +564,21 @@ class FyGlobal {
           }
         });
 
-        if(sDivs.length == 0) {
+        if(sUrls.length == 0) {
           console.warn(title, 'seems not found on wp!');
           console.debug(targetDoc.documentElement.outerHTML);
           otData[i].otFlag = '??';
           return;  //continue
         }
 
+        //중복 항목은 제거(url이 프라이머리 키)
+        for(let j=0; j < sUrls.length; j++)
+          if(sUrls.slice(0, j).includes(sUrls[j]))
+            sUrls[j] = sTitles[j] = sYears[j] = null;
+
         let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0;
         sTitles.forEach((sTitle, j) => {
-          console.log(sTitle, title, trueYear, sYears[j]);
+          //console.log(sTitle, title, trueYear, sYears[j]);
           if(sTitle) {
             if(sTitle == title
               && (!trueYear || (trueYear && trueYear == sYears[j]))) {
@@ -679,7 +683,7 @@ class FyGlobal {
         if(title) {
           const oldTitle = title;
           const strsToReplace = [
-            [/ Season (\d+)$/,     ''],
+            [/ Season (\d+)$/, ''],
           ];
           strsToReplace.forEach(str => {
             const t = title.match(str[0]);
@@ -695,12 +699,18 @@ class FyGlobal {
       const tempYearString = trueYear ? '?year='+trueYear : '';
 
       //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
+      let filtered = orgTitles.map((title, i) => {
+        let url = null;
+        if(title)
+          url = imdbPrefix + encodeURIComponent('"'+orgTitles[i]+'"') + '?year=' + years[i];
+        return url;
+      });
       //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다.
       //다른 문자가 더 있을지도... [ ]도 삭제해야 한다(ex: [REC] 4: Apocalipsis).
-      let filtered = orgTitles.map((title, i) => title ? 
+      /*title ? 
         imdbPrefix + encodeURIComponent('"'+orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F').replace(/(\[|\])/g, '')+'"') + tempYearString :
         null
-      );
+      */
       searchLength = filtered.filter(el => el).length;
 
       if(searchLength == 0) {
@@ -803,38 +813,11 @@ class FyGlobal {
           }
 
           if(!res || !res.results) {
-            console.warn('searching or scraping', orgTitle, 'via API failed or no results on imdb!');
-            if(res)
-              console.debug(res);  //dev
+            console.warn(`searching or scraping ${orgTitle} (${year}) via API failed or no results on imdb!`);
+            //if(res) console.debug(res);  //dev
 
-            /*            
-            if(res && res.id) {  //special mis-working case for this API
-              if(otData[i].imdbId && otData[i].imdbUrl && otData[i].imdbFlag == '') {
-                console.debug('cache flag is okay. so discard search result and use the cache data for ' + otData[i].orgTitle + ' (' + otData[i].year + ')');
-                imdbDatum.imdbFlag = '';
-                imdbDatum = otData[i];
-              }
-              else {
-                imdbDatum.imdbId = res.id;
-                imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + res.id;  //이 api의 특이 케이스;
-                if(imdbDatum.imdbFlag != '??') {  //if search was successful
-                  if(fallbackImdbRating) {
-                    console.debug('scraping was unsuccessful. so just use kino data.');
-                    imdbDatum.imdbRating = fallbackImdbRating;
-                    imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
-                  }
-                  else
-                    imdbDatum.imdbFlag = '?';
-                }
-                else
-                  imdbDatum.imdbFlag = '??';
-              }
-            }
-            else {
-            */
-              imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
-              imdbDatum.imdbFlag = '??';
-            //}
+            imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+            imdbDatum.imdbFlag = '??';
           }
           else if(type == 'search') {
             const titles = res.results.map(el => el.titleText.text);
@@ -1132,8 +1115,12 @@ class FyGlobal {
     //ex1: \"We Eat Films\" Saw 3D (TV Episode 2010)
     //ex2: Majutsushi Orphen Mubouhen (TV Series 1998–1999)
     //ex3: Sorcerous Stabber Orphen (TV Series 2020– )
-    if(!trueYear || isNaN(parseInt(trueYear.slice(0, 4))))
-      trueYear = document.title.replace(/ - IMDb$/, '').match(/(\d{4})(– |)\)$/)[1];
+    //ex4: The Promised Neverland (TV Series)
+    if(!trueYear || isNaN(parseInt(trueYear.slice(0, 4)))) {
+      trueYear = document.title.replace(/ - IMDb$/, '').match(/(\d{4})(– |)\)$/)
+      if(trueYear)
+        trueYear = trueYear[1];
+    }
     else
       trueYear = trueYear.slice(0, 4);
 
@@ -1295,14 +1282,7 @@ class FyGlobal {
       results[i] = await fetchOne_(url, headers, delay);
     });
     await Promise.all(promises);
-    /*
-    }
-    else {
-      //https://medium.com/dailyjs/the-pitfalls-of-async-await-in-array-loops-cf9cf713bfeb
-      for(const [url, i] of urls.entries())
-        results[i] = await fetchOne_(url, headers, delay);
-    }
-    */
+
     fy.isFetching = false;
     return results;
 
