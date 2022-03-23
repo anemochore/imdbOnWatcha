@@ -1,20 +1,19 @@
-.fy-item {
-  /*
+div.fy-item {
   position: absolute;
   z-index: 999;
-  */
 }
 
-.fy-external-site {
-  color: inherit;
+span.fy-external-site {
+  color: inherit;  /* should be white */
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-.fy-edit {
+span.fy-edit {
   font-size: 60%;
   text-decoration: underline;
 }
 
-.fy-edit:hover {
+span.fy-edit:hover {
   font-size: 120%;
 }
 

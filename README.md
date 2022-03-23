@@ -18,6 +18,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
 6. **IMPORTANT: Now, before accesing watcha.com, please logout on pedia.watcha.com and then re-login on watcha.com!
 7. Now refreshing watcha.com will initiate the script run.
 8. Processing details can be found in browser console.
+9. **IMPORTANT: When the API is blocked, you should contact the API provider.
 
 ## screenshot
 ![sample](https://user-images.githubusercontent.com/8731054/123694785-bcd88d00-d894-11eb-9e37-a2ce4233448a.png)
@@ -189,3 +190,5 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed a bug on imdbRun()
     //    TODO: use base_info instead of mini_info
     //    NOTE: new api is faster but search accuracy is rather dissapointing
+    // ver 0.3.10 @ 2022-3-24
+    //    now scrapes org-titles instead of searching+scraping (watcha)

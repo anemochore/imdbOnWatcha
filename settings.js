@@ -8,9 +8,15 @@ SETTINGS['watcha.com'] = {
   //todo: excludingSectionTexts = ['새로 올라왔어요', '추천 리스트', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
   rootSelector: 'main',
   selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a>div',  //list item (parent of parent of IMG)
-  singlePageSelector: 'main>div:not(['+FY_UNIQ_STRING+'])>div[class]>div',  //single page (parent of parent of IMG)
-  titleSelector: 'div[aria-hidden]>p, img[alt], h4[class]',  //order: list item, on large div, on main screen
-  largeDivSelector: 'section>div>div.enter-done>div.enter-done',  //parent of parent of parent of IMG (this is not for single page)
+  singlePageSelector: 'main header section>div:not(['+FY_UNIQ_STRING+'])',  //single page
+  selectRuleOnGetTitle: {
+    numberToParent: 2,
+    selector: 'div[aria-hidden]>p, img[alt]',  //order: list item, on single apge
+  },
+  selectRuleOnGetId: {
+    numberToParent: 2,
+    selector: 'a[aria-label], section>div>a[href^="/watch/"]',  //order: list item, on single page
+  },
   selectRuleOnUpdateDiv: {
     numberToParent: 2,
     selector: 'div.'+FY_UNIQ_STRING,
