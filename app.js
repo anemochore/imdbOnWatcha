@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.10
+// @version      0.3.11
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -144,7 +144,7 @@ class FyGlobal {
 
     const isExit = determineExit_();
     if(!isExit && !fy.isFetching) {
-      toast.log('fy script initiating...');
+      //toast.log('fy script initiating...');
       const selector = fy.selector || fy.largeDivSelector;
 
       if(fy.preventMultipleUrlChanges)
@@ -247,14 +247,16 @@ class FyGlobal {
       let imdbRating = largeDiv.querySelector(fy.selectRuleOnUpdateDiv.selector).textContent.trim().replace(' ·', '');
       if(isNaN(imdbRating))
         imdbRating = null;
+      /*
       else
         console.debug('imdb rating already present:', imdbRating);
+      */
 
       toast.log('forcing update...');
 
       const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
       const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
-      fy.search([largeDiv], trueYear, null, null, trueOrgTitle, imdbRating);
+      fy.search([largeDiv], {year: trueYear, orgTitle: trueOrgTitle});
     },
 
     'watcha.com': async (largeDiv) => {
@@ -264,9 +266,10 @@ class FyGlobal {
         isContentPage = true;
       }
 
-      const metaSelector = 'div[class*="-ContentMetaCreditWithPredicted"]';
-      await elementReady(metaSelector, largeDiv);
+      //const metaSelector = 'div[class*="-pageSideMargin"]';
+      //await elementReady(metaSelector, largeDiv);
 
+      /*
       const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
       let trueYear = largeDiv.querySelector(trueYearSelector);
       if(trueYear) {
@@ -278,15 +281,18 @@ class FyGlobal {
         fy.observer.observe(fy.root, fy.observerOption);
         return;
       }
+      */
+      //const trueYear = null;
 
-      const trueTitle = largeDiv.querySelector(fy.titleSelector).alt;  //no error-check, intentionally
-      const code = largeDiv.querySelector('a[aria-label="재생"]').href.split('/').pop();
-      const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + code;  //english page
+      const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
+      const trueId = document.head.querySelector('meta[property="og:url"]').content.split('/').pop();
+      const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + trueId;  //english page
 
       let fyItems = [];
-      let otFlag, tempYear, imdbFlag;
       let forceUpdate = false;  //only becomes true on single content page
+      /*
       if(!isContentPage) {
+        let otFlag, tempYear, imdbFlag;
         //리스트 아이템 중 선택한 거 찾기. 여러 개면 안습...
         //largeDiv 부모 아래 item(article)들의 부모인 li의 클래스를 봐야 함
         fyItems = [...largeDiv.parentNode.parentNode.querySelectorAll('ul>li>article['+FY_UNIQ_STRING+']')];  //일단 하드코딩.
@@ -312,14 +318,15 @@ class FyGlobal {
         }
       }
       else {
+      */
         //single page
         forceUpdate = true;
         fyItems.push(largeDiv);
-      }
+      //}
 
       if(forceUpdate) {
         toast.log(`force large div updating... with isContentPage: ${isContentPage}`);
-        fy.search(fyItems, trueYear, trueUrl);
+        fy.search(fyItems, {url: trueUrl, id: trueId, title: trueTitle});
       }
       else {
         if(fyItems)
@@ -353,7 +360,7 @@ class FyGlobal {
     },
   };
 
-  async searchById(itemDivs, trueData = {year: null, url: null, imdbUrl: null, orgTitle: null}) {
+  async searchById(itemDivs, trueData = {year: null, url: null, imdbUrl: null, orgTitle: null, id: null, title: null}) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
     let otData = [];
@@ -363,12 +370,22 @@ class FyGlobal {
 
     fy.preUpdateDivs(itemDivs);
     itemDivs.forEach((item, i) => {
-      const id = fy.applySelectRuleIfAny(item, fy.selectRuleOnGetId).href.split('/').pop();
+      let id;
+      if(trueData.id)
+        id = trueData.id;
+      else
+        id = fy.applySelectRuleIfAny(item, fy.selectRuleOnGetId)?.href.split('/').pop();
+
       if(!id) return;
 
       allIds[i] = id;
 
-      const title = fy.applySelectRuleIfAny(item, fy.selectRuleOnGetTitle).textContent;
+      let title;
+      if(trueData.title)
+        title = trueData.title;
+      else
+        title = fy.applySelectRuleIfAny(item, fy.selectRuleOnGetTitle).textContent;
+
       allTitles[i] = title;  // no-error-check
 
       const cacheTitles = Object.keys(otCache);
@@ -808,7 +825,7 @@ class FyGlobal {
     else if(searchLength > 0) {
       imdbPrefix = 'https://data-imdb1.p.rapidapi.com/titles/';
       if(!trueData.imdbUrl) {
-        console.log('imdb searching done:', searchLength);
+        console.log('imdb searching possibly done:', searchLength);
         imdbData = parseImdbResults_('search');  //imdbResults, etc are passed.
 
         //get ratings. id가 있는 애들만 찾는다.
@@ -889,10 +906,15 @@ class FyGlobal {
 
         if(!res || !res.results) {
           console.warn(`searching or scraping ${orgTitle} (${year}) via API failed or no results on imdb!`);
-          //if(res) console.debug(res);  //dev
+          if(res) console.debug(res);  //dev
 
-          imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
-          imdbDatum.imdbFlag = '??';
+          const otDatum = otData[i];
+          if(otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a'))
+            console.debug('imdb data on cache is healthy, so let it be.');
+          else {
+            imdbDatum.imdbFlag = '??';
+            imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+          }
         }
         else if(type == 'search') {
           const titles = res.results.map(el => el.titleText.text);
@@ -1323,7 +1345,7 @@ class FyGlobal {
 
       //change flow
       fy.observer.disconnect();
-      fy.search([targetEl], null, trueUrl);
+      fy.search([targetEl], {url: trueUrl});
     }
     else if(type == 'imdb') {
       let trueUrl = prompt("First make sure that Watcha Pedia info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
@@ -1337,7 +1359,7 @@ class FyGlobal {
 
       //change flow
       fy.observer.disconnect();
-      fy.search([targetEl], null, null, trueUrl);
+      fy.search([targetEl], {imdbUrl: trueUrl});
     }
   }
 

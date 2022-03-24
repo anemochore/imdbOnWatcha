@@ -8,12 +8,12 @@ span.fy-external-site {
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-span.fy-edit {
+.fy-edit {
   font-size: 60%;
   text-decoration: underline;
 }
 
-span.fy-edit:hover {
+.fy-edit:hover {
   font-size: 120%;
 }
 

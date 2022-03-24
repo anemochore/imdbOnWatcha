@@ -7,15 +7,15 @@ SETTINGS['watcha.com'] = {
   //todo:  '/tutorial'],
   //todo: excludingSectionTexts = ['새로 올라왔어요', '추천 리스트', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
   rootSelector: 'main',
-  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a>div',  //list item (parent of parent of IMG)
-  singlePageSelector: 'main header section>div:not(['+FY_UNIQ_STRING+'])',  //single page
+  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a>div, header>div>section>div>h1',  //list item (parent of parent of IMG), single-page
+  //single page selectors are hard-coded in app.js. below two rules are for list items
   selectRuleOnGetTitle: {
     numberToParent: 2,
-    selector: 'div[aria-hidden]>p, img[alt]',  //order: list item, on single apge
+    selector: 'div[aria-hidden]>p',
   },
   selectRuleOnGetId: {
     numberToParent: 2,
-    selector: 'a[aria-label], section>div>a[href^="/watch/"]',  //order: list item, on single page
+    selector: 'a[href^="/contents/"]',
   },
   selectRuleOnUpdateDiv: {
     numberToParent: 2,
