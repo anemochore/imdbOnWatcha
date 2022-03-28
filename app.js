@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.11
+// @version      0.3.15
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -205,7 +205,7 @@ class FyGlobal {
       fy.observer.disconnect();
 
       if(document.location.pathname.startsWith('/contents/')) {
-        const largeDiv = fy.root.querySelector(fy.singlePageSelector);
+        const largeDiv = fy.root.querySelector('h1');
         toast.log('searching on wp or cache for large div (on single page)...');
         fy.largeDivUpdate(largeDiv);
         return;
@@ -265,24 +265,6 @@ class FyGlobal {
         //on single content page
         isContentPage = true;
       }
-
-      //const metaSelector = 'div[class*="-pageSideMargin"]';
-      //await elementReady(metaSelector, largeDiv);
-
-      /*
-      const trueYearSelector = 'div li:last-of-type>span>span:last-of-type';
-      let trueYear = largeDiv.querySelector(trueYearSelector);
-      if(trueYear) {
-        trueYear = trueYear.textContent.trim().slice(-5).slice(0, 4);
-      }
-      else {
-        //todo: check again+++
-        toast.log('nothing to do');
-        fy.observer.observe(fy.root, fy.observerOption);
-        return;
-      }
-      */
-      //const trueYear = null;
 
       const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
       const trueId = document.head.querySelector('meta[property="og:url"]').content.split('/').pop();
@@ -401,6 +383,7 @@ class FyGlobal {
       otData[i].query = title;
 
       otData[i].otUrl = 'https://pedia.watcha.com/en-KR/contents/' + id;
+      otData[i].otFlag = '';
     });
 
     //start searching
@@ -556,10 +539,10 @@ class FyGlobal {
 
   //utils used in searching
   useCacheIfAvailable_(value, cache) {
-    //캐시에 원제와 imdb 평점이 있다면 캐시 사용 대상
+    //캐시에 원제가 있다면 캐시 사용 대상
     let result = null;
-    if(cache?.orgTitle && cache?.imdbRating) {
-      //단, 캐시가 오래되었거나 원제가 없다면 다시 페칭.
+    if(cache?.orgTitle) {  // && cache?.imdbRating) {
+      //단, 캐시가 오래되었다면 다시 페칭.
       const UPDATE_INTERVAL_DAYS = 30;  //in days
       if(dateDiffInDays(new Date(), new Date(cache.imdbRatingFetchedDate)) > UPDATE_INTERVAL_DAYS) {
         console.debug(`cache for ${value} is over than ${UPDATE_INTERVAL_DAYS} days. so updating now...`);  //dev (verbose)
@@ -794,7 +777,7 @@ class FyGlobal {
     let filtered = orgTitles.map((title, i) => {
       let url = null;
       if(title)
-        url = imdbPrefix + encodeURIComponent('"'+orgTitles[i]+'"') + '?year=' + years[i];
+        url = imdbPrefix + encodeURIComponent(orgTitles[i]) + '?info=base_info&exact=true&year=' + years[i];
       return url;
     });
     //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다.
@@ -814,7 +797,6 @@ class FyGlobal {
       searchLength = fy.setInternalCache_(filtered, indexCaches);
 
       toast.log('now searching on imdb for',searchLength,'items...');
-
       imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
       searchLength = imdbResults.filter(el => el).length;
     }
@@ -830,7 +812,6 @@ class FyGlobal {
 
         //get ratings. id가 있는 애들만 찾는다.
         filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId + '/ratings': null);
-        searchLength = filtered.filter(el => el).length;
       }
       else {
         const tempImdbId = trueData.imdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
@@ -839,8 +820,30 @@ class FyGlobal {
         imdbData = [otData[0]];
       }
 
+      //검색 결과에서 바로 평점도 가져올 수 있는 경우(새 api의 base_info)
+      let searchAndScraped = 0;
+      filtered.forEach((el, i) => {
+        const imdbRes = imdbResults[i];
+        if(el && imdbRes && imdbRes.ratingsSummary) {
+          const tempRating = imdbRes.ratingsSummary.aggregateRating;
+          if(tempRating != 'N/A' && !isNaN(parseFloat(tempRating))) {
+            newImdbData[i] = imdbData[i];
+            newImdbData[i].imdbRating = tempRating;
+            newImdbData[i].imdbId = imdbData[i].imdbId;
+            newImdbData[i].imdbUrl = 'https://www.imdb.com/title/' + imdbData[i].imdbId;
+            newImdbData[i].imdbRatingFetchedDate = new Date().toISOString();
+            newImdbData[i].imdbFlag = imdbData[i].imdbFlag;
+            filtered[i] = null;
+            searchAndScraped++;
+          }
+        }
+      });
+      if(searchAndScraped > 0)
+        console.log(searchAndScraped+' ratings are scraped during searching (no need to scrape).');
+
+      searchLength = filtered.filter(el => el).length;
       if(searchLength == 0) {
-        console.log('nothing to get ratings on imdb.');
+        console.log('nothing to scrape ratings on imdb.');
       }
       else {
         toast.log('getting imdb ratings for',searchLength,'items...');
@@ -904,7 +907,7 @@ class FyGlobal {
           console.warn('parsing error: ', r);
         }
 
-        if(!res || !res.results) {
+        if(!res || res.results.length == 0) {
           console.warn(`searching or scraping ${orgTitle} (${year}) via API failed or no results on imdb!`);
           if(res) console.debug(res);  //dev
 
@@ -971,6 +974,8 @@ class FyGlobal {
           }
 
           imdbDatum.imdbId = ids[idx];
+          imdbResults[i] = res.results[idx];  //mutate results to get ratings too
+
           if(imdbDatum.imdbId)
             imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + imdbDatum.imdbId;
 

@@ -3,7 +3,7 @@ div.fy-item {
   z-index: 999;
 }
 
-span.fy-external-site {
+.fy-item .fy-edit, .fy-item .fy-external-site, .fy-item .fy-imdb-rating.over-na {
   color: inherit;  /* should be white */
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
