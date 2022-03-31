@@ -12,6 +12,7 @@
 //// @include      https://www.netflix.com/*
 // @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
 // @require     https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/settings.js
+// @require     https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fixes.js
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
 // @grant        GM_setValue
@@ -54,6 +55,7 @@ class FyGlobal {
     this.search = this.searches[site];
 
     //global vars & flags
+    this.site = site;
     this.prevLocationOriginPathname = document.location.origin+document.location.pathname;
     this.isFetching = false;
     this.XHR = null;
@@ -211,6 +213,7 @@ class FyGlobal {
         return;
       }
 
+      /*
       if(m && m[0].removedNodes && m[0].removedNodes[0]) {
         const isLargeDivExited = [...m[0].removedNodes[0]?.classList.values()].includes('exit-done');
 
@@ -226,11 +229,12 @@ class FyGlobal {
         }
         return;
       }
+      */
 
       const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
       const itemNum = itemDivs.length;
       if(itemNum > 0) {
-        toast.log('searching on wp or cache for', itemNum, 'items...');
+        //toast.log('searching on wp or cache for', itemNum, 'items...');
         fy.search(itemDivs);
       }
       else {
@@ -333,16 +337,17 @@ class FyGlobal {
         item = item.parentNode.parentNode;
         if(item.getAttribute(FY_UNIQ_STRING) == null) {
           item.setAttribute(FY_UNIQ_STRING, '');
-          const div = document.createElement('div');
-          div.className = FY_UNIQ_STRING;
+          const el = document.createElement('div');
+          el.classList.add(FY_UNIQ_STRING);
+          el.classList.add(fy.site.replace(/\./, '_'));
           const ref = item.firstChild;  //<a ...>
-          item.insertBefore(div, ref);
+          item.insertBefore(el, ref);
         }
       });
     },
   };
 
-  async searchById(itemDivs, trueData = {year: null, url: null, imdbUrl: null, orgTitle: null, id: null, title: null}) {
+  async searchById(itemDivs, trueData = {year: null, url: 'not needed anymore', imdbUrl: null, orgTitle: null, id: null, title: null}) {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
     let otData = [];
@@ -796,7 +801,7 @@ class FyGlobal {
       //여기서도 내부 캐시 적용
       searchLength = fy.setInternalCache_(filtered, indexCaches);
 
-      toast.log('now searching on imdb for',searchLength,'items...');
+      toast.log('now searching infos and ratings on imdb for',searchLength,'items...');
       imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
       searchLength = imdbResults.filter(el => el).length;
     }
@@ -826,7 +831,7 @@ class FyGlobal {
         const imdbRes = imdbResults[i];
         if(el && imdbRes && imdbRes.ratingsSummary) {
           const tempRating = imdbRes.ratingsSummary.aggregateRating;
-          if(tempRating != 'N/A' && !isNaN(parseFloat(tempRating))) {
+          if(tempRating != 'n/a' && !isNaN(parseFloat(tempRating))) {
             newImdbData[i] = imdbData[i];
             newImdbData[i].imdbRating = tempRating;
             newImdbData[i].imdbId = imdbData[i].imdbId;
@@ -907,14 +912,17 @@ class FyGlobal {
           console.warn('parsing error: ', r);
         }
 
-        if(!res || res.results.length == 0) {
+        if(!res || (res.results && Object.keys(res.results).length == 0)) {
           console.warn(`searching or scraping ${orgTitle} (${year}) via API failed or no results on imdb!`);
           if(res) console.debug(res);  //dev
 
           const otDatum = otData[i];
           if(otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a'))
-            console.debug('imdb data on cache is healthy, so let it be.');
+            console.debug('imdb data on cache is healthy, so let it be for: '+orgTitle);
           else {
+            //TODO: fetch again with WP_TO_IMDB_TOKEN_DICT++++
+            //const url = imdbPrefix + encodeURIComponent(orgTitles[i]) + '?info=base_info&exact=true&year=' +
+
             imdbDatum.imdbFlag = '??';
             imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
           }
@@ -1011,7 +1019,7 @@ class FyGlobal {
               console.debug('year fixed:',sTrueYear,'->',resYear);
               imdbDatum.year = resYear;
 
-              if(imdbDatum.imdbRating != 'N/A' && !isNaN(parseFloat(imdbDatum.imdbRating)) && imdbDatum.imdbFlag != '') {
+              if(imdbDatum.imdbRating != 'n/a' && !isNaN(parseFloat(imdbDatum.imdbRating)) && imdbDatum.imdbFlag != '') {
                 console.warn('false flag due to year-difference was reset.')
                 imdbDatum.imdbFlag = '';
               }
@@ -1019,9 +1027,9 @@ class FyGlobal {
           }
         }
         else if(type == 'rating') {
-          imdbDatum.imdbRating = res.results.averageRating;
-          if(imdbDatum.imdbRating != 'N/A' && isNaN(parseFloat(imdbDatum.imdbRating))) {
-            console.warn('imdb rating is not a number: ' + imdbDatum.imdbRating);
+          imdbDatum.imdbRating = res.results;
+          if(!imdbDatum.imdbRating || (imdbDatum.imdbRating.averageRating != 'n/a' && isNaN(parseFloat(imdbDatum.imdbRating.averageRating)))) {
+            console.warn('imdb rating of '+orgTitle+' is not present or not a number: ' + imdbDatum.imdbRating);
             imdbDatum.imdbFlag = '??';
           }
           imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
@@ -1205,7 +1213,7 @@ class FyGlobal {
     if(imdbRating)
       imdbRating = imdbRating.textContent;
     else
-      imdbRating = 'n/a!';
+      imdbRating = 'n/a';
 
     let orgTitle = document.title.replace(/ - IMDb$/, '');
     orgTitle = orgTitle.replace(/ \(TV Episode( (\d{4})\)|\))$/, '');
