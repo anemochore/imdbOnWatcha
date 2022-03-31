@@ -200,8 +200,9 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed single page crash (temporary)
     //    modified css for readability
     //    TODO: capitalization problem ('Ben is Beck' should be adjusted to 'Ben Is Beck')
-    // ver 0.3.19 @ 2022-3-31
+    // ver 0.3.20 @ 2022-3-31
     //    fixed css on kino
     //    fixed a crash during continual searching
     //    fixed a minor bug on imdbRun() when rating is not present
     //    preparing and TODO: add a fix dict
+    //    fixed single-page update problem temporarily

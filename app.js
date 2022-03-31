@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.19
+// @version      0.3.20
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -48,6 +48,12 @@ class FyGlobal {
 
     for(const [k, v] of Object.entries(settings[site]))
       this[k] = v;
+
+    //weird behavior... -_-
+    if(this.selectRuleOnUpdateDiv) {
+      this.selectRuleOnPreUpdateDiv = {...this.selectRuleOnUpdateDiv};
+      this.selectRuleOnPreUpdateDiv.selector = null;
+    }
 
     this.handler = this.handlers[site];
     this.largeDivUpdate = this.largeDivUpdates[site];
@@ -207,8 +213,11 @@ class FyGlobal {
       fy.observer.disconnect();
 
       if(document.location.pathname.startsWith('/contents/')) {
-        const largeDiv = fy.root.querySelector('h1');
         toast.log('searching on wp or cache for large div (on single page)...');
+        let largeDiv = fy.root.querySelector('h1');
+        if(!largeDiv)
+          largeDiv = await elementReady('h1', fy.root);
+
         fy.largeDivUpdate(largeDiv);
         return;
       }
@@ -314,6 +323,7 @@ class FyGlobal {
         toast.log(`force large div updating... with isContentPage: ${isContentPage}`);
         fy.search(fyItems, {url: trueUrl, id: trueId, title: trueTitle});
       }
+      /*
       else {
         if(fyItems)
           toast.log('already updated.');
@@ -322,6 +332,7 @@ class FyGlobal {
         fy.observer.observe(fy.root, fy.observerOption);
         //console.debug('observer reconnected (no update) on largeDivUpdateForWatcha()~');  //dev
       }
+      */
     },
   };
 
@@ -334,7 +345,9 @@ class FyGlobal {
 
     'watcha.com': itemDivs => {
       itemDivs.forEach((item, i) => {
-        item = item.parentNode.parentNode;
+        //item = item.parentNode.parentNode;
+        item = fy.applySelectRuleIfAny(item, fy.selectRuleOnPreUpdateDiv);
+
         if(item.getAttribute(FY_UNIQ_STRING) == null) {
           item.setAttribute(FY_UNIQ_STRING, '');
           const el = document.createElement('div');

@@ -34,7 +34,7 @@ SETTINGS['m.kinolights.com'] = {
   largeDivSelector: 'div.movie-title-wrap',  //selector is not used for kino
   preventMultipleUrlChanges: true,  //hack for kino
   selectRuleOnUpdateDiv: {
-    selector: 'span.imdb-wrap>div.score'
+    selector: 'span.imdb-wrap>div.score',  //hard-coded somewhat
   },
   selectRuleOnEdit: {
     root: 'main',
