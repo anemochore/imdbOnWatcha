@@ -206,3 +206,8 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed a minor bug on imdbRun() when rating is not present
     //    preparing and TODO: add a fix dict
     //    fixed single-page update problem temporarily
+    // ver 0.3.24 @ 2022-3-31
+    //    fixed single-page crash
+    //    changed api usage on single-page to make code more elegant...
+    //    fixed onEdit() crash
+    //    fixed imdbRun() logic not to update falsely

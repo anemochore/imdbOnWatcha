@@ -7,13 +7,13 @@ SETTINGS['watcha.com'] = {
   //todo:  '/tutorial'],
   //todo: excludingSectionTexts = ['새로 올라왔어요', '추천 리스트', '혼자 보기 아쉬울 때, 같이 봐요 우리!'],
   rootSelector: 'main',
-  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a>div, header>div>section>div>h1',  //list item (parent of parent of IMG), single-page
+  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]>div, header>div>section>div>h1',  //list item, single-page
   //single page selectors are hard-coded in app.js. below two rules are for list items
-  selectRuleOnGetTitle: {
+  selectRuleOnGetTitleForListItems: {
     numberToParent: 2,
     selector: 'div[aria-hidden]>p',
   },
-  selectRuleOnGetId: {
+  selectRuleOnGetIdForListItems: {
     numberToParent: 2,
     selector: 'a[href^="/contents/"]',
   },
@@ -22,8 +22,12 @@ SETTINGS['watcha.com'] = {
     selector: 'div.'+FY_UNIQ_STRING,
   },
   selectRuleOnEdit: {
-    numberToParent: 2,
-    selector: 'a>div',
+    numberToParent: 3,
+
+    determineSinglePageBy: 'DIV',  //list-item is ARTICLE
+    idSelector: 'a:not(fy-edit)',
+    targetElSelectorForSinglePage: 'div>h1',
+    targetElSelectorForListItem: 'a[class]>div',
   },
 };
 
