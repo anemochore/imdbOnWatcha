@@ -199,15 +199,23 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed wp search loginc to leverage cache
     //    fixed single page crash (temporary)
     //    modified css for readability
-    //    TODO: capitalization problem ('Ben is Beck' should be adjusted to 'Ben Is Beck')
+    //    ~~TODO: capitalization problem ('Ben is Beck' should be adjusted to 'Ben Is Beck')~~
     // ver 0.3.20 @ 2022-3-31
     //    fixed css on kino
     //    fixed a crash during continual searching
     //    fixed a minor bug on imdbRun() when rating is not present
-    //    preparing and TODO: add a fix dict
+    //    ~~preparing and TODO: add a fix dict~~
     //    fixed single-page update problem temporarily
     // ver 0.3.24 @ 2022-3-31
     //    fixed single-page crash
     //    changed api usage on single-page to make code more elegant...
     //    fixed onEdit() crash
     //    fixed imdbRun() logic not to update falsely
+    // ver 0.3.31 @ 2022-4-3
+    //    fixed capitalization problem (added fixes.js)
+    //    added aka-search feature of the api
+    //    watcha: changed large-div update behavior, removed related commented old lines
+    //    removed unused old roman to arabic lines
+    //    lowered z-index of alert box
+    //    watcha: removed wp edit link because it's meaningless
+    //    fixed a bug relating excluding pages

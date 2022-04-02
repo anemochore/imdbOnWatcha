@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.3.24
+// @version      0.3.31
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -31,8 +31,6 @@ toast.log();
 
 
 //global consts
-const SMALL_ROMANS_AT_THE_END = /IX|IV|V?I{0,3}$/;
-
 const RAPID_API_HOST = 'data-imdb1.p.rapidapi.com';
 
 const RAPID_API_KEY = GM_getValue('RAPID_API_KEY');
@@ -171,11 +169,11 @@ class FyGlobal {
       if(Array.isArray(fy.excludingPaths)) {
         fy.excludingPaths.some(path => {
           if(curLocation.pathname.startsWith(path)) {
-            fy.isExcludingPath = true;
+            isExcludingPath = true;
             return true;  //break
           }
         });
-        if(fy.isExcludingPath) {
+        if(isExcludingPath) {
           toast.log('on excluding page');
           result = true;
         }
@@ -213,7 +211,14 @@ class FyGlobal {
       fy.observer.disconnect();
 
       if(document.location.pathname.startsWith('/contents/')) {
-        toast.log('searching on wp or cache for large div (on single page)...');
+        let fyItem = fy.root.querySelector('['+FY_UNIQ_STRING+']');
+        if(fyItem) {
+          //if already updated, no more update when scrolling, etc
+          toast.log();
+          fy.observer.observe(fy.root, fy.observerOption);
+          return;
+        }
+
         let largeDiv = fy.root.querySelector('h1');
         if(!largeDiv)
           largeDiv = await elementReady('h1', fy.root);
@@ -221,24 +226,6 @@ class FyGlobal {
         fy.largeDivUpdate(largeDiv);
         return;
       }
-
-      /*
-      if(m && m[0].removedNodes && m[0].removedNodes[0]) {
-        const isLargeDivExited = [...m[0].removedNodes[0]?.classList.values()].includes('exit-done');
-
-        if(isLargeDivExited) {
-          const largeDiv = await elementReady(fy.largeDivSelector, fy.root);
-          toast.log('searching on wp or cache for large div...');
-          fy.largeDivUpdate(largeDiv);
-        }
-        else {
-          //nothing to do
-          toast.log();
-          fy.observer.observe(fy.root, fy.observerOption);
-        }
-        return;
-      }
-      */
 
       const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
       const itemNum = itemDivs.length;
@@ -269,66 +256,24 @@ class FyGlobal {
     },
 
     'watcha.com': async (largeDiv) => {
-      let isContentPage = false;
-      if(document.location.pathname.startsWith('/contents/')) {
-        //on single content page
-        isContentPage = true;
-      }
+      //on single content page
 
-      const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
       const trueId = document.head.querySelector('meta[property="og:url"]').content.split('/').pop();
       const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + trueId;  //english page
+      const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
 
-      let fyItems = [];
-      let forceUpdate = false;  //only becomes true on single content page
-      /*
-      if(!isContentPage) {
-        let otFlag, tempYear, imdbFlag;
-        //리스트 아이템 중 선택한 거 찾기. 여러 개면 안습...
-        //largeDiv 부모 아래 item(article)들의 부모인 li의 클래스를 봐야 함
-        fyItems = [...largeDiv.parentNode.parentNode.querySelectorAll('ul>li>article['+FY_UNIQ_STRING+']')];  //일단 하드코딩.
-        const classes = fyItems.map(el => el.parentNode.className);
-
-        //li 중에서 클래스가 하나만 다른 애가 선택한 애...
-        //https://stackoverflow.com/a/66002712/6153990
-        const counts = classes.reduce((acc, curr) => (acc[curr] = (acc[curr] || 0) + 1, acc), {});
-
-        const selectedClass = Object.keys(counts).find(key => counts[key] == 1);
-        const fyItem = fyItems[classes.indexOf(selectedClass)];
-        const sEl = fyItem.querySelector('.fy-external-site');
-        if(sEl) {
-          otFlag = sEl.getAttribute('flag');
-          tempYear = sEl.getAttribute('year');
-          imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
-        }
-
-        //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색. 혹은 연도가 달라도.
-        if(otFlag != '' || imdbFlag == '??' || trueYear != tempYear) {
-          forceUpdate = true;
-          fyItems = [fyItem.querySelector('a>div')];  //또 하드코딩
-        }
+      const sEl = largeDiv.querySelector('.fy-external-site')
+      let otFlag, imdbFlag;
+      if(sEl) {
+        otFlag = sEl.getAttribute('flag');
+        imdbFlag = fyItem.querySelector('.fy-imdb-rating').getAttribute('flag');
       }
-      else {
-      */
-        //single page
-        forceUpdate = true;
-        fyItems.push(largeDiv);
-      //}
 
-      if(forceUpdate) {
-        toast.log(`force large div updating... with isContentPage: ${isContentPage}`);
-        fy.search(fyItems, {url: trueUrl, id: trueId, title: trueTitle});
+       //ot 플래그가 ?/??이거나 imdb 플래그가 ??면 다시 검색
+      if(otFlag != '' || imdbFlag == '??') {
+        toast.log('large div updating... on single-page');
+        fy.search([largeDiv], {id: trueId, url: trueUrl, title: trueTitle});
       }
-      /*
-      else {
-        if(fyItems)
-          toast.log('already updated.');
-
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
-        //console.debug('observer reconnected (no update) on largeDivUpdateForWatcha()~');  //dev
-      }
-      */
     },
   };
 
@@ -504,7 +449,7 @@ class FyGlobal {
       //목록 업데이트
       let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
       //왓챠피디아는 .을 없애야 함...
-      const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURI(title.replace(/\./g, '')) : null), {
+      const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURIComponent(title.replace(/\./g, '')) : null), {
         headers: {
           'Accept-Language': 'ko-KR',
         },
@@ -769,7 +714,7 @@ class FyGlobal {
 
     //id나 평점이 없으면 imdb 찾음.
     //혹은 trueYear/trueUrl/trueImdbUrl이 있어도 이 배열에 넣고 실제로 찾지는 않음.
-    const otDataFiltered = otData.map(el => (!el.imdbId || !el.imdbRating || el.imdbRating == 'n/a' || trueData.year || trueData.url || trueData.imdbUrl) ? el : {});
+    const otDataFiltered = otData.map(el => (!el.imdbId || !el.imdbRating || trueData.year || trueData.url || trueData.imdbUrl) ? el : {});
     const orgTitles = otDataFiltered.map(el => el.orgTitle);
     const years = otDataFiltered.map(el => el.year);
 
@@ -795,21 +740,11 @@ class FyGlobal {
     });
 
     let imdbPrefix = 'https://data-imdb1.p.rapidapi.com/titles/search/title/';
-    const tempYearString = trueData.year ? '?year='+trueData.year : '';
+    let imdbSuffix = '?info=base_info&year=';
 
     //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지. 예외는 수동 업데이트 시.
-    let filtered = orgTitles.map((orgTitle, i) => {
-      let url = null;
-      if(orgTitle)
-        url = imdbPrefix + encodeURIComponent(orgTitles[i]) + '?info=base_info&exact=true&year=' + years[i];
-      return url;
-    });
-    //이상해 보이지만 uri 인코딩 전에 .과 /는 먼저 바꿔줘서 한 번 더 uri 인코딩을 하게 해야 한다.
-    //다른 문자가 더 있을지도... [ ]도 삭제해야 한다(ex: [REC] 4: Apocalipsis).
-    /*title ? 
-      imdbPrefix + encodeURIComponent('"'+orgTitles[i].replace(/\./g, '%2E').replace(/\//g, '%2F').replace(/(\[|\])/g, '')+'"') + tempYearString :
-      null
-    */
+    let filtered = orgTitles.map((orgTitle, i) => orgTitle ? imdbPrefix + encodeURIComponent(orgTitles[i]) + imdbSuffix + years[i] + '&exact=true' : null);
+    //console.log('filtered', filtered);
     searchLength = filtered.filter(el => el).length;
 
     if(searchLength == 0) {
@@ -832,10 +767,47 @@ class FyGlobal {
       imdbPrefix = 'https://data-imdb1.p.rapidapi.com/titles/';
       if(!trueData.imdbId) {
         console.log('imdb searching possibly done:', searchLength);
-        imdbData = parseImdbResults_('search');  //imdbResults, etc are passed.
+        imdbData = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
 
-        //get ratings. id가 있는 애들만 찾는다.
-        filtered = imdbData.map(el => el?.imdbId != 'n/a' ? imdbPrefix + el.imdbId + '?info=base_info' : null);
+        let reSearchLength, toReSearch;
+        while(true) {
+          //determines re-searching
+          toReSearch = imdbData.map((imdbDatum, j) => {
+            if(!imdbDatum.needsReSearch)
+              return null;
+            else if(imdbDatum.needsReSearch == 'title fix')
+              return imdbPrefix + encodeURIComponent(imdbDatum.orgTitle) + imdbSuffix + years[j] + '&exact=true';
+            else //if(imdbDatum.needsReSearch == 'try aka search')
+              return 'https://data-imdb1.p.rapidapi.com/titles/search/akas/' + encodeURIComponent(imdbDatum.orgTitle) + imdbSuffix + years[j];
+          });
+
+          reSearchLength = toReSearch.filter(el => el).length;
+          if(reSearchLength == 0)
+            break;
+
+          toast.log('now re-searching infos and ratings on imdb for',reSearchLength,'items...');
+          imdbResults = await fy.fetchAll(toReSearch, HEADERS, FETCH_INTERVAL);
+          toReSearch = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
+          reSearchLength = toReSearch.filter(el => el.imdbId).length;
+          if(reSearchLength > 0)
+            console.log('imdb re-searching successfully done:', reSearchLength);
+          else
+            console.log('re-searching done unsuccessfully.');
+
+          toReSearch.forEach((reImdbDatum, j) => {
+            if(!reImdbDatum)
+              return;  //continue
+
+            //검색이 실패했어도 url을 넣기 위해
+            if(reImdbDatum.imdbId || reImdbDatum.imdbUrl) {
+              imdbData[j] = reImdbDatum;
+              delete imdbData[j].needsReSearch;
+            }
+          });
+        }
+
+        //이제 ratings을 구한다. id가 있는 애들만 찾는다.
+        filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId + '?info=base_info' : null);
       }
       else {
         filtered = [imdbPrefix + trueData.imdbId + '?info=base_info'];
@@ -882,21 +854,23 @@ class FyGlobal {
       }
 
       imdbData.forEach((oldEl, i) => {
-        const el = newImdbData[i];
-        if(el && el.imdbRating) {
-          otData[i].imdbFlag = el.imdbFlag || '';
-          otData[i].imdbId = el.imdbId;
-          otData[i].imdbUrl = el.imdbUrl;
-          otData[i].year = el.year;
-          otData[i].imdbRating = el.imdbRating;
-          otData[i].imdbRatingFetchedDate = el.imdbRatingFetchedDate;
+        const newImdbDatum = newImdbData[i];
+        if(newImdbDatum && newImdbDatum.imdbRating) {
+          otData[i].imdbFlag = newImdbDatum.imdbFlag || '';
+          otData[i].imdbId = newImdbDatum.imdbId;
+          otData[i].imdbUrl = newImdbDatum.imdbUrl;
+          otData[i].year = newImdbDatum.year;
+          otData[i].imdbRating = newImdbDatum.imdbRating;
+          otData[i].imdbRatingFetchedDate = newImdbDatum.imdbRatingFetchedDate;
+          otData[i].orgTitle = newImdbDatum.orgTitle;
           otData[i].query = allTitles[i];  //to update cache
         }
-        else if(oldEl && oldEl.imdbId) {
+        else if(oldEl && (oldEl.imdbId || oldEl.imdbUrl)) {
           otData[i].imdbFlag = oldEl.imdbFlag || '';
-          if(oldEl.imdbId)  //for special mis-working case -> 이런 경우는 이제 없을 것 같은데...?
+          if(oldEl.imdbId)
             otData[i].imdbId = oldEl.imdbId;
-          otData[i].imdbUrl = oldEl.imdbUrl;  //검색 실패(또는 api 스크레이핑 실패)로 url만 건진 경우를 위해
+          otData[i].imdbUrl = oldEl.imdbUrl;  //검색 실패로 url만 건진 경우를 위해
+          otData[i].orgTitle = oldEl.orgTitle;
           otData[i].query = allTitles[i];  //to update cache
         }
       });
@@ -911,14 +885,13 @@ class FyGlobal {
 
     function parseImdbResults_(type) {
       imdbResults.forEach((r, i) => {
-        if(!r)
-          return;  //continue
+        if(!r) return;  //continue
 
         let imdbDatum = {};
         if(imdbData[i])  //second run
           imdbDatum = imdbData[i];
 
-        let orgTitle = orgTitles[i];  //may be adjusted
+        let orgTitle = imdbDatum.orgTitle || orgTitles[i];  //may be adjusted
         const year = years[i];
 
         let res;
@@ -929,20 +902,49 @@ class FyGlobal {
           console.warn('parsing error: ', r);
         }
 
-        if(!res || (res.results && Object.keys(res.results).length == 0)) {
+        if(!res || !res.results || (res.results && Object.keys(res.results).length == 0)) {
           console.warn(`searching or scraping ${orgTitle} (${year}) via API failed or no results on imdb!`);
-          if(res.results) console.debug(res.results);
-          else if(res)    console.debug(res);
+          if(res.results) console.debug('res.results:', res.results);
+          else if(res)    console.debug('res:', res);
 
           const otDatum = otData[i];
-          if(otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a'))
+          if(otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a')) {
             console.debug('imdb data on cache is healthy, so let it be for: '+orgTitle);
-          else {
-            //TODO: fetch again with WP_TO_IMDB_TOKEN_DICT++++
-            //const url = imdbPrefix + encodeURIComponent(orgTitles[i]) + '?info=base_info&exact=true&year=' +
+          }
+          else if(!imdbDatum.needsReSearch) {
+            //fetch again with WP_TO_IMDB_FIX_DICT
+            const sourceWords = [...WP_TO_IMDB_FIX_DICT.keys()];
+            const targetWords = [...WP_TO_IMDB_FIX_DICT.values()];
+            let fixedOrgTitle = orgTitle;
+            sourceWords.forEach((sourceWord, j) => {
+              if((typeof sourceWord == 'string' && orgTitle.includes(sourceWord)) || 
+                (typeof sourceWord == 'object' && orgTitle.match(sourceWord)))
+                fixedOrgTitle = orgTitle.replace(sourceWord, targetWords[j]);
+            });
 
-            imdbDatum.imdbFlag = '??';
-            imdbDatum.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+            if(fixedOrgTitle != orgTitle) {
+              console.log(orgTitle, 'is fixed to', fixedOrgTitle+'. re-searching queued.');
+              imdbData[i] = {};
+              imdbData[i].orgTitle = fixedOrgTitle;
+              imdbData[i].needsReSearch = 'title fix';
+            }
+            else {
+              //if no WP_TO_IMDB_FIX_DICT can be applied, try aka search
+              console.log(orgTitle, 're-searching (aka search) queued.');
+              imdbData[i] = {};
+              imdbData[i].orgTitle = orgTitle;
+              imdbData[i].needsReSearch = 'try aka search';
+            }
+          }
+          else if(imdbDatum.needsReSearch == 'title fix') {
+            //if WP_TO_IMDB_FIX_DICT applied and failed, try aka search again
+            console.log(orgTitle, 'title fixed but still no result. another re-searching (aka search) queued.');
+            imdbData[i].needsReSearch = 'try aka search';
+          }
+          else {  //if(imdbDatum.needsReSearch == 'try aka search') {
+            //finally, aka search failed too
+            imdbData[i].imdbFlag = '??';
+            imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
           }
         }
         else {
@@ -953,7 +955,8 @@ class FyGlobal {
 
             //검색 결과에 대한 제목 정리
             //ex: Spider-Man II -> Spider-Man 2
-            //todo: check this again
+            /*
+            const SMALL_ROMANS_AT_THE_END = /IX|IV|V?I{0,3}$/;
             if(!titles.includes(orgTitle) && orgTitle.match(SMALL_ROMANS_AT_THE_END)) {
               const match = orgTitle.match(SMALL_ROMANS_AT_THE_END)[0];
               const possibleTitle = orgTitle.replace(SMALL_ROMANS_AT_THE_END, roman2arabic(match));
@@ -963,6 +966,7 @@ class FyGlobal {
                 imdbDatum.orgTitle = orgTitle;
               }
             }
+            */
 
             let idx = -1, exactMatchCount = 0;
             titles.forEach((sTitle, j) => {
@@ -974,6 +978,7 @@ class FyGlobal {
                 }
                 exactMatchCount++;
               }
+              /*
               else if(sTitle.replace(/ /g, '').toLowerCase() == orgTitle.replace(/ /g, '').toLowerCase()) {
                 //exact match (ignoring spaces and cases)
                 if(idx == -1) {
@@ -984,6 +989,7 @@ class FyGlobal {
                   exactMatchCount++;
                 }
               }
+              */
             });
 
             if(exactMatchCount > 1) {
@@ -992,28 +998,36 @@ class FyGlobal {
             }
             else if(idx == -1) {
               idx = 0;
-              if(titles[idx]) {
-                console.warn(orgTitle + ' seems not found on imdb. so taking the first result: ' + titles[idx]);
+              if(imdbDatum.needsReSearch == 'try aka search') {
+                console.log('taking the first aka search result: ' + titles[idx]);
               }
               else {
-                console.warn(orgTitle + ' seems not found on imdb. no similar results!');
+                if(titles[idx]) {
+                  console.warn(orgTitle + ' seems not found on imdb. so taking the first result: ' + titles[idx]);
+                }
+                /*
+                else {
+                  console.warn(orgTitle + ' seems not found on imdb. no title results at all!');
+                }
+                */
+
+                imdbDatum.imdbFlag = '??';
               }
-              imdbDatum.imdbFlag = '??';
             }
 
             imdbDatum.imdbId = ids[idx];
-            imdbResults[i] = res.results[idx];  //mutate results to get ratings too
+            imdbResults[i] = res.results[idx];  //mutate results to get ratings too (via base_info)
             if(imdbDatum.imdbId)
               imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + imdbDatum.imdbId;
 
-            resTitle = titles[idx];
-            resYear = res.results[idx]?.releaseDate?.year;  //may be null
+            resTitle = titles[idx];  //may be null?
+            resYear = res.results[idx]?.releaseDate?.year;  //may be null?
 
             imdbDatum.orgTitle = resTitle;
             imdbDatum.year = resYear;
           }
           else if(type == 'rating') {
-            let tempImdbRating = res?.results?.ratingsSummary?.aggregateRating;
+            let tempImdbRating = res.results?.ratingsSummary?.aggregateRating;
             if(!tempImdbRating || tempImdbRating == 'n/a' || isNaN(parseFloat(tempImdbRating))) {
               console.warn('imdb rating of '+orgTitle+' is not present or not a number: ' + tempImdbRating);
               imdbDatum.imdbFlag = '??';
@@ -1080,8 +1094,7 @@ class FyGlobal {
           obj[title] = el;
         }
 
-        //delete el.tempYear;
-        //delete el.cat;
+        //delete el.needsReSearch;
       });
 
       const targetObj = GM_getValue(GMKey);
@@ -1111,7 +1124,12 @@ class FyGlobal {
       if(otDatum.otUrl)
         targetInnerHtml += `</a>`;
 
-      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+      if(fy.site != 'watcha.com') {
+        targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+      }
+      else {
+        targetInnerHtml += ' ';
+      }
 
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
@@ -1144,7 +1162,7 @@ class FyGlobal {
       if(otDatum.imdbUrl)
         targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
 
-      targetInnerHtml += `<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>`;
+      targetInnerHtml += `[<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>]`;
 
       if(otDatum.imdbUrl)
         targetInnerHtml += `</a>`;
@@ -1255,7 +1273,6 @@ class FyGlobal {
         });
       }
       else {
-        console.log('1259', idx);
         orgTitles.some((sTitle, i) => {
           if(sTitle && sTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() == orgTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() && years[i] == trueYear) {
             //exact match (ignoring - & spaces and cases)
@@ -1269,7 +1286,6 @@ class FyGlobal {
         idx = -1;
     }
 
-    console.log('1270', idx);
     if(idx > -1) {
       const cache = otCache[keys[idx]];
 
@@ -1468,7 +1484,7 @@ function fadingAlert() {
   s.color = 'Black';
   s.backgroundColor = 'LawnGreen';
   s.overflow = 'auto';
-  s.zIndex = '2147483647';
+  s.zIndex = '998';  //z-index on css is 999
 
   this.log = async (...txt) => {
     if(txt.length == 0) {
@@ -1512,12 +1528,7 @@ function elementReady(selector, baseEl) {
   });
 }
 
-function specialRoman2roman(s) {
-  const map = {
-    'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V',
-    'Ⅵ': 'VI', 'Ⅶ': 'VII', 'Ⅷ': 'VIII', 'Ⅸ': 'IX', 'Ⅹ': 'X'};
-  return map[s];
-};
+
 
 
 //others' small utils
@@ -1531,12 +1542,6 @@ function dateDiffInDays(a, b) {
 
   const _MS_PER_DAY = 1000 * 60 * 60 * 24;
   return Math.floor((utc2 - utc1) / _MS_PER_DAY);
-}
-
-function roman2arabic(s) {
-  //https://stackoverflow.com/a/57521300/6153990
-  const map = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000};
-  return [...s].reduce((r,c,i,s) => map[s[i+1]] > map[c] ? r-map[c] : r+map[c], 0);
 }
 
 
