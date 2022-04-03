@@ -1,7 +1,12 @@
 div.fy-item {
 }
 
-.watcha_com {
+div.watcha_com {
+  position: absolute;
+  z-index: 999;
+}
+
+div.www_netflix_com {
   position: absolute;
   z-index: 999;
 }

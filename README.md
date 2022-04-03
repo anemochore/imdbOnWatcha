@@ -219,3 +219,13 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    lowered z-index of alert box
     //    watcha: removed wp edit link because it's meaningless
     //    fixed a bug relating excluding pages
+    // ver 0.3.34 @ 2022-4-3
+    //    watcha: changed single-page update behavior
+    //    small fix for css
+    //    small fixes for internal caching
+    //    overhauled settings.js and relevant main logic
+    // ver 0.4.3 @ 2022-4-3
+    //    added netflix support (list-item only for now) and refactored accordingly
+    //    now searching prefers movie, video, tv series (over podcast, etc)
+    //    watcha: fixed single-page update logic
+    //    fixed rating formatting on imdbRun()
