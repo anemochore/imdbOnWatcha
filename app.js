@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.5
+// @version      0.4.6
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -40,31 +40,31 @@ const DEFAULT_MSG = '입력하세요';
 class FyGlobal {
 
   run() {
-    const settings = SETTINGS, site = document.location.host;
+    fy.site = document.location.host;
 
     //imdb 접속 시 캐시 업데이트
-    if(site == 'www.imdb.com') {
+    if(fy.site == 'www.imdb.com') {
       fy.imdbRun();
       return;
     }
 
-    if(!settings[site])
+    if(!SETTINGS[fy.site])
       return;
 
     toast.log('fy script started.');
     //this.started = true;
 
-    for(const [k, v] of Object.entries(settings[site]))
+    for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
     //weird behavior... -_-
     this.selectRuleOnPreUpdateDiv = {...this.selectRuleOnUpdateDiv} || {};
     this.selectRuleOnPreUpdateDiv.selector = null;
 
-    this.handler = this.handlers[site];
-    this.largeDivUpdate = this.largeDivUpdates[site];
-    this.preUpdateDivs = this.preUpdateDivses[site];
-    this.search = this.searches[site];
+    this.handler = this.handlers[fy.site];
+    this.largeDivUpdate = this.largeDivUpdates[fy.site];
+    this.preUpdateDivs = this.preUpdateDivses[fy.site];
+    this.search = this.searches[fy.site];
 
     //global vars & flags
     this.prevLocationOriginPathname = document.location.origin+document.location.pathname;
@@ -115,7 +115,6 @@ class FyGlobal {
     GM_addStyle(css);
 
     //mutation observer
-    fy.site = document.location.host;
     fy.observer = new MutationObserver(fy.handler);
     fy.observerOption = {childList: true, subtree: true};
 
@@ -273,7 +272,7 @@ class FyGlobal {
       //on single content page
 
       const trueId = document.head.querySelector('meta[property="og:url"]').content.split('/').pop();
-      const trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + trueId;  //english page
+      const trueUrl = fy.getUrlFromId_(trueId);
       const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
 
       let sEl = fy.root.querySelector('.'+FY_UNIQ_STRING);
@@ -359,7 +358,7 @@ class FyGlobal {
       ids[i] = fy.useCacheIfAvailable_(id, otData[i]);
       otData[i].query = title;
 
-      otData[i].otUrl = trueData.url || 'https://pedia.watcha.com/en-KR/contents/' + id;
+      otData[i].otUrl = trueData.url || fy.getUrlFromId_(id);
       otData[i].otFlag = '';
       if(trueData.imdbId) {  //id가 url보다 우선함(url은 id에서 파생되므로)
         otData[i].imdbId = trueData.imdbId;
@@ -374,7 +373,7 @@ class FyGlobal {
     let searchLength = fy.setInternalCache_(ids, indexCaches, otData);
 
     if(searchLength == 0) {
-      console.log('nothing to search or scrape on wp.');
+      console.log(`nothing to search or scrape on wp.`);
       fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
       return;
     }
@@ -389,12 +388,12 @@ class FyGlobal {
       searchLength = otScrapeResults.filter(el => el).length;
 
       if(searchLength == 0) {
-        console.log('org. titles scraping result is empty.');
+        console.log(`org. titles scraping result is empty.`);
         fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
         return;
       }
 
-      console.log('org. titles scraping done:', searchLength);
+      console.log(`org. titles scraping done: ${searchLength}`);
       fy.parseWpScrapeResults_(otScrapeResults, otData, allTitles);
     }
     fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
@@ -474,7 +473,7 @@ class FyGlobal {
     let searchLength = fy.setInternalCache_(titles, indexCaches, otData);
 
     if(searchLength == 0) {
-      console.log('nothing to search or scrape on wp.');
+      console.log(`nothing to search or scrape on wp.`);
       fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
       return;
     }
@@ -490,12 +489,12 @@ class FyGlobal {
       fy.parseWpSearchResults_(otSearchResults, otData, trueData, titles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
-        console.log('org. titles searching result is empty.');
+        console.log(`org. titles searching result is empty.`);
         fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
         return;
       }
       else {
-        console.log('org. titles searching done (or passed):', searchLength);
+        console.log(`org. titles searching done (or passed): ${searchLength}`);
       }
     }
 
@@ -509,12 +508,12 @@ class FyGlobal {
       searchLength = otScrapeResults.filter(el => el).length;
 
       if(searchLength == 0) {
-        console.log('org. titles scraping result is empty.');
+        console.log(`org. titles scraping result is empty.`);
         fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
         return;
       }
 
-      console.log('org. titles scraping done:', searchLength);
+      console.log(`org. titles scraping done: ${searchLength}`);
       fy.parseWpScrapeResults_(otScrapeResults, otData, allTitles);
     }
     fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
@@ -694,7 +693,7 @@ class FyGlobal {
       }
 
       const id = sUrls[idx].split('/').pop();
-      otData[i].otUrl = 'https://pedia.watcha.com/en-KR/contents/' + id;
+      otData[i].otUrl = fy.getUrlFromId_(id);
     });
   }
 
@@ -735,7 +734,6 @@ class FyGlobal {
 
       otData[i].orgTitle = orgTitle;
       otData[i].year = tempYear;
-      console.log('tempYear', tempYear);
     });
   }
 
@@ -784,7 +782,7 @@ class FyGlobal {
     searchLength = filtered.filter(el => el).length;
 
     if(searchLength == 0) {
-      console.log('nothing to search on imdb.');
+      console.log(`nothing to search on imdb.`);
       searchLength = -1;
     }
     else if(!trueData.imdbId) {
@@ -797,11 +795,11 @@ class FyGlobal {
     }
 
     if(searchLength == 0) {
-      console.log('imdb searching result is empty.');
+      console.log(`imdb searching result is empty.`);
     }
     else if(searchLength > 0) {
       if(!trueData.imdbId) {
-        console.log('imdb searching possibly done:', searchLength);
+        console.log(`imdb searching possibly done: ${searchLength}`);
         imdbData = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
 
         let reSearchLength, toReSearch;
@@ -825,9 +823,9 @@ class FyGlobal {
           toReSearch = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
           reSearchLength = toReSearch.filter(el => el.imdbId).length;
           if(reSearchLength > 0)
-            console.log('imdb re-searching successfully done:', reSearchLength);
+            console.log(`imdb re-searching successfully done: ${reSearchLength}`);
           else
-            console.log('re-searching done unsuccessfully.');
+            console.log(`re-searching done unsuccessfully.`);
 
           toReSearch.forEach((reImdbDatum, j) => {
             if(!reImdbDatum)
@@ -865,7 +863,7 @@ class FyGlobal {
               newImdbData[i] = imdbData[i];
               newImdbData[i].imdbRating = tempRating;
               newImdbData[i].imdbId = trueData.imdbId || imdbData[i].imdbId;
-              newImdbData[i].imdbUrl = 'https://www.imdb.com/title/' + newImdbData[i].imdbId;
+              newImdbData[i].imdbUrl = fy.getUrlFromId_(newImdbData[i].imdbId, 'www.imdb.com');
               newImdbData[i].imdbRatingFetchedDate = new Date().toISOString();
               //year is not set, intentionally
             }
@@ -876,11 +874,11 @@ class FyGlobal {
         }
       });
       if(searchAndScraped > 0)
-        console.log(searchAndScraped+' ratings are scraped (or passed) during searching (no need to scrape).');
+        console.log(`${searchAndScraped} ratings are scraped (or passed) during searching (no need to scrape).`);
 
       searchLength = filtered.filter(el => el).length;
       if(searchLength == 0) {
-        console.log('nothing to scrape ratings on imdb.');
+        console.log(`nothing to scrape ratings on imdb.`);
       }
       else {
         toast.log('getting imdb ratings for',searchLength,'items...');
@@ -888,10 +886,10 @@ class FyGlobal {
         imdbResults = await fy.fetchAll(filtered, HEADERS, FETCH_INTERVAL);
         searchLength = imdbResults.filter(el => el).length;
         if(searchLength == 0) {
-          console.log('imdb scraping result is empty.');
+          console.log(`imdb scraping result is empty.`);
         }
         else {
-          console.log('getting imdb ratings done:', searchLength);
+          console.log(`getting imdb ratings done: ${searchLength}`);
           newImdbData = parseImdbResults_('rating');  //imdbResults, imdbData, etc are passed.
         }
       }
@@ -966,14 +964,14 @@ class FyGlobal {
             });
 
             if(fixedOrgTitle != orgTitle) {
-              console.log(orgTitle, 'is fixed to', fixedOrgTitle+'. re-searching queued.');
+              console.log(`${orgTitle} is fixed to ${fixedOrgTitle}. re-searching queued.`);
               imdbData[i] = {};
               imdbData[i].orgTitle = fixedOrgTitle;
               imdbData[i].needsReSearch = 'title fix';
             }
             else {
               //if no WP_TO_IMDB_FIX_DICT can be applied, try aka search
-              console.log(orgTitle, 're-searching (aka search) queued.');
+              console.log(`${orgTitle} re-searching (aka search) queued.`);
               imdbData[i] = {};
               imdbData[i].orgTitle = orgTitle;
               imdbData[i].needsReSearch = 'try aka search';
@@ -981,7 +979,7 @@ class FyGlobal {
           }
           else if(imdbDatum.needsReSearch == 'title fix') {
             //if WP_TO_IMDB_FIX_DICT applied and failed, try aka search again
-            console.log(orgTitle, 'title fixed but still no result. another re-searching (aka search) queued.');
+            console.log(`${orgTitle} title fixed but still no result. another re-searching (aka search) queued.`);
             imdbData[i].needsReSearch = 'try aka search';
           }
           else {  //if(imdbDatum.needsReSearch == 'try aka search') {
@@ -1041,7 +1039,7 @@ class FyGlobal {
             else if(idx == -1) {
               idx = 0;
               if(imdbDatum.needsReSearch == 'try aka search') {
-                console.log('taking the first aka search result: ' + titles[idx]);
+                console.log(`taking the first aka search result: ${titles[idx]}`);
               }
               else {
                 if(titles[idx]) {
@@ -1058,7 +1056,7 @@ class FyGlobal {
             resYear = res.results[idx]?.releaseDate?.year;  //may be null?
 
             if(imdbDatum.imdbId) {
-              imdbDatum.imdbUrl = 'https://www.imdb.com/title/' + imdbDatum.imdbId;
+              imdbDatum.imdbUrl = fy.getUrlFromId_(imdbDatum.imdbId, 'www.imdb.com');
               imdbDatum.year = otDatum.year;
               imdbDatum.orgTitle = orgTitle;
             }
@@ -1099,7 +1097,7 @@ class FyGlobal {
 
           //for edit
           if(!imdbDatum.imdbId)
-            imdbDatum.imdbId = otData[i].imdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
+            imdbDatum.imdbId = fy.getIdFromValidUrl_(otData[i].imdbUrl);
 
           imdbData[i] = imdbDatum;
         }
@@ -1264,12 +1262,28 @@ class FyGlobal {
     return div;
   }
 
+  getIdFromValidUrl_(validUrl = null) {
+    return validUrl ? validUrl.split('/').pop() : null;
+  }
+
+  getUrlFromId_(id = null, type = 'watcha.com') {
+    let url = null;
+
+    if(id) {
+      if(type == 'watcha.com')
+        url = 'https://pedia.watcha.com/en-KR/contents/' + id;  //english page
+      else if(type == 'www.imdb.com')
+        url = 'https://www.imdb.com/title/' + id;
+    }
+    return url;  
+  }
+
 
   ////other publics
   imdbRun() {
     const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
 
-    let path = document.location.pathname;
+    const path = document.location.pathname.replace(/\/$/, '');
     if(!path.startsWith('/title/') || path.endsWith('/episodes')) {
       toast.log();
       return;
@@ -1366,12 +1380,10 @@ class FyGlobal {
         }
         else {
           if(cache.imdbUrl.startsWith('https://www.imdb.com/find?') || cache.imdbFlag == '??') {
-            toast.log('updated the whole cache (id was not set or flag is ??) for '+orgTitle+' ('+trueYear+').');
+            toast.log('updated the whole imdb data on cache (id was not set or flag is ??) for '+orgTitle+' ('+trueYear+').');
 
             cache.imdbId = imdbId;
-            if(path.endsWith('/'))
-              path = path.slice(0, -1);
-            cache.imdbUrl = 'https://www.imdb.com' + path;
+            cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
             cache.year = trueYear;
           }
           else
@@ -1380,45 +1392,38 @@ class FyGlobal {
           cache.imdbRating = imdbRating;
         }
         cache.imdbFlag = '';
-
-        cache.imdbRatingFetchedDate = new Date().toISOString();
-        otCache[keys[idx]] = cache;
-        GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
       }
       else if(imdbRating != cache.imdbRating) {
         if(cache.imdbRating == 'n/a') {
-          toast.log('updated the whole cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
+          toast.log('updated the whole imdb data on cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
 
           cache.imdbId = imdbId;
-          if(path.endsWith('/'))
-            path = path.slice(0, -1);
-          cache.imdbUrl = 'https://www.imdb.com' + path;
+          cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
           cache.year = trueYear;
 
           cache.imdbRating = imdbRating;
-          cache.imdbRatingFetchedDate = new Date().toISOString();
-          otCache[keys[idx]] = cache;
-          GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
         }
         else if(imdbRating != 'n/a') {
           toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+cache.year+').');
 
           cache.imdbRating = imdbRating;
-          cache.imdbRatingFetchedDate = new Date().toISOString();
-          otCache[keys[idx]] = cache;
-          GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
         }
-
       }
       else {
         toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
       }
+
+      //wrap-up
+      cache.imdbRatingFetchedDate = new Date().toISOString();  //todo: remove this
+      cache.imdbVisitedDate = new Date().toISOString();
+      otCache[keys[idx]] = cache;
+      GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
     }
     else {
-      toast.log('this title is not yet stored on "imdb on watcha" cache.');
+      toast.log('this title is not yet stored on the cache.');
     }
+
     toast.log();
-    return;
   }
 
   edit(el, type) {
@@ -1439,7 +1444,7 @@ class FyGlobal {
     let trueId, trueUrl, trueTitle, otDatum;
     trueId = probablyBaseEl.querySelector(selectors.id)?.href.split('/').pop();
     if(trueId) {
-      trueUrl = 'https://pedia.watcha.com/en-KR/contents/' + trueId;
+      trueUrl = fy.getUrlFromId_(trueId);
       otDatum = fy.getObjFromWpId_(trueId);
     }
 
@@ -1463,7 +1468,7 @@ class FyGlobal {
       }
       trueUrl = trueUrl.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '').replace(/\/$/, '');
       if(!trueId)
-        trueId = trueUrl.split('/').pop();
+        trueId = fy.getIdFromValidUrl_(trueUrl);
 
       if(trueUrl == otDatum.otUrl) {
         if(otDatum.otFlag != '') {
@@ -1482,8 +1487,8 @@ class FyGlobal {
         alert('Not a valid IMDb title url. it should be "https://www.imdb.com/title/IMDB_ID" format!');
         return;
       }
-      trueImdbUrl = trueImdbUrl.trim().replace(/\/\?.*$/, '');
-      trueImdbId = trueImdbUrl.replace('https://www.imdb.com/title/', '').replace('/', '');
+      trueImdbUrl = trueImdbUrl.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
+      trueImdbId = fy.getIdFromValidUrl_(trueImdbUrl);
 
       if(trueImdbUrl == otDatum.imdbUrl) {
         if(otDatum.imdbFlag != '') {
@@ -1612,8 +1617,6 @@ function elementReady(selector, baseEl) {
 }
 
 
-
-
 //others' small utils
 function dateDiffInDays(a, b) {
   //https://stackoverflow.com/a/15289883/6153990
@@ -1634,15 +1637,12 @@ fy.run();
 
 /*
 const fyTimerId = setInterval(() => {
-  console.log('check')
   if(!fy.started) {
-    console.log('done')
     unsafeWindow.fy = new FyGlobal();
     fy.run();
     clearInterval(fyTimerId);
   }
   else {
-    console.log('done2')
     clearInterval(fyTimerId);
   }
 }, 2000);
