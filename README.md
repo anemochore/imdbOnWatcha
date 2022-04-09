@@ -232,8 +232,7 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     // ver 0.4.5 @ 2022-4-5
     //    fixed/improved various searching/caching logic/problems since replacing new API
     //    improved searching on WP
-    // ver 0.4.6 @ 2022-4-10
+    // ver 0.4.8 @ 2022-4-10
     //    internal: console.log() style fixed and util funds (get from id from url and vice versa) added
-    //    added imdbVisitedDate on cache when visiting imdb
-    //    TODO: prefer imdb real result over api result
-    //    TODO: add new cache property: type
+    //    added imdbVisitedDate on cache when visiting imdb and now prefers imdb real result (less than 7 days) over api result
+    //    added another new cache property 'type' for better searching/scraping
