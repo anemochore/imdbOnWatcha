@@ -236,3 +236,10 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    internal: console.log() style fixed and util funds (get from id from url and vice versa) added
     //    added imdbVisitedDate on cache when visiting imdb and now prefers imdb real result (less than 7 days) over api result
     //    added another new cache property 'type' for better searching/scraping
+    // ver 0.4.13 @ 2022-4-11
+    //    internal: refactored getText...(), etc
+    //    refactored settings.js
+    //    improved searching accuracy if item is tv series
+    //    fixed year type and added some fixing lines
+    //    netflix: added large-div support
+    //    imdb: replaced scraping code

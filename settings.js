@@ -4,90 +4,82 @@ const SETTINGS = {};
 
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
-  //todo:  '/tutorial'],
   rootSelector: 'main',
-  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]>div, header>div>section>div>h1',  //list item, single-page
-  //single page selectors are hard-coded in app.js. below two rules are for list items
-  selectRuleOnGetTitleForListItems: {
-    numberToParent: 2,
-    selector: 'div[aria-hidden]>p',
-  },
-  selectRuleOnGetIdForListItems: {
-    numberToParent: 2,
-    selector: 'a[href^="/contents/"]',
-  },
-  selectRuleOnUpdateDiv: {
-    numberToParent: 2,
-    selector: 'div.'+FY_UNIQ_STRING,
-  },
-  selectRuleOnEdit: {
-    numberToParent: 3,
+  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]>div',  //list item
+  selectorOnSinglePage: 'header>div>section:not(['+FY_UNIQ_STRING+'])>div>h1',  //single-page
+  //large-div is removed at 2022 1Q
 
-    determineSinglePageBy: 'DIV',  //list-item is ARTICLE
+  numberToBaseEl: 2,  //when edit, this number + 1 is used
 
-    selectorsForSinglePage: {
-      id: 'a:not(fy-edit)',
-      title: 'h1',
-      targetEl: 'h1',
+  selectorsForListItems: {
+    id: 'a[href^="/contents/"]',
+    title: 'div[aria-hidden]>p',
+    targetEl: 'a[class]>div',
+  },
+
+  //more selectors are hard-coded. below are mainly for edit()
+  selectorsForSinglePage: {
+    determineSinglePageBy: 'section>div',  //if edit link is the child of this el, it is single-page
+    id: 'a:not(fy-edit)',
+    title: 'h1',
+    isTVSeries: {
+      selector: 'span',
+      contains: /시즌 \d+개/,
     },
-
-    selectorsForListItems: {
-      id: 'a[href^="/contents/"]',
-      title: 'div[aria-hidden]>p',
-      targetEl: 'a[class]>div',
-    },
+    targetEl: 'h1',
   },
 };
+
 
 SETTINGS['m.kinolights.com'] = {
   includingPaths: ['/title'],
   rootSelector: 'html',
-  titleSelector: 'h3.title-kr',
-  largeDivSelector: 'div.movie-title-wrap',  //selector is not used for kino
+  selectorOnSinglePage: 'div.movie-title-wrap',  //'selector' is not used for kino
   preventMultipleUrlChanges: true,  //hack for kino
-  selectRuleOnUpdateDiv: {
-    selector: 'span.imdb-wrap>div.score',  //hard-coded somewhat
-  },
-  selectRuleOnEdit: {
-    root: 'main',
-    determineSinglePageBy: true,  //force single-page
 
-    selectorsForSinglePage: {
-      title: 'h3.title-kr',
-      targetEl: 'div.movie-title-wrap',
-    },
+  numberToBaseEl: 'html',
+
+  selectorsForSinglePage: {
+    determineSinglePageBy: true,  //force single-page
+    title: 'h3.title-kr',
+    orgTitle: 'h4.title-en',
+    year: 'p.metadata>span:last-child',
+    targetEl: 'span.imdb-wrap>div.score',
   },
 };
 
+
 SETTINGS['www.netflix.com'] = {
-  includingPaths: ['/browse', '/latest', '/my-list', '/search'],  //TODO: , '/title'],
+  includingPaths: ['/browse', '/latest', '/my-list', '/search', '/title'],
   rootSelector: 'body',
 
-  //'the last element'(fyItem) selection. From it the title should be able to be selected.
+  //'the last element'(fyItem) selection.
   selector: 'div.title-card-container:not(['+FY_UNIQ_STRING+'])>div[id]>div.ptrack-content',
   //In above case,
   //div.title... will be set FY_UNIQ_STRING, so it should be 'the base element' and 
   //div.ptrack... will be 'the last element'.
   //After updating, 'the base element' will have 'the info element'(.fy-item) child.
-  //Where to put FY_UNIQ_STRING? It depends on clickability.
+  //Where to put FY_UNIQ_STRING? It depends on clickability and aesthetics.
 
-  titleSelector: 'a[href^="/watch/"]',  //this should be the direct child of 'the last element'.
+  numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
-  //'the info element' selection from 'the last element'
-  selectRuleOnUpdateDiv: {
-    numberToParent: 2,                //in this case, 'the base element' is the 2nd parent of 'the last element'.
-    selector: 'div.'+FY_UNIQ_STRING,  //at there, 'the info element' can be directly selected.
+  selectorsForListItems: {
+    title: 'a[href^="/watch/"]',  //this should be the direct child of 'the last element'.
+    targetEl: 'div[id]>div.ptrack-content',
   },
 
-  //selection from the child(<a>edit</a>) of 'the info element'
-  selectRuleOnEdit: {
-    numberToParent: 2,
-    //<a> is the direct child of 'the info element' and 'the info element' is the direct child of 'the base element' and 
-    //title, etc elements can be selected from 'the base element'.
+  //large-div works like a single-page. don't use both.
+  selectorOnLargeDiv: 'div.previewModal--container:not(['+FY_UNIQ_STRING+'])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
 
-    selectorsForListItems: {
-      title: 'a[href^="/watch/"]',
-      targetEl: 'div[id]>div.ptrack-content',
+  //more selectors are hard-coded. below are mainly for edit()
+  selectorsForLargeDiv: {
+    determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el, it is single-page
+    title: 'img.playerModel--player__storyArt',
+    year: 'div.videoMetadata--second-line>div.year',
+    isTVSeries: {
+      selector: 'div.videoMetadata--second-line>span.duration',
+      contains: /시즌 \d+개/,
     },
+    targetEl: 'div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
   },
 };

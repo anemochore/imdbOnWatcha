@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.8
+// @version      0.4.13
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -36,6 +36,8 @@ const RAPID_API_HOST = 'data-imdb1.p.rapidapi.com';
 const RAPID_API_KEY = GM_getValue('RAPID_API_KEY');
 const DEFAULT_MSG = '입력하세요';
 
+const GM_CACHE_KEY = 'OT_CACHE_WITH_IMDB_RATINGS';
+
 const UPDATE_INTERVAL_DAYS_ORG_TITLES = 30;  //in days
 const UPDATE_INTERVAL_DAYS_IMDB_VISITED = 7;  //in days
 
@@ -60,10 +62,6 @@ class FyGlobal {
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
-    //weird behavior... -_-
-    this.selectRuleOnPreUpdateDiv = {...this.selectRuleOnUpdateDiv} || {};
-    this.selectRuleOnPreUpdateDiv.selector = null;
-
     this.handler = this.handlers[fy.site];
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
     this.preUpdateDivs = this.preUpdateDivses[fy.site];
@@ -77,8 +75,24 @@ class FyGlobal {
     unsafeWindow.GM_getValue = GM_getValue;
 
     //캐시 없으면 생성
-    if(!GM_getValue('OT_CACHE_WITH_IMDB_RATINGS'))
-      GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', {});
+    const tempCache = GM_getValue(GM_CACHE_KEY);
+    if(!tempCache) {
+      GM_setValue(GM_CACHE_KEY, {});
+    }
+    else {
+      //dirty fix
+      let count = 0;
+      for(const [k,v] of Object.entries(tempCache)) {
+        if(typeof v.year == 'string') {
+          tempCache[k].year = parseInt(v.year) || 'n/a';
+          count++;
+        }
+      }
+      if(count > 0) {
+        GM_setValue(GM_CACHE_KEY, tempCache);
+        toast.log('cache fixed (string year to number year): ' + count);
+      }
+    }
 
     //to get the previous url. https://stackoverflow.com/a/52809105
     window.addEventListener('locationchange', e => {
@@ -151,7 +165,12 @@ class FyGlobal {
     const isExit = determineExit_();
     if(!isExit && !fy.isFetching) {
       //toast.log('fy script initiating...');
-      const selector = fy.selector || fy.largeDivSelector;
+      let selector = fy.selector || '';
+      if(fy.selectorOnLargeDiv)
+        selector += ', ' + fy.selectorOnLargeDiv;
+      if(fy.selectorOnSinglePage)
+        selector += ', ' + fy.selectorOnSinglePage;
+      selector = selector.replace(/^, /, '');
 
       if(fy.preventMultipleUrlChanges)
         fy.isFetching = true;  //hack for kino
@@ -200,9 +219,10 @@ class FyGlobal {
 
   handlers = {
     'm.kinolights.com': async () => {
+      //fy.observer.disconnect();
       fy.isFetching = false;  //hack for kino
 
-      const largeDiv = document.querySelector(fy.largeDivSelector+':not(['+FY_UNIQ_STRING+'])');
+      const largeDiv = document.querySelector(fy.selectorOnSinglePage);
       if(largeDiv)
         fy.largeDivUpdate(largeDiv);
     },
@@ -211,103 +231,163 @@ class FyGlobal {
       fy.observer.disconnect();
 
       if(document.location.pathname.startsWith('/contents/')) {
-        let fyItem = fy.root.querySelector('['+FY_UNIQ_STRING+']');
-        if(fyItem) {
+        let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
+        if(largeDiv) {
           //if already updated, no more update when scrolling, etc
           toast.log();
           fy.observer.observe(fy.root, fy.observerOption);
           return;
         }
 
-        let largeDiv = fy.root.querySelector('h1');
+        largeDiv = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
         if(!largeDiv)
-          largeDiv = await elementReady('h1', fy.root);
+          largeDiv = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
 
         fy.largeDivUpdate(largeDiv);
-        return;
-      }
-
-      const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
-      const itemNum = itemDivs.length;
-      if(itemNum > 0) {
-        //toast.log('searching on wp or cache for', itemNum, 'items...');
-        fy.search(itemDivs);
       }
       else {
-        //nothing to do
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
+        fy.haldlerWrapUp(fy.selectorsForListItems);
       }
     },
 
     'www.netflix.com': async (m, o) => {
       fy.observer.disconnect();
 
-      const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
-      const itemNum = itemDivs.length;
-      if(itemNum > 0) {
-        //toast.log('searching on wp or cache for', itemNum, 'items...');
-        fy.search(itemDivs);
+      let largeDiv = fy.root.querySelector(fy.selectorsForLargeDiv.year);
+      if(largeDiv) {
+        //이미 페이지는 로딩된 상태. single-page는 대부분 이 경우일 것 같은데??
+        largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
+        if(largeDiv) {
+          //업데이트를 안 했을 때만 업데이트
+          const selectors = fy.selectorsForLargeDiv;
+          console.log(largeDiv)
+          const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+          await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
+        }
       }
-      else {
-        //nothing to do
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
+      /*
+      else if(document.location.pathname.startsWith('/title/')) {
+        //single-page에서 로딩이 안 됐다고?? 이 경우는 안 일어나는 것 같다...
+        await elementReady(fy.selectorsForLargeDiv.year, fy.root);
+        largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
+        console.debug('largeDiv after wait1', largeDiv);
       }
+      */
+      else if(m) {
+        //large-div on list-items
+        if(m.filter(el => el.addedNodes).map(el => [...el.addedNodes]).flat().map(el => el.className).includes('match-score-wrapper')) {
+          const largeDiv2 = fy.root.querySelector(fy.selectorOnLargeDiv);  //assuming it exists
+          if(fy.observer2) {
+            fy.observer2.disconnect();
+            fy.observer2 = null;
+          }
+          console.debug('an additional observer added.');
+          fy.observer2 = new MutationObserver(fy.handler);
+          fy.observer2.observe(largeDiv2, {attributes: true});
+        }
+        else if(m.map(el => el.attributeName).includes('style')) {
+          fy.observer2.disconnect();
+          fy.observer2 = null;
+          largeDiv = await elementReady(fy.selectorOnLargeDiv, fy.root);
+          console.debug('the additional observer disconnecteded and large-div loaded');
+        }
+      }
+
+      if(largeDiv)
+        fy.largeDivUpdate(largeDiv);
+      else
+        fy.haldlerWrapUp(fy.selectorsForListItems);
     },
+  };
+
+  haldlerWrapUp = selectors => {
+    const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
+    const itemNum = itemDivs.length;
+    if(itemNum > 0) {
+      fy.search(itemDivs, {selectors});
+    }
+    else {
+      //nothing to do
+      toast.log();
+      fy.observer.observe(fy.root, fy.observerOption);
+    }
   };
 
   largeDivUpdates = {
     'm.kinolights.com': async (largeDiv) => {
-      //no error-check
-      let imdbRating = largeDiv.querySelector(fy.selectRuleOnUpdateDiv.selector).textContent.trim().replace(' ·', '');
+      //on single content page
+      const selectors = fy.selectorsForSinglePage;
+      let imdbRating = largeDiv.querySelector(selectors.targetEl).textContent.trim().replace(' ·', '');
       if(isNaN(imdbRating))
         imdbRating = null;
 
       toast.log('forcing update...');
 
-      const trueOrgTitle = largeDiv.querySelector('h4.title-en').textContent;
-      const trueYear = largeDiv.querySelector('p.metadata>span:last-child').textContent;
-      fy.search([largeDiv], {year: trueYear, orgTitle: trueOrgTitle});
+      const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle));
+      const year = parseInt(fy.getTextFromNode_(largeDiv.querySelector(selectors.year)));
+      fy.searchByTitle([largeDiv], {year, orgTitle, selectors});
     },
 
     'watcha.com': async (largeDiv) => {
       //on single content page
+      const id = fy.getIdFromValidUrl_(document.head.querySelector('meta[property="og:url"]').content);
+      const url = fy.getUrlFromId_(id);
+      const title = largeDiv.textContent;  //h1. of course, it's on meta too.
 
-      const trueId = fy.getIdFromValidUrl_(document.head.querySelector('meta[property="og:url"]').content);
-      const trueUrl = fy.getUrlFromId_(trueId);
-      const trueTitle = largeDiv.textContent;  //h1. of course, it's on meta too.
+      fy.largeDivUpdateWrapUp(largeDiv, fy.selectorsForSinglePage, id, url, title, null);
+    },
 
-      let sEl = fy.root.querySelector('.'+FY_UNIQ_STRING);
-      let otFlag, imdbFlag;
-      if(sEl) {
-        //already updated
-        otFlag = sEl.querySelector('.fy-external-site').getAttribute('flag');
-        imdbFlag = sEl.querySelector('.fy-imdb-rating').getAttribute('flag');
-      }
-      else {
-        //not yet updated (first loading)
-        const cache = fy.getObjFromWpId_(trueId);
-        otFlag = cache.otFlag;
-        imdbFlag = cache.imdbFlag;
-      }
+    'www.netflix.com': async (largeDiv) => {
+      const selectors = fy.selectorsForLargeDiv;
+      const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+      const title = fy.getTextFromNode_(baseEl.querySelector(selectors.title));
+      const year = parseInt(fy.getTextFromNode_(baseEl.querySelector(selectors.year)));
 
-       //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 아직 로딩이 안 됐더라도.
-      if(otFlag != '' || imdbFlag != '' || !sEl) {
-        toast.log('large div on single-page update triggered...');
-        fy.search([largeDiv], {id: trueId, url: trueUrl, title: trueTitle});
-      }
-      else {
-        toast.log('nothing to do');
-        toast.log();
-        return;
-      }
+      fy.largeDivUpdateWrapUp(largeDiv, selectors, null, null, title, year);
     },
   };
 
-  baseElementSelect = itemDivs => {
+  largeDivUpdateWrapUp = (largeDiv, selectors, id, url, title, year) => {
+    const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+    let type = selectors.isTVSeries;
+    if(type) {
+      type = [...baseEl.querySelectorAll(type.selector)]
+      .filter(el => el.textContent.match(type.contains));
+      if(type.length > 0)
+        type = 'TV Series';
+      else 
+        type = null;  //not tv series.
+    }
+
+    let sEl = baseEl.querySelector('div.'+FY_UNIQ_STRING);
+    let otFlag, imdbFlag;
+    if(sEl) {
+      //already updated (maybe)
+      otFlag = sEl.querySelector('.fy-external-site')?.getAttribute('flag');
+      imdbFlag = sEl.querySelector('.fy-imdb-rating')?.getAttribute('flag');
+    }
+    else {
+      //not yet updated (first loading)
+      const cache = fy.getObjFromWpId_(id);
+      otFlag = cache.otFlag;
+      imdbFlag = cache.imdbFlag;
+    }
+
+     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
+    if(otFlag != '' || imdbFlag != '' || !sEl) {
+      toast.log('large div on single-page update triggered...');
+      //console.log('title,year,type @wu',title,year,type)
+      fy.search([largeDiv], {id, url, title, type, year});  //selectors는 필요 없음
+    }
+    else {
+      //toast.log('nothing to do');
+      toast.log();
+    }
+  };
+
+  baseElementProc = (itemDivs, numberToBaseEl) => {
     itemDivs.forEach((item, i) => {
-      const baseEl = fy.applySelectRuleIfAny(item, fy.selectRuleOnPreUpdateDiv);
+      const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
 
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
         baseEl.setAttribute(FY_UNIQ_STRING, '');
@@ -321,42 +401,53 @@ class FyGlobal {
 
   preUpdateDivses = {
     'm.kinolights.com': itemDivs => {
-      const el = itemDivs[0].querySelector(fy.selectRuleOnUpdateDiv.selector);
+      const baseEl = fy.getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
+      const el = baseEl.querySelector(fy.selectorsForSinglePage.targetEl);
       el.setAttribute(FY_UNIQ_STRING, '');
       el.classList.add(FY_UNIQ_STRING);
     },
 
-    'watcha.com': this.baseElementSelect,
-    'www.netflix.com': this.baseElementSelect,
+    'watcha.com': this.baseElementProc,
+    'www.netflix.com': this.baseElementProc,
   };
 
-  async searchById(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, forceUpdate: false}) {
+  async searchById(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, type: null, forceUpdate: false, selectors: {}}) {
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let allIds = Array(itemDivs.length).fill(null);     //all ids
     let ids = Array(itemDivs.length).fill(null);        //titles to scrape
 
-    fy.preUpdateDivs(itemDivs);
+    fy.preUpdateDivs(itemDivs, fy.numberToBaseEl);
+
+    const selectors = trueData.selectors;
     itemDivs.forEach((item, i) => {
+      const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
+
       let id;
       if(trueData.id)
         id = trueData.id;
-      else
-        id = fy.getIdFromValidUrl_(fy.applySelectRuleIfAny(item, fy.selectRuleOnGetIdForListItems)?.href);
+      else 
+        id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
 
-      if(!id) return;
-
+      if(!id) {
+        console.warn('no id found for ', baseEl);
+        return;
+      }
       allIds[i] = id;
-      let title, tempDatum;
+
+      let title
       if(trueData.title)
         title = trueData.title;
       else 
-        title = fy.applySelectRuleIfAny(item, fy.selectRuleOnGetTitleForListItems).textContent;
-
+        title = fy.getTextFromNode_(baseEl.querySelector(selectors.title));
       allTitles[i] = title;
 
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
-      otData[i] = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS')[title] || {};
+      otData[i] = GM_getValue(GM_CACHE_KEY)[title] || {};
+
+      //tv물인데 캐시에 정보다 없다면 사용한다. 1개 업데이트 시에만.
+      if(itemDivs.length == 1 && trueData.type && !otData[i].type)
+        otData[i].type = trueData.type;
 
       ids[i] = fy.useCacheIfAvailable_(id, otData[i]);
       otData[i].query = title;
@@ -382,7 +473,7 @@ class FyGlobal {
     }
 
     if(!trueData.imdbId && !trueData.orgTitle) {
-      toast.log('scraping org. titles...');
+      toast.log('scraping org. titles...');  //no search needed
       const otScrapeResults = await fy.fetchAll(ids.map((id, i) => id ? otData[i].otUrl : null), {
         headers: {
           'Accept-Language': 'en-KR',
@@ -402,18 +493,21 @@ class FyGlobal {
     fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, indexCaches, allTitles);
   }
 
-  async searchByTitle(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, forceUpdate: false}) {
-    const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
+  async searchByTitle(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, type: null, forceUpdate: false, selectors: {}}) {
+    const otCache = GM_getValue(GM_CACHE_KEY);
 
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
-    fy.preUpdateDivs(itemDivs);
+    fy.preUpdateDivs(itemDivs, fy.numberToBaseEl);
+
     itemDivs.forEach((item, i) => {
+      const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
+
       let title = trueData.title;
       if(!title)
-        title = item.querySelector(fy.titleSelector)?.textContent || item.querySelector(fy.titleSelector)?.alt || item.querySelector(fy.titleSelector)?.getAttribute('aria-label');
+        title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
       if(!title) return;
 
       allTitles[i] = title;
@@ -529,7 +623,7 @@ class FyGlobal {
 
   //utils used in editing
   getObjFromWpId_(id) {
-    const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
+    const otCache = GM_getValue(GM_CACHE_KEY);
     const cacheTitles = Object.keys(otCache);
     const cacheIds = Object.values(otCache).map(el => el.otUrl ? fy.getIdFromValidUrl_(el.otUrl) : null);
 
@@ -669,27 +763,17 @@ class FyGlobal {
       sTitles.forEach((sTitle, j) => {
         if(sTitle) {
           //trueYear가 있다면! 아이템의 연도와도 일치해야 함.
+          //trueType이 있다면! 아이템의 종류와도 일치해야 함.
           //그다음 제목이 일치하거나, 아니면 시즌 1 붙인 거랑 일치해야 함.
-          if((!trueData.year || (trueData.year && trueData.year == sYears[j])) &&
+          if(
+            (!trueData.year || (trueData.year && trueData.year == sYears[j])) &&
+            (!trueData.type || (trueData.type && trueData.type == sTypes[j])) &&
             (sTitle == title || (sTypes[j] == 'TV Series' && (sTitle == title + ' 시즌 1' || sTitle == title + ' 1기' || sTitle == title + ' 1')))) {
             if(idx == -1) {
               idx = j;
               otData[i].otFlag = '';
             }
             exactMatchCount++;
-          }
-          else if(sTitle.replace(/ - /g, '').replace(/ /g, '') == title.replace(/ - /g, '').replace(/ /g, '')
-            && (!trueData.year || (trueData.year && trueData.year == sYears[j]))
-            ) {
-            //exact match (ignoring - & spaces)
-            //trueYear가 있다면 아이템과 일치해야 하고 exactMatchCount도 증가함.
-            if(idx == -1) {
-              idx = j;
-              otData[i].otFlag = '';
-            }
-            if(trueData.year) {
-              exactMatchCount++;
-            }
           }
         }
       });
@@ -704,6 +788,7 @@ class FyGlobal {
       }
 
       const id = fy.getIdFromValidUrl_(sUrls[idx]);
+      otData[i].id = id;
       otData[i].otUrl = fy.getUrlFromId_(id);
       otData[i].type = sTypes[idx];
     });
@@ -944,13 +1029,14 @@ class FyGlobal {
     fy.getInternalCache_(indexCaches, otData);
 
     //change flow: update divs
-    fy.updateDivs(itemDivs, otData);
+    fy.updateDivs(itemDivs, otData, trueData.selectors);
 
 
     function parseImdbResults_(type) {
       imdbResults.forEach((r, i) => {
         if(!r) return;  //continue
 
+        const otDatum = otData[i];
         let imdbDatum = {};
         if(imdbData[i])  //second run
           imdbDatum = imdbData[i];
@@ -971,7 +1057,6 @@ class FyGlobal {
           if(res.results) console.debug('res.results:', res.results);
           else if(res)    console.debug('res:', res);
 
-          const otDatum = otData[i];
           if(otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate) {
             console.debug('imdb data on cache is healthy, so let it be for: '+orgTitle);
           }
@@ -1023,11 +1108,10 @@ class FyGlobal {
             const indexes = Array.from(Array(res.results.length).keys());
             const weights = Array(res.results.length).fill(0);  
 
-            const otDatum = otData[i];
             let idx = -1, exactMatchCount = 0;
             titles.forEach((sTitle, j) => {
-              if(sTitle == orgTitle) {
-                //exact match
+              if(sTitle == orgTitle && (!otDatum.type || (otDatum.type && otDatum.type == types[j]))) {
+                //exact match (tv물이면 tv물인 것까지 일치)
                 if(idx == -1) {
                   idx = j;
                   imdbDatum.imdbFlag = '';
@@ -1043,7 +1127,7 @@ class FyGlobal {
             });
 
             if(exactMatchCount > 1) {
-              if(otDatum.imdbFlag == '' && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate) {
+              if(otDatum.imdbFlag == '' && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate && otDatum.type == 'TV Series') {
                 console.debug(`${exactMatchCount} multiple exact matches for ${orgTitle} (${otDatum.year}) found on imdb, but imdb data on cache is healthy. so just let it be.`);
                 imdbDatum.imdbFlag = 'pass';
               }
@@ -1138,15 +1222,15 @@ class FyGlobal {
 
 
   //common(?) publics
-  updateDivs(itemDivs, otData) {
+  updateDivs(itemDivs, otData, selectors = {}) {
     //toast.log('updating divs...');
     itemDivs.forEach((item, i) => {
-      updateDiv_(item, otData[i], itemDivs.length);
+      updateDiv_(item, otData[i], itemDivs.length, selectors);
     });
-    toast.log('divs updated!');
+    toast.log(itemDivs.length + ' divs updated!');
 
     //캐시 반영
-    setGMCache_('OT_CACHE_WITH_IMDB_RATINGS', otData);
+    setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
     toast.log();
@@ -1179,11 +1263,15 @@ class FyGlobal {
         console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
     }
 
-    function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
-      const div = fy.applySelectRuleIfAny(fyItemToUpdate, fy.selectRuleOnUpdateDiv);
+    function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
+      let numberToParent = fy.numberToBaseEl;
+        if(selectors.determineSinglePageBy)
+          numberToParent++;
+
+      const div = fy.getParentsFrom_(fyItemToUpdate, numberToParent).querySelector('div.'+FY_UNIQ_STRING);
 
       if(!div) {
-        console.warn('no (fy-item) sub div found for ', fyItemToUpdate);
+        console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
         return;
       }
 
@@ -1237,14 +1325,14 @@ class FyGlobal {
       if(otDatum.imdbUrl)
         targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
 
-      targetInnerHtml += `[<span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span>]`;
+      targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
 
       if(otDatum.imdbUrl)
         targetInnerHtml += `</a>`;
 
       targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
 
-      //let users know it's changed (large div re-update only)
+      //let users know it's changed
       if(div.innerText != '' && div.innerText != targetInnerHtml && totalNumber == 1) {
         letItBlink(div);
         //console.debug(div, 're-updated!');
@@ -1273,22 +1361,23 @@ class FyGlobal {
     }
   }
 
-  applySelectRuleIfAny(div, rule = null) {
-    if(rule) {
-      if(rule.numberToParent)
-        for(let i = 0; i<rule.numberToParent; i++)
-          div = div.parentNode;
+  getParentsFrom_(div, numberOrRoot) {
+    if(isNaN(numberOrRoot))
+      div = document.documentElement;
+    else
+      for(let i = 0; i < numberOrRoot; i++)
+        div = div.parentNode;
 
-      let root = div;
-      if(rule.root)
-        root = document.querySelector(rule.root);
-
-      if(rule.selector)
-        div = root.querySelector(rule.selector);
-      else if(rule.root)
-        div = root;
-    }
     return div;
+  }
+
+  getTextFromNode_(el = null) {
+    let result = null;
+
+    if(el)
+      result = el.textContent || el.alt || el.getAttribute('aria-label');
+
+    return result;
   }
 
   getIdFromValidUrl_(validUrl = null) {
@@ -1311,9 +1400,10 @@ class FyGlobal {
     return rating != 'n/a' && !isNaN(parseFloat(rating))
   }
 
+
   ////other publics
   imdbRun() {
-    const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');
+    const otCache = GM_getValue(GM_CACHE_KEY);
 
     const path = document.location.pathname.replace(/\/$/, '');
     if(!path.startsWith('/title/') || path.endsWith('/episodes')) {
@@ -1322,6 +1412,18 @@ class FyGlobal {
     }
 
     const imdbId = path.split('/')[2];
+    
+    const imdbData = JSON.parse(document.querySelector('script#__NEXT_DATA__').text).props.pageProps.aboveTheFoldData;
+
+    let imdbRating = imdbData.ratingsSummary.aggregateRating;
+    if(!fy.isValidRating_(imdbRating))
+      imdbRating = 'n/a';
+
+    const orgTitle = imdbData.originalTitleText.text;
+    const trueYear = imdbData.releaseYear.year;
+    const trueType = imdbData.titleType.text;
+
+    /*
     let imdbRating = document.querySelector('div[data-testid$="aggregate-rating__score"]>span[class]');
     if(imdbRating)
       imdbRating = parseFloat(imdbRating.textContent);
@@ -1353,6 +1455,7 @@ class FyGlobal {
     }
     else
       trueYear = trueYear.slice(0, 4);
+    */
 
     const keys = Object.keys(otCache);
     const values = Object.values(otCache);
@@ -1403,7 +1506,7 @@ class FyGlobal {
           cache.imdbRating = 'n/a';
           cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
         }
-        else if(Math.abs(cache.year - trueYear) > 1) {
+        else if(Math.abs(parseInt(cache.year) - trueYear) > 1) {
           toast.log('year on imdb is ' + trueYear + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
 
           cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
@@ -1441,15 +1544,21 @@ class FyGlobal {
           cache.imdbRating = imdbRating;
         }
       }
+      else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) < 5) {
+        toast.log('rating is the same, but the year on imdb is ' + trueYear + ', which slightly differs from ' + cache.year + ' on cache. other cache data looks healthy, so updating the year only.');
+
+        cache.year = trueYear;
+      }
       else {
         toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
       }
 
-      //wrap-up
-      cache.imdbRatingFetchedDate = new Date().toISOString();  //todo: remove this
+      //wrap-up (제목은 바꾸지 않음)
+      cache.type = trueType;
+      cache.imdbRatingFetchedDate = new Date().toISOString();
       cache.imdbVisitedDate = new Date().toISOString();
       otCache[keys[idx]] = cache;
-      GM_setValue('OT_CACHE_WITH_IMDB_RATINGS', otCache);
+      GM_setValue(GM_CACHE_KEY, otCache);
     }
     else {
       toast.log('this title is not yet stored on the cache.');
@@ -1459,50 +1568,49 @@ class FyGlobal {
   }
 
   edit(el, type) {
-    const otCache = GM_getValue('OT_CACHE_WITH_IMDB_RATINGS');  //exported earlier
+    const otCache = GM_getValue(GM_CACHE_KEY);  //exported earlier
 
-    const rule = fy.selectRuleOnEdit;
-    delete rule.selector;  //ignore 'selector'. should use 'idSelector' or 'titleSelector'.
-    const probablyBaseEl = fy.applySelectRuleIfAny(el, rule);
+    const baseEl = fy.getParentsFrom_(el, fy.numberToBaseEl+1);
 
     //determine single-page
-    let needsSinglePageSeperateProcessing;
-    if((rule?.determineSinglePageBy == true) || rule?.determineSinglePageBy == probablyBaseEl.tagName)
-      needsSinglePageSeperateProcessing = true;
+    const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;
+    const isSinglePage = rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode;
 
-    const selectors = needsSinglePageSeperateProcessing ? rule.selectorsForSinglePage : rule.selectorsForListItems;
+    let selectors = rule;
+    if(!isSinglePage)
+      selectors = fy.selectorsForListItems;
 
     //search id and title
-    let trueId, trueUrl, trueTitle, otDatum;
-    trueId = fy.getIdFromValidUrl_(probablyBaseEl.querySelector(selectors.id)?.href);
-    if(trueId) {
-      trueUrl = fy.getUrlFromId_(trueId);
-      otDatum = fy.getObjFromWpId_(trueId);
+    let id, url, title, otDatum;
+    id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
+    if(id) {
+      url = fy.getUrlFromId_(id);
+      otDatum = fy.getObjFromWpId_(id);
     }
 
-    const titleEl = probablyBaseEl.querySelector(selectors.title);
-    trueTitle = titleEl?.textContent || titleEl?.alt || titleEl?.getAttribute('aria-label');
+    const titleEl = baseEl.querySelector(selectors.title);
+    title = fy.getTextFromNode_(titleEl);
     if(!otDatum)
-      otDatum = otCache[trueTitle] || {};
+      otDatum = otCache[title] || {};
 
     //search target el (fyItem. the last element)
-    const targetEl = probablyBaseEl.querySelector(selectors.targetEl);
+    const targetEl = baseEl.querySelector(selectors.targetEl);
 
     //get input
-    let trueImdbId, trueImdbUrl;
+    let imdbId, imdbUrl;
     if(type == 'ot') {
-      trueUrl = prompt("Enter proper Watcha Pedia url: ", otDatum.otUrl);
-      if(!trueUrl)
+      url = prompt("Enter proper Watcha Pedia url: ", otDatum.otUrl);
+      if(!url)
         return;
-      else if(!trueUrl.startsWith('https://pedia.watcha.com/')) {
+      else if(!url.startsWith('https://pedia.watcha.com/')) {
         alert('Not a valid Watcha Pedia url. it should be "https://pedia.watcha.com/en-KR/contents/WP_CODE" format!');
         return;
       }
-      trueUrl = trueUrl.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '').replace(/\/$/, '');
-      if(!trueId)
-        trueId = fy.getIdFromValidUrl_(trueUrl);
+      url = url.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '').replace(/\/$/, '');
+      if(!id)
+        id = fy.getIdFromValidUrl_(url);
 
-      if(trueUrl == otDatum.otUrl) {
+      if(url == otDatum.otUrl) {
         if(otDatum.otFlag != '') {
           toast.log('WP flag was reset (WP url is confirmed).');
           otDatum.otFlag = '';
@@ -1512,17 +1620,17 @@ class FyGlobal {
       }
     }
     else if(type == 'imdb') {
-      trueImdbUrl = prompt("First make sure that Watcha Pedia info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
-      if(!trueImdbUrl)
+      imdbUrl = prompt("First make sure that Watcha Pedia info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
+      if(!imdbUrl)
         return;
-      else if(!trueImdbUrl.startsWith('https://www.imdb.com/title/')) {
+      else if(!imdbUrl.startsWith('https://www.imdb.com/title/')) {
         alert('Not a valid IMDb title url. it should be "https://www.imdb.com/title/IMDB_ID" format!');
         return;
       }
-      trueImdbUrl = trueImdbUrl.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
-      trueImdbId = fy.getIdFromValidUrl_(trueImdbUrl);
+      imdbUrl = imdbUrl.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
+      imdbId = fy.getIdFromValidUrl_(imdbUrl);
 
-      if(trueImdbUrl == otDatum.imdbUrl) {
+      if(imdbUrl == otDatum.imdbUrl) {
         if(otDatum.imdbFlag != '') {
           toast.log('imdb flag was reset (imdb url is confirmed).');
           otDatum.imdbFlag = '';
@@ -1534,7 +1642,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title: trueTitle, id: trueId, url: trueUrl, imdbId: trueImdbId, imdbUrl: trueImdbUrl, forceUpdate: true});
+    fy.search([targetEl], {title, id, url, imdbId, imdbUrl, forceUpdate: true, selectors});
   }
 
   xhrAbort() {
