@@ -135,7 +135,7 @@
     //    refactored more
     // ver 0.3.7 @ 2022-3-20
     //    fixed imdb selector according to dom change
-    //    changed imdb api (previous api was removed on rapidapi suddenly...)
+    //    changed imdb api (previous api was removed on rapidapi suddenly...) to https://rapidapi.com/SAdrian/api/data-imdb1/
     //    fixed org-titles searching and updated readme
     // ver 0.3.9 @ 2022-3-20
     //    fixed org-titles searching again
@@ -195,7 +195,7 @@
     //    fixed year type and added some fixing lines
     //    netflix: added large-div support
     //    imdb: replaced scraping code
-    // ver 0.4.16 @ 2022-4-11
+    // ver 0.4.16 @ 2022-4-15
     //    fixed wrongly updating large-div
-    //    api: changed releaseDate to releaseYear (my requesting accepted)
+    //    api: changed releaseDate to releaseYear (my requesting accepted by the author)
     //    created korean readme
