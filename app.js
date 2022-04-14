@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.15
+// @version      0.4.16
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
-// @include      https://www.imdb.com/title/*
 // @include      https://watcha.com/*
-// @include      https://m.kinolights.com/*
 // @include      https://www.netflix.com/*
+// @include      https://m.kinolights.com/*
+// @include      https://www.imdb.com/title/*
 // @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
 // @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/settings.js
 // @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fixes.js
