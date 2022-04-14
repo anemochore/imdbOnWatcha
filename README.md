@@ -1,5 +1,5 @@
 # imdb on watcha
-[탬퍼멍키](https://www.tampermonkey.net/)와 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 왓챠, 넷플리스, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
+[탬퍼멍키](https://www.tampermonkey.net/)와 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 왓챠, 넷플릭스, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
 
 - English readme is available on `README_eng.md`.
 
