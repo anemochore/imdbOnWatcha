@@ -12,7 +12,7 @@
 ## 사용법
 1. [탬퍼멍키](https://www.tampermonkey.net/)를 안 쓴다면 먼저 설치한다.
 2. 이 저장소의 `app.js`를 탬퍼멍키에 '새 스크립트'로 저장한다.
-3. 탬퍼멍키 설정 화면에서 '설정 모드'를 '상급자'로 고르고 탬퍼멍키 화면을 새로고침하면, 스크립트에 'Storage' 탭이 생긴다. 여기에 캐시를 저장한다.
+3. 탬퍼멍키 설정 화면에서 '설정 모드'를 '상급자'로 고르고 탬퍼멍키 화면을 새로고침하면, 스크립트에 'Storage' 탭이 생긴다. 앞으로 여기에 캐시가 저장된다.
 4. 이후 왓챠 등에 접속하면 API 키를 넣으라고 alert가 뜰 거다. [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 구독하고 API 키를 받는다.
 5. 스크립트의 'Storage' 탭에 가서 `"RAPID_API_KEY"` 키에 자신의 API 키 값을 넣는다(JSON 형식이다).
 6. 왓챠 등에 다시 접속하기 전에 왓챠피디아에 가서 로그아웃을 해둔다. 왓챠피디아 국가 설정이 계정에 따라 강제로 지정될 수 있기 때문이다.
@@ -30,7 +30,7 @@
 4. www.imdb.com/title/ pages
 
 ## todo
-2. support for waave
+1. support for waave
 3. support for disney+
 4. support for seezn
 1. support for imdb my rating (when accessing www.imdb.com)

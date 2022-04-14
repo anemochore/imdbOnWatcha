@@ -30,7 +30,7 @@ Search and show IMDb ratings on Watcha, Netflix running on [Tampermonkey](https:
 4. www.imdb.com/title/ pages
 
 ## todo
-2. support for waave
+1. support for waave
 3. support for disney+
 4. support for seezn
 1. support for imdb my rating (when accessing www.imdb.com)
