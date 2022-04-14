@@ -1,6 +1,8 @@
 # imdb on watcha
 [탬퍼멍키](https://www.tampermonkey.net/)와 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 왓챠, 넷플리스, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
 
+- English readme is available on `README_end.md`.
+
 ## 기능 및 간단한 원리
 1. 화면에 뜬 국문 제목을 [왓챠피디아](https://pedia.watcha.com/) 국문 사이트에서 검색하고, 검색 결과 중 일치하는 항목의 영문 페이지를 스크레이핑해서 영문 제목을 얻는다.
 2. 영문 제목에 대해 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 IMDb 평점을 가져오고, 화면에 출력한다.
