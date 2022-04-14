@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.13
+// @version      0.4.15
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -260,7 +260,6 @@ class FyGlobal {
         if(largeDiv) {
           //업데이트를 안 했을 때만 업데이트
           const selectors = fy.selectorsForLargeDiv;
-          console.log(largeDiv)
           const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
           await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
         }
@@ -1111,7 +1110,7 @@ class FyGlobal {
             let idx = -1, exactMatchCount = 0;
             titles.forEach((sTitle, j) => {
               if(sTitle == orgTitle && (!otDatum.type || (otDatum.type && otDatum.type == types[j]))) {
-                //exact match (tv물이면 tv물인 것까지 일치)
+                //exact match (type이 있다면 type까지 일치)
                 if(idx == -1) {
                   idx = j;
                   imdbDatum.imdbFlag = '';
@@ -1127,17 +1126,19 @@ class FyGlobal {
             });
 
             if(exactMatchCount > 1) {
-              if(otDatum.imdbFlag == '' && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate && otDatum.type == 'TV Series') {
+              indexes.sort((a, b) => {
+                let result = weights[b] - weights[a];
+                if(result == 0)
+                  result = lengths[b] - lengths[a];
+                return result;
+              });
+              idx = indexes[0];
+
+              if(otDatum.imdbFlag == '' && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate) {
                 console.debug(`${exactMatchCount} multiple exact matches for ${orgTitle} (${otDatum.year}) found on imdb, but imdb data on cache is healthy. so just let it be.`);
                 imdbDatum.imdbFlag = 'pass';
               }
               else {
-                indexes.sort((a, b) => {
-                  let result = weights[b] - weights[a];
-                  if(result == 0)
-                    result = lengths[b] - lengths[a];
-                  return result;
-                });
                 console.warn(`${exactMatchCount} multiple exact matches for ${orgTitle} (${otDatum.year}) found on imdb. so just taking the first exact match (movie, video, tv series, and longer ones are prefered).`);
                 idx = indexes[0];
                 imdbDatum.imdbFlag = '?';
@@ -1160,12 +1161,12 @@ class FyGlobal {
             imdbResults[i] = res.results[idx];  //mutate results to get ratings too (via base_info)
 
             resTitle = titles[idx];  //may be null?
-            resYear = res.results[idx]?.releaseDate?.year;  //may be null?
+            resYear = res.results[idx]?.releaseYear?.year;  //may be null?
             resType = types[idx];  //may be null?
 
             if(imdbDatum.imdbId) {
               imdbDatum.imdbUrl = fy.getUrlFromId_(imdbDatum.imdbId, 'www.imdb.com');
-              imdbDatum.year = otDatum.year;
+              imdbDatum.year = resYear || otDatum.year;
               imdbDatum.orgTitle = orgTitle;
               imdbDatum.type = resType;
             }
@@ -1188,7 +1189,7 @@ class FyGlobal {
             imdbDatum.imdbRatingFetchedDate = new Date().toISOString();
 
             resTitle = res.results?.titleText?.text;
-            //resYear = res.results?.releaseDate?.year;
+            //resYear = res.results?.releaseYear?.year;
             resType = res.results?.titleType?.text;
 
             imdbDatum.type = resType || imdbDatum.type;

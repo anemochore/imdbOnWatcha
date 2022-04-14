@@ -243,3 +243,6 @@ Search and show IMDb ratings on Watcha running on [Tampermonkey](https://www.tam
     //    fixed year type and added some fixing lines
     //    netflix: added large-div support
     //    imdb: replaced scraping code
+    // ver 0.4.15 @ 2022-4-11
+    //    fixed wrongly updating large-div
+    //    api: changed releaseDate to releaseYear (my requesting accepted)
