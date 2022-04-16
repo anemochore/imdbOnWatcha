@@ -7,7 +7,7 @@ Search and show IMDb ratings on Watcha, Netflix running on [Tampermonkey](https:
 3. Stores Watcha Pedia and IMDb data cache on Tampermonkey storage.
 4. If search was imperfect, clicking an item (which reveals more infomation like release year) will initiate search again.
 5. If search was still imperfect, you can enter the correct url manually to update the cache.
-6. Still, the API is not perfect. So when you visit the IMDb page, the script will try to update the cache if possible.
+6. Still, ratings can be outdated. So when you visit the IMDb page, the script will try to update the cache if possible.
 
 ## usage
 1. Install [Tampermonkey](https://www.tampermonkey.net/) if not installed.
@@ -26,7 +26,7 @@ Search and show IMDb ratings on Watcha, Netflix running on [Tampermonkey](https:
 ## supported sites
 1. watcha.com
 2. www.netflix.com
-3. m.kinolights.com/title pages
+3. m.kinolights.com/title/ pages
 4. www.imdb.com/title/ pages
 
 ## todo
