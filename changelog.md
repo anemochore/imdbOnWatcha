@@ -199,3 +199,15 @@
     //    fixed wrongly updating large-div
     //    api: changed releaseDate to releaseYear (my requesting accepted by the author)
     //    created korean readme
+    // ver 0.4.26 @ 2022-4-18
+    //    netflix: fixed (possibly) crash on updating large-div of new movie
+    //    fixed year type when scraping wp
+    //    netflix: fixed/improved searching
+    //    netflix: improved/modified large-div searching using its year, type
+    //    watcha: modified scraping logic (season 1 is scraped now)
+    //    watcha: fixed selector on /watch/ pages
+    //    fixed/modified internal caching logic
+    //    fixed aka-search async parts
+    //    netflix: fixed edit code
+    //    internal: changed api host due to its notice
+    //    TODO: apply aka-search when scraping ratings too

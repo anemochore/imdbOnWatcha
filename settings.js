@@ -12,7 +12,7 @@ SETTINGS['watcha.com'] = {
   numberToBaseEl: 2,  //when edit, this number + 1 is used
 
   selectorsForListItems: {
-    id: 'a[href^="/contents/"]',
+    id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
     title: 'div[aria-hidden]>p',
     targetEl: 'a[class]>div',
   },
