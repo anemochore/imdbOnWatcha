@@ -210,4 +210,11 @@
     //    fixed aka-search async parts
     //    netflix: fixed edit code
     //    internal: changed api host due to its notice
-    //    TODO: apply aka-search when scraping ratings too
+    // ver 0.4.32 @ 2022-4-20
+    //    applied aka-search when scraping ratings too
+    //    changed aka-search logic (year included now)
+    //    wp: get original non-english title if it's latin
+    //    fixed logic of scraping season-1
+    //    fixed logic of scraping season-1 on edit()
+    //    fixed fixed.js in vain
+    //    TODO: use ott (where the title is served) info on wp

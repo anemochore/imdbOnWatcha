@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.26
+// @version      0.4.32
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -350,15 +350,7 @@ class FyGlobal {
 
   largeDivUpdateWrapUp = (largeDiv, selectors, id, url, title, year) => {
     const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
-    let type = selectors.isTVSeries;
-    if(type) {
-      type = [...baseEl.querySelectorAll(type.selector)]
-      .filter(el => el.textContent.match(type.contains));
-      if(type.length > 0)
-        type = 'TV Series';
-      else 
-        type = 'not TV Series';  //not tv series.
-    }
+    const type = fy.getTypeFromLargeDiv_(selectors, baseEl);
 
     let sEl = baseEl.querySelector('div.'+FY_UNIQ_STRING);
     let otFlag, imdbFlag;
@@ -458,8 +450,8 @@ class FyGlobal {
       otData[i].otUrl = fy.getUrlFromId_(id);
 
 
-      //tv물인데 캐시에 type 정보가 없다면 저장한다. large-div 업데이트 시에.
-      if(trueData.type == 'TV Series' && !otData[i].type)
+      //true type이 있는데 캐시에 type 정보가 없다면 저장한다. large-div 업데이트 시에.
+      if(trueData.type && !otData[i].type)
         otData[i].type = trueData.type;
 
       otData[i].query = title;
@@ -570,7 +562,7 @@ class FyGlobal {
     else if(!trueData.id) {
       //목록 업데이트
       let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
-      //왓챠피디아는 .을 없애야 함...
+      //왓챠피디아는 .을 없애야 함... 왜죠? 예: 0.0MHz
       const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURIComponent(title.replace(/\./g, '')) : null), {
         headers: {'Accept-Language': 'ko-KR'},
       });
@@ -611,6 +603,18 @@ class FyGlobal {
     'www.netflix.com': this.searchByTitle,
     'watcha.com': this.searchById,
   };
+
+  //utils used in large-div or edit
+  getTypeFromLargeDiv_(selectors, baseEl) {
+    if(selectors.isTVSeries) {
+      const seasonEls = [...baseEl.querySelectorAll(selectors.selector)]
+      .filter(el => el.textContent.match(selectors.contains));
+      if(seasonEls.length > 0)
+        return 'TV Series';
+      else
+        return 'not TV Series';  //not tv series. should not be null
+    }
+  }
 
   //utils used in editing
   getObjFromWpId_(id) {
@@ -816,6 +820,19 @@ class FyGlobal {
         let [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
 
+        //원제를 따로 표시하지만, imdb 제목은 iso-8859-1만 쓴다.
+        //출처: https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
+        const possibleRealOrgTitle = targetDoc.querySelector('div[class*="-Summary"]').firstChild.textContent;
+        if(orgTitle != possibleRealOrgTitle) {
+          if(isAllLatinChars(possibleRealOrgTitle))
+            orgTitle = possibleRealOrgTitle;
+
+          function isAllLatinChars(str) {
+            //https://stackoverflow.com/a/32851131/6153990
+            return !/[^\u0000-\u00ff]/g.test(str);
+          }
+        }
+
         const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.textContent == 'Series');
         if(seriesH2.length > 0)
           otData[i].type = 'TV Series';
@@ -910,23 +927,23 @@ class FyGlobal {
         ];
         strsToReplace.forEach(str => {
           const t = title.match(str[0]);
-          if(t)
+          if(t) {
             orgTitles[i] = title.replace(str[0], str[1]);
+          }
         });
-        if(oldTitle != title) {
-          console.log(`${oldTitle} is adjusted to ${title}.`);
-          otData[i].orgTitles = title;
+        if(oldTitle != orgTitles[i]) {
+          otData[i].orgTitles = orgTitles[i];
         }
       }
     });
 
     let imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/search/title/';
-    let imdbSuffix = '?info=base_info&year=';
+    let imdbSuffix = '?info=base_info';
 
     //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지.
     //wp는 movie와 video를 구분하지 않으므로, tv 시리즈만 넘긴다.
     let filtered = orgTitles.map((orgTitle, i) => 
-      orgTitle ? imdbPrefix + encodeURIComponent(orgTitles[i]) + imdbSuffix + years[i] + '&exact=true' + (types[i] == 'TV Series' ? '&titleType=tvSeries' : '')
+      orgTitle ? imdbPrefix + encodeURIComponent(orgTitles[i]) + imdbSuffix + '&year=' + years[i] + '&exact=true' + (types[i] == 'TV Series' ? '&titleType=tvSeries' : '')
       : null);
     searchLength = filtered.filter(el => el).length;
 
@@ -949,77 +966,9 @@ class FyGlobal {
     else if(searchLength > 0) {
       if(!trueData.imdbId) {
         console.log(`imdb searching possibly done: ${searchLength}`);
-        imdbData = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
+        imdbData = await parseImdbResults_('search', imdbResults);  //imdbData, etc are passed too.
 
-        let reSearchLength, toReSearch;
-        while(true) {
-          //determines re-searching
-          toReSearch = imdbData.map((imdbDatum, j) => {
-            if(!imdbDatum.needsReSearch)
-              return null;
-            else if(imdbDatum.needsReSearch == 'title fix')
-              return imdbPrefix + encodeURIComponent(imdbDatum.orgTitle) + imdbSuffix + years[j] + '&exact=true' + (types[j] == 'TV Series' ? '&titleType=tvSeries' : '');
-            else if(imdbDatum.needsReSearch == 'try aka search')  //no use year
-              return 'https://' + RAPID_API_HOST + '/titles/search/akas/' + encodeURIComponent(imdbDatum.orgTitle) + (types[j] == 'TV Series' ? '?titleType=tvSeries' : '');
-            //else
-            //  this won't happens
-          });
-
-          reSearchLength = toReSearch.filter(el => el).length;
-          if(reSearchLength == 0)
-            break;  //for while
-
-          toast.log('now re-searching infos and ratings on imdb for',reSearchLength,'items...');
-          imdbResults = await fy.fetchAll(toReSearch, HEADERS, FETCH_INTERVAL);
-          toReSearch = parseImdbResults_('search');  //imdbResults, imdbData, etc are passed.
-          reSearchLength = toReSearch.filter(el => el.imdbId).length;
-          if(reSearchLength > 0) {
-            console.log(`imdb re-searching successfully done: ${reSearchLength}`);
-          }
-          else {
-            console.log(`re-searching done unsuccessfully.`);
-          }
-
-          toReSearch.forEach((reImdbDatum, j) => {
-            if(!reImdbDatum)
-              return;  //continue
-
-            //검색이 실패했어도 url을 넣기 위해
-            if(reImdbDatum.imdbId || reImdbDatum.imdbUrl) {
-              imdbData[j] = reImdbDatum;
-              delete imdbData[j].needsReSearch;
-            }
-          });
-        }
-
-        //검색 결과에서 바로 평점도 가져올 수 있는 경우(새 api의 base_info)
-        let searchAndScraped = 0;
-        filtered.forEach((el, i) => {
-          const imdbRes = imdbResults[i];
-          if(el && imdbRes && imdbRes.ratingsSummary) {
-            const tempRating = imdbRes.ratingsSummary.aggregateRating;
-            //단 tv 에피소드라면 검색이 잘못되었을 확률이 높으므로 패스
-            if(fy.isValidRating_(tempRating) && newImdbData[i]?.type != 'TV Episode') {
-              if(imdbData[i].imdbFlag == 'pass') {
-                imdbData[i].imdbFlag = '';
-              }
-              else {
-                newImdbData[i] = imdbData[i];
-                newImdbData[i].type = imdbRes.titleType.text;
-                newImdbData[i].imdbRating = tempRating;
-                newImdbData[i].imdbId = trueData.imdbId || imdbData[i].imdbId;
-                newImdbData[i].imdbUrl = fy.getUrlFromId_(newImdbData[i].imdbId, 'www.imdb.com');
-                newImdbData[i].imdbRatingFetchedDate = new Date().toISOString();
-                //year is not set, intentionally
-              }
-
-              filtered[i] = null;
-              searchAndScraped++;
-            }
-          }
-        });
-        if(searchAndScraped > 0)
-          console.log(`${searchAndScraped} ratings are scraped (or passed) during searching (no need to scrape).`);
+        filtered = await searchAgainIfNeeded_(imdbResults, filtered);  //imdbData, etc are passed too.
       }
       else {
         imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/';  //large-div라면 바로 ratings 엔드포인트 사용
@@ -1045,7 +994,7 @@ class FyGlobal {
         }
         else {
           console.log(`getting imdb ratings done: ${searchLength}`);
-          newImdbData = parseImdbResults_('rating');  //imdbResults, imdbData, etc are passed.
+          newImdbData = await parseImdbResults_('rating', imdbResults);  //imdbData, etc are passed.
         }
       }
 
@@ -1085,9 +1034,83 @@ class FyGlobal {
     fy.updateDivs(itemDivs, otData, trueData.selectors);
 
 
-    function parseImdbResults_(parseType) {
-      imdbResults.forEach((r, i) => {
-        if(!r) return;  //continue
+    async function searchAgainIfNeeded_(imdbResults, filtered) {
+      let reSearchLength, toReSearch;
+      while(true) {
+        //determines re-searching
+        toReSearch = imdbData.map((imdbDatum, j) => {
+          if(!imdbDatum.needsReSearch)
+            return null;
+          else if(imdbDatum.needsReSearch == 'title fix')
+            return imdbPrefix + encodeURIComponent(imdbDatum.orgTitle) + imdbSuffix + '&year=' + years[j] + '&exact=true' + (types[j] == 'TV Series' ? '&titleType=tvSeries' : '');
+          else if(imdbDatum.needsReSearch == 'try aka search')  //year도 틀렸을 가능성이 큰데ㅠㅠ 일단 넣자.
+            return 'https://' + RAPID_API_HOST + '/titles/search/akas/' + encodeURIComponent(imdbDatum.orgTitle) + imdbSuffix + '&year=' + years[j] + (types[j] == 'TV Series' ? '&titleType=tvSeries' : '');
+          //else
+          //  this won't happens
+        });
+
+        reSearchLength = toReSearch.filter(el => el).length;
+        if(reSearchLength == 0)
+          break;  //for while
+
+        toast.log('now re-searching infos and ratings on imdb for',reSearchLength,'items...');
+        imdbResults = await fy.fetchAll(toReSearch, HEADERS, FETCH_INTERVAL);
+        toReSearch = await parseImdbResults_('search', imdbResults);  //imdbData, etc are passed.
+        reSearchLength = toReSearch.filter(el => el.imdbId).length;
+        if(reSearchLength > 0) {
+          console.log(`imdb re-searching successfully done: ${reSearchLength}`);
+        }
+        else {
+          console.log(`re-searching done unsuccessfully.`);
+        }
+
+        toReSearch.forEach((reImdbDatum, j) => {
+          if(!reImdbDatum)
+            return;  //continue
+
+          //검색이 실패했어도 url을 넣기 위해
+          if(reImdbDatum.imdbId || reImdbDatum.imdbUrl) {
+            imdbData[j] = reImdbDatum;
+            delete imdbData[j].needsReSearch;
+          }
+        });
+      }
+
+      //검색 결과에서 바로 평점도 가져올 수 있는 경우(새 api의 base_info)
+      let searchAndScraped = 0;
+      filtered.forEach((el, i) => {
+        const imdbRes = imdbResults[i];
+        if(el && imdbRes && imdbRes.ratingsSummary) {
+          const tempRating = imdbRes.ratingsSummary.aggregateRating;
+          //단 tv 에피소드라면 검색이 잘못되었을 확률이 높으므로 패스
+          if(fy.isValidRating_(tempRating) && newImdbData[i]?.type != 'TV Episode') {
+            if(imdbData[i].imdbFlag == 'pass') {
+              imdbData[i].imdbFlag = '';
+            }
+            else {
+              newImdbData[i] = imdbData[i];
+              newImdbData[i].type = imdbRes.titleType.text;
+              newImdbData[i].imdbRating = tempRating;
+              newImdbData[i].imdbId = trueData.imdbId || imdbData[i].imdbId;
+              newImdbData[i].imdbUrl = fy.getUrlFromId_(newImdbData[i].imdbId, 'www.imdb.com');
+              newImdbData[i].imdbRatingFetchedDate = new Date().toISOString();
+              //year is not set, intentionally
+            }
+
+            filtered[i] = null;
+            searchAndScraped++;
+          }
+        }
+      });
+      if(searchAndScraped > 0)
+        console.log(`${searchAndScraped} ratings are scraped (or passed) during searching (no need to scrape).`);
+
+      return filtered;
+    }
+
+    async function parseImdbResults_(parseType, imdbResults) {
+      for(const [i, r] of imdbResults.entries()) {  //to use async in for loop
+        if(!r) continue;
 
         const otDatum = otData[i];
         let imdbDatum = {};
@@ -1098,17 +1121,23 @@ class FyGlobal {
         const year = years[i];
 
         let res;
-        try {
-          res = JSON.parse(r);
+        if(typeof r == 'string') {
+          try {
+            res = JSON.parse(r);
+          }
+          catch(e) {
+            console.warn('parsing error: ', r);
+          }
         }
-        catch(e) {
-          console.warn('parsing error: ', r);
+        else {  //if(typeof r = 'object')
+          res = r;
         }
 
-        if(!res || !res.results || (res.results && Object.keys(res.results).length == 0)) {
-          console.warn(`parsing "${parseType}" result of ${orgTitle} (${year}) via API failed or no results on imdb!`);
-          if(res.results) console.debug('res.results:', res.results);
-          else if(res)    console.debug('res:', res);
+        if(!res || !res.results || (res.results && (Object.keys(res.results).length == 0 || res.results[0]?.searchAgain))) {
+          if(res?.results && !res?.results[0]?.searchAgain) {
+            console.warn(`parsing "${parseType}" (with re-search: "${imdbDatum.needsReSearch}") result of ${orgTitle} (${year}, type: ${otDatum.type}) via API failed or no results on imdb!`);
+            console.debug('res:', res);
+          }
 
           if(otDatum.otFlag == '' && otDatum.imdbFlag == '' && (otDatum.imdbId && otDatum.imdbId != 'n/a') && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate) {
             console.debug('imdb data on cache is healthy, so let it be for: '+orgTitle);
@@ -1126,7 +1155,7 @@ class FyGlobal {
               });
 
               if(fixedOrgTitle != orgTitle) {
-                console.log(`${orgTitle} is fixed to ${fixedOrgTitle}. re-searching queued.`);
+                console.log(`"${orgTitle}" is fixed to "${fixedOrgTitle}". re-searching queued.`);
                 imdbData[i] = {};
                 imdbData[i].orgTitle = fixedOrgTitle;
                 imdbData[i].needsReSearch = 'title fix';
@@ -1163,9 +1192,8 @@ class FyGlobal {
 
             //movie, video, tv series, and longer ones are prefered
             const indexes = Array.from(Array(res.results.length).keys());
-            const weights = Array(res.results.length).fill(0);  
+            const weights = Array(res.results.length).fill(0);
 
-            //console.log('titles, orgTitle', titles, orgTitle, otDatum.type, types)  //dev+++
             let idx = -1, exactMatchCount = 0;
             titles.forEach((sTitle, j) => {
               const type = types[j];
@@ -1232,18 +1260,37 @@ class FyGlobal {
                   imdbDatum.imdbFlag = '?';
                 }
                 else {
-                  console.warn(`${orgTitle} (${otDatum.year}, type: ${otDatum.type}) seems not found on imdb. so taking the first result: ${titles[idx]} (id: ${ids[idx]}, type: ${otDatum.type})`);
-                  imdbDatum.imdbFlag = '??';
+                  if(res.results[idx].searchAgain) {
+                    console.warn(`${orgTitle} (${otDatum.year}, type: ${otDatum.type}) seems not found on imdb. so taking the first result: ${titles[idx]} (id: ${ids[idx]}, type: ${otDatum.type})`);
+                    imdbDatum.imdbFlag = '??';
+                  }
+                  else {
+                    console.log(`${orgTitle} (${otDatum.year}, type: ${otDatum.type}) seems not found on imdb. so trying alternative searching...`);
+
+                    const againImdbResults = imdbResults.slice();
+                    againImdbResults[0] = {results: [{searchAgain: true}]};
+                    let againFiltered = filtered.slice();
+
+                    const againImdbData = await parseImdbResults_('search', againImdbResults);  //imdbData, etc are passed.
+                    againFiltered = await searchAgainIfNeeded_(againImdbResults, againFiltered);
+                    if(againImdbData[0].imdbFlag != '??') {
+                      filtered = againFiltered;  //referenced-cloning is ok
+                      delete againImdbResults[0].searchAgain;
+                      res.results[0] = againImdbResults[0];  //referenced-cloning is ok
+                      imdbDatum = againImdbData[0];  //referenced-cloning is ok
+                      console.log(`alternative searching is successfully done.`);
+                    }
+                  }
                 }
               }
             }
 
-            imdbDatum.imdbId = ids[idx];
             imdbResults[i] = res.results[idx];  //mutate results to get ratings too (via base_info)
+            imdbDatum.imdbId = imdbResults[i].id;
 
-            resTitle = titles[idx];  //may be null?
-            resYear = res.results[idx]?.releaseYear?.year;  //may be null?
-            resType = types[idx];  //may be null?
+            resTitle = imdbResults[i]?.titleText?.text;  //may be null?
+            resYear = imdbResults[i]?.releaseYear?.year;  //may be null?
+            resType = imdbResults[i]?.titleType?.text;  //may be null?
 
             if(imdbDatum.imdbId) {
               imdbDatum.imdbUrl = fy.getUrlFromId_(imdbDatum.imdbId, 'www.imdb.com');
@@ -1277,7 +1324,7 @@ class FyGlobal {
 
           imdbData[i] = imdbDatum;
         }
-      });
+      }
 
       return imdbData;
     }
@@ -1639,7 +1686,7 @@ class FyGlobal {
     toast.log();
   }
 
-  edit(el, type) {
+  edit(el, onSite) {
     const otCache = GM_getValue(GM_CACHE_KEY);  //exported earlier
 
     const baseEl = fy.getParentsFrom_(el, fy.numberToBaseEl+1);
@@ -1652,13 +1699,15 @@ class FyGlobal {
     if(!isSinglePage)
       selectors = fy.selectorsForListItems;
 
+    const type = fy.getTypeFromLargeDiv_(selectors, baseEl);
+
     //search id and title
     let id, url, title, otDatum;
     id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
-    if(id) {
-      url = fy.getUrlFromId_(id);
+
+    //캐시에 있다면 사용.
+    if(id)
       otDatum = fy.getObjFromWpId_(id);
-    }
 
     const titleEl = baseEl.querySelector(selectors.title);
     title = fy.getTextFromNode_(titleEl);
@@ -1670,7 +1719,7 @@ class FyGlobal {
 
     //get input
     let imdbId, imdbUrl;
-    if(type == 'ot') {
+    if(onSite == 'ot') {
       url = prompt("Enter proper Watcha Pedia url: ", otDatum.otUrl);
       if(!url)
         return;
@@ -1679,8 +1728,7 @@ class FyGlobal {
         return;
       }
       url = url.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '').replace(/\/$/, '');
-      if(!id)
-        id = fy.getIdFromValidUrl_(url);
+      id = fy.getIdFromValidUrl_(url);
 
       if(url == otDatum.otUrl) {
         if(otDatum.otFlag != '') {
@@ -1691,7 +1739,7 @@ class FyGlobal {
           return;
       }
     }
-    else if(type == 'imdb') {
+    else if(onSite == 'imdb') {
       imdbUrl = prompt("First make sure that Watcha Pedia info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
       if(!imdbUrl)
         return;
@@ -1714,7 +1762,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, id, url, imdbId, imdbUrl, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, id, url, type, imdbId, imdbUrl, forceUpdate: true, selectors});
   }
 
   xhrAbort() {
