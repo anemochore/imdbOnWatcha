@@ -217,4 +217,9 @@
     //    fixed logic of scraping season-1
     //    fixed logic of scraping season-1 on edit()
     //    fixed fixed.js in vain
-    //    TODO: use ott (where the title is served) info on wp
+    //    TODO: use platform info (where the title is served) on wp
+    // ver 0.4.36 @ 2022-4-23
+    //    fixed a bug of not getting type when large-div updating
+    //    wp: fixed a bug of large-div not updating after navigations
+    //    settings.js: fixed/improved selectors
+    //    fixed.js: added 'ULTRAMAN' case

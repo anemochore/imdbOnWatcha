@@ -20,13 +20,14 @@ SETTINGS['watcha.com'] = {
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
     determineSinglePageBy: 'section>div',  //if edit link is the child of this el, it is single-page
-    id: 'a:not(fy-edit)',
     title: 'h1',
     isTVSeries: {
       selector: 'span',
       contains: /시즌 \d+개/,
     },
     targetEl: 'h1',
+    numberToBaseEl: 3,  //this is not used when edit
+    id: 'a[href^="/watch/"]',  //this is not used when edit
   },
 };
 
@@ -42,6 +43,10 @@ SETTINGS['m.kinolights.com'] = {
   selectorsForSinglePage: {
     determineSinglePageBy: true,  //force single-page
     title: 'h3.title-kr',
+    isTVSeries: {
+      selector: 'span.tv-label',
+      contains: 'TV',
+    },
     orgTitle: 'h4.title-en',
     year: 'p.metadata>span:last-child',
     targetEl: 'span.imdb-wrap>div.score',

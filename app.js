@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.32
+// @version      0.4.36
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -315,42 +315,41 @@ class FyGlobal {
   };
 
   largeDivUpdates = {
+    'watcha.com': async (largeDiv) => {
+      //on single content (=large div) page
+      const selectors = fy.selectorsForSinglePage;
+
+      const id = fy.getIdFromValidUrl_(fy.getParentsFrom_(largeDiv, fy.selectorsForSinglePage.numberToBaseEl).querySelector(fy.selectorsForSinglePage.id)?.href);
+      const url = fy.getUrlFromId_(id);
+
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, id, url});
+    },
+
     'm.kinolights.com': async (largeDiv) => {
       //on single content page
       const selectors = fy.selectorsForSinglePage;
-      let imdbRating = largeDiv.querySelector(selectors.targetEl).textContent.trim().replace(' ·', '');
-      if(isNaN(imdbRating))
-        imdbRating = null;
-
-      toast.log('forcing update...');
 
       const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle));
       const year = parseInt(fy.getTextFromNode_(largeDiv.querySelector(selectors.year)));
-      fy.searchByTitle([largeDiv], {year, orgTitle, selectors});
-    },
 
-    'watcha.com': async (largeDiv) => {
-      //on single content page
-      const id = fy.getIdFromValidUrl_(document.head.querySelector('meta[property="og:url"]').content);
-      const url = fy.getUrlFromId_(id);
-      const title = largeDiv.textContent;  //h1. of course, it's on meta too.
-
-      fy.largeDivUpdateWrapUp(largeDiv, fy.selectorsForSinglePage, id, url, title, null);
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year});
     },
 
     'www.netflix.com': async (largeDiv) => {
+      //on large div (=single content) page
       const selectors = fy.selectorsForLargeDiv;
       const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
-      const title = fy.getTextFromNode_(baseEl.querySelector(selectors.title));
+
       const year = parseInt(fy.getTextFromNode_(baseEl.querySelector(selectors.year)));
 
-      fy.largeDivUpdateWrapUp(largeDiv, selectors, null, null, title, year);
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, year});
     },
   };
 
-  largeDivUpdateWrapUp = (largeDiv, selectors, id, url, title, year) => {
-    const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
-    const type = fy.getTypeFromLargeDiv_(selectors, baseEl);
+  largeDivUpdateWrapUp = (largeDiv, trueData) => {
+    const baseEl = fy.getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
+    const type = fy.getTypeFromLargeDiv_(trueData.selectors, baseEl);
+    trueData.type = type;
 
     let sEl = baseEl.querySelector('div.'+FY_UNIQ_STRING);
     let otFlag, imdbFlag;
@@ -361,16 +360,17 @@ class FyGlobal {
     }
     else {
       //not yet updated (first loading)
-      const cache = fy.getObjFromWpId_(id);
-      otFlag = cache.otFlag;
-      imdbFlag = cache.imdbFlag;
+      if(trueData.id) {
+        const cache = fy.getObjFromWpId_(trueData.id);
+        otFlag = cache.otFlag;
+        imdbFlag = cache.imdbFlag;
+      }
     }
 
      //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       toast.log('large div on single-page update triggered...');
-      //console.log('title,year,type @wu',title,year,type)
-      fy.search([largeDiv], {id, url, title, type, year});  //selectors는 필요 없음
+      fy.search([largeDiv], trueData);
     }
     else {
       //toast.log('nothing to do');
@@ -413,7 +413,7 @@ class FyGlobal {
 
     const selectors = trueData.selectors;
     itemDivs.forEach((item, i) => {
-      const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
+      const baseEl = fy.getParentsFrom_(item, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
 
       let title;
       if(trueData.title)
@@ -426,7 +426,7 @@ class FyGlobal {
       otData[i] = GM_getValue(GM_CACHE_KEY)[title] || {};
 
       let id;
-      if(trueData.forceUpdate || !selectors) {
+      if(trueData.forceUpdate) {
         //수동 업데이트 또는 large-div
         id = trueData.id;
       }
@@ -434,7 +434,7 @@ class FyGlobal {
         //그 밖의 경우는 캐시를 우선시. 시즌 1로 id가 변경되었을 수 있으니까.
         const sId = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
         if(!sId) {
-          console.warn('no id found for ', baseEl);
+          console.debug('no id found for ', baseEl, 'maybe you can just ignore this.', itemDivs.length);
           return;  //continue
         }
 
@@ -474,6 +474,7 @@ class FyGlobal {
       return;
     }
 
+    console.log('trueData',trueData)
     if(!trueData.imdbId && !trueData.orgTitle) {
       toast.log('scraping org. titles for ' + searchLength + ' items...');  //no search needed
       const otScrapeResults = await fy.fetchAll(ids.map((id, i) => id ? otData[i].otUrl : null), {
@@ -500,7 +501,7 @@ class FyGlobal {
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
-    fy.preUpdateDivs(itemDivs, fy.numberToBaseEl);
+    fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
 
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
@@ -607,8 +608,8 @@ class FyGlobal {
   //utils used in large-div or edit
   getTypeFromLargeDiv_(selectors, baseEl) {
     if(selectors.isTVSeries) {
-      const seasonEls = [...baseEl.querySelectorAll(selectors.selector)]
-      .filter(el => el.textContent.match(selectors.contains));
+      const seasonEls = [...baseEl.querySelectorAll(selectors.isTVSeries.selector)]
+      .filter(el => el.textContent.match(selectors.isTVSeries.contains));
       if(seasonEls.length > 0)
         return 'TV Series';
       else
@@ -783,8 +784,9 @@ class FyGlobal {
           }
         }
       });
+      const titleForWarning = `${title} (trueYear: ${trueData.year}, trueType: "${trueData.type}")`;
       if(exactMatchCount > 1) {
-        console.warn(exactMatchCount + ' multiple exact matches for ' + title + (trueData.year ? ' ('+trueData.year+')' : '') + ' found on wp. so taking the first result: ' + sTitles[idx]);
+        console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on wp. so taking the first result: ${sTitles[idx]}`);
         otData[i].otFlag = '?';
       }
       else if(idx == -1) {
@@ -792,12 +794,15 @@ class FyGlobal {
 
         if(!isNaN(parseInt(idxForSeason1))) {
           idx = idxForSeason1;
-          console.warn(title + " is (maybe) TV series. so taking 'season 1' result: " + sTitles[idx]);
+          console.warn(`${titleForWarning} is (maybe) TV series. so taking 'season 1' result: ${sTitles[idx]}`);
           otData[i].otFlag = '?';
         }
         else {
-          console.warn(title + ' seems not found on wp among many. so just taking the first result: ' + sTitles[idx]);
-          otData[i].otFlag = '??';
+          console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result: ${sTitles[idx]}`);
+          if(sTitles.filter(el => el).length == 1)
+            otData[i].otFlag = '?';
+          else
+            otData[i].otFlag = '??';
         }
       }
 
@@ -1589,17 +1594,6 @@ class FyGlobal {
           }
         });
       }
-      /*
-      else {
-        orgTitles.some((sTitle, i) => {
-          if(sTitle && sTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() == trueOrgTitle.replace(/ - /g, '').replace(/ /g, '').toLowerCase() && years[i] == trueYear) {
-            //exact match (ignoring - & spaces and cases)
-            newIdx = i;
-            return true;  //break (take the first match)
-          }
-        });
-      }
-      */
 
       if(newIdx == -1)
         idx = -1;
@@ -1774,6 +1768,7 @@ class FyGlobal {
   //more common utils
   async fetchAll(urls, headers = {}, delay = 0) {  //, order = false) {
     fy.isFetching = true;
+
     const results = [];
 
     //if(!order) {  //faster
@@ -1783,7 +1778,7 @@ class FyGlobal {
     });
     await Promise.all(promises);
 
-    fy.isFetching = false;
+    console.debug('fetching done.', fy.isFetching);
     return results;
 
 
