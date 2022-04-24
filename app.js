@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.36
+// @version      0.4.40
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -728,20 +728,23 @@ class FyGlobal {
         else if(header.textContent == '영화' || header.textContent == 'TV 프로그램') {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child>div[class]')];
           sUrls.push(...info.map(el => el.parentNode.parentNode.href));
+          sTypes.push(...Array(info.length).fill(header.textContent == '영화' ? 'Movie' : 'TV Series'));
         }
 
         if(info) {
           info = info.map(el => [...el.childNodes]);
           sTitles.push(...info.map(el => el[0].textContent));
-          sYears .push(...info.map(el => el[1].textContent.split(' ・ ')[0]));
-          sTypes .push(...info.map(el => {
-            const typeText = el[2]?.textContent;
-            if(typeText)
-              if(typeText == '영화')
-                return 'Movie';
-              else if(typeText == 'TV 프로그램')
-                return 'TV Series';
-          }));
+          sYears.push(...info.map(el => el[1].textContent.split(' ・ ')[0]));
+          if(!sTypes[sYears.length-1]) {
+            sTypes.push(...info.map(el => {
+              const typeText = el[2]?.textContent;
+              if(typeText)
+                if(typeText == '영화')
+                  return 'Movie';
+                else if(typeText == 'TV 프로그램')
+                  return 'TV Series';
+            }));
+          }
         }
       });
 
@@ -825,7 +828,7 @@ class FyGlobal {
         let [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
 
-        //원제를 따로 표시하지만, imdb 제목은 iso-8859-1만 쓴다.
+        //원제를 따로 표시하지만, imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
         //출처: https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
         const possibleRealOrgTitle = targetDoc.querySelector('div[class*="-Summary"]').firstChild.textContent;
         if(orgTitle != possibleRealOrgTitle) {
@@ -976,7 +979,7 @@ class FyGlobal {
         filtered = await searchAgainIfNeeded_(imdbResults, filtered);  //imdbData, etc are passed too.
       }
       else {
-        imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/';  //large-div라면 바로 ratings 엔드포인트 사용
+        imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/';  //왓챠 large-div라면 바로 ratings 엔드포인트 사용
         filtered = [imdbPrefix + trueData.imdbId + '/ratings'];
         otData[0].imdbId = trueData.imdbId;
         imdbData = [otData[0]];
@@ -987,7 +990,7 @@ class FyGlobal {
         console.log(`nothing to scrape ratings on imdb.`);
       }
       else {
-        toast.log('trying to get imdb ratings for',searchLength,'items...');
+        toast.log('not all ratings scraped during searching. trying to get imdb ratings for',searchLength,'items...');
 
         imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/';
         filtered = imdbData.map(el => (el.imdbId && el.imdbId != 'n/a') ? imdbPrefix + el.imdbId + '/ratings' : null);
@@ -1114,18 +1117,18 @@ class FyGlobal {
     }
 
     async function parseImdbResults_(parseType, imdbResults) {
+      let res, imdbDatum = {};
+      let resTitle, resYear, resType;
       for(const [i, r] of imdbResults.entries()) {  //to use async in for loop
         if(!r) continue;
 
         const otDatum = otData[i];
-        let imdbDatum = {};
         if(imdbData[i])  //second run
           imdbDatum = imdbData[i];
 
         let orgTitle = imdbDatum.orgTitle || orgTitles[i];  //may be adjusted
         const year = years[i];
 
-        let res;
         if(typeof r == 'string') {
           try {
             res = JSON.parse(r);
@@ -1139,7 +1142,7 @@ class FyGlobal {
         }
 
         if(!res || !res.results || (res.results && (Object.keys(res.results).length == 0 || res.results[0]?.searchAgain))) {
-          if(res?.results && !res?.results[0]?.searchAgain) {
+          if(!res?.results || (res?.results && !res?.results[0]?.searchAgain)) {
             console.warn(`parsing "${parseType}" (with re-search: "${imdbDatum.needsReSearch}") result of ${orgTitle} (${year}, type: ${otDatum.type}) via API failed or no results on imdb!`);
             console.debug('res:', res);
           }
@@ -1156,7 +1159,7 @@ class FyGlobal {
               sourceWords.forEach((sourceWord, j) => {
                 if((typeof sourceWord == 'string' && orgTitle.includes(sourceWord)) || 
                   (typeof sourceWord == 'object' && orgTitle.match(sourceWord)))
-                  fixedOrgTitle = orgTitle.replace(sourceWord, targetWords[j]);
+                  fixedOrgTitle = fixedOrgTitle.replace(sourceWord, targetWords[j]);
               });
 
               if(fixedOrgTitle != orgTitle) {
@@ -1186,9 +1189,34 @@ class FyGlobal {
             //else
             //  this won't happens
           }
+          else {
+            //scraping failed (가령 키노에서 실행 시 엉뚱한 영화가 검색돼서 평점이 없으면 다시 검색)
+            console.log(`trying alternative searching...`);
+
+            const againImdbResults = imdbResults.slice();
+            againImdbResults[0] = {results: [{searchAgain: true}]};
+            let againFiltered = filtered.slice();
+
+            const againImdbData = await parseImdbResults_('search', againImdbResults);  //imdbData, etc are passed.
+            againFiltered = await searchAgainIfNeeded_(againImdbResults, againFiltered);
+            if(againImdbData[0].imdbFlag != '??') {
+              filtered = againFiltered;  //referenced-cloning is ok
+              delete againImdbResults[0].searchAgain;
+              res.results = [];
+              res.results[0] = againImdbResults[0];  //referenced-cloning is ok
+              imdbDatum = againImdbData[0];  //referenced-cloning is ok
+              console.log(`alternative searching during scraping is successfully done.`);
+
+              searchWrapUp_(i, 0);
+            }
+            else {
+              //결국 실패
+              imdbData[i].imdbFlag = '??';
+              imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+            }
+          }
         }
         else {
-          let resTitle, resYear, resType;
           if(parseType == 'search') {
             const titles = res.results.map(el => el.titleText.text);
             const ids = res.results.map(el => el.id);
@@ -1290,23 +1318,12 @@ class FyGlobal {
               }
             }
 
-            imdbResults[i] = res.results[idx];  //mutate results to get ratings too (via base_info)
-            imdbDatum.imdbId = imdbResults[i].id;
-
-            resTitle = imdbResults[i]?.titleText?.text;  //may be null?
-            resYear = imdbResults[i]?.releaseYear?.year;  //may be null?
-            resType = imdbResults[i]?.titleType?.text;  //may be null?
-
-            if(imdbDatum.imdbId) {
-              imdbDatum.imdbUrl = fy.getUrlFromId_(imdbDatum.imdbId, 'www.imdb.com');
-              imdbDatum.year = resYear || otDatum.year;
-              imdbDatum.orgTitle = resTitle || orgTitle;
-              imdbDatum.type = resType;
-            }
+            searchWrapUp_(i, idx);
           }
           else if(parseType == 'rating') {
             //let tempImdbRating = res.results?.ratingsSummary?.aggregateRating;
             let tempImdbRating = res.results?.averageRating;
+            console.log('tempImdbRating', tempImdbRating)
             if(!fy.isValidRating_(tempImdbRating)) {
               const otDatum = otData[i];
               if(otDatum.imdbFlag == '' && (otDatum.imdbRating && otDatum.imdbRating != 'n/a') && (otDatum.year && otDatum.year != 'n/a') && !trueData.forceUpdate) {
@@ -1332,6 +1349,25 @@ class FyGlobal {
       }
 
       return imdbData;
+
+
+      function searchWrapUp_(i, idx = -1) {
+        if(idx > -1) {
+          imdbResults[i] = res.results[idx];  //mutate results to get ratings too (via base_info)
+          imdbDatum.imdbId = imdbResults[i].id;
+
+          resTitle = imdbResults[i]?.titleText?.text;  //may be null?
+          resYear = imdbResults[i]?.releaseYear?.year;  //may be null?
+          resType = imdbResults[i]?.titleType?.text;  //may be null?
+
+          if(imdbDatum.imdbId) {
+            imdbDatum.imdbUrl = fy.getUrlFromId_(imdbDatum.imdbId, 'www.imdb.com');
+            imdbDatum.year = resYear || otDatum.year;
+            imdbDatum.orgTitle = resTitle || orgTitle;
+            imdbDatum.type = resType;
+          }
+        }
+      }
     }
   }
 

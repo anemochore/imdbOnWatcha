@@ -220,6 +220,12 @@
     //    TODO: use platform info (where the title is served) on wp
     // ver 0.4.36 @ 2022-4-23
     //    fixed a bug of not getting type when large-div updating
-    //    wp: fixed a bug of large-div not updating after navigations
+    //    watcha: fixed a bug of large-div not updating after navigations
     //    settings.js: fixed/improved selectors
     //    fixed.js: added 'ULTRAMAN' case
+    // ver 0.4.40 @ 2022-4-25
+    //    wp: fixed a bug of not getting types
+    //    applied aka-search when scraping ratings is 'n/a'
+    //    fixed aka-search tiitle-fix logic
+    //    fixed.js: added capitalization rules
+
