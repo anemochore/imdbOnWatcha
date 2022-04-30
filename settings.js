@@ -5,7 +5,7 @@ const SETTINGS = {};
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
   rootSelector: 'main',
-  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]>div',  //list item
+  selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div',  //list item
   selectorOnSinglePage: 'header>div>section:not(['+FY_UNIQ_STRING+'])>div>h1',  //single-page
   //large-div is removed at 2022 1Q
 
@@ -25,7 +25,7 @@ SETTINGS['watcha.com'] = {
       selector: 'span',
       contains: /시즌 \d+개/,
     },
-    targetEl: 'h1',
+    targetEl: 'h1[class$="large"]',
     numberToBaseEl: 3,  //this is not used when edit
     id: 'a[href^="/watch/"]',  //this is not used when edit
   },
@@ -66,10 +66,12 @@ SETTINGS['www.netflix.com'] = {
   //After updating, 'the base element' will have 'the info element'(.fy-item) child.
   //Where to put FY_UNIQ_STRING? It depends on clickability and aesthetics.
 
+  largeDivSamePathName: true,  //hack for netflix
+
   numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
-    title: 'a[href^="/watch/"]',  //this should be the direct child of 'the last element'.
+    title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the direct child of 'the last element'.
     targetEl: 'div[id]>div.ptrack-content',
   },
 
@@ -79,7 +81,7 @@ SETTINGS['www.netflix.com'] = {
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForLargeDiv: {
     determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el, it is single-page
-    title: 'img.playerModel--player__storyArt',
+    title: 'h3>strong',
     year: 'div.videoMetadata--second-line>div.year',
     isTVSeries: {
       selector: 'div.videoMetadata--second-line>span.duration',

@@ -228,4 +228,19 @@
     //    applied aka-search when scraping ratings is 'n/a'
     //    fixed aka-search tiitle-fix logic
     //    fixed.js: added capitalization rules
-
+    // ver 0.4.54 @ 2022-5-1
+    //    watcha: fixed a bug of getting not clean id
+    //    watcha: fixed a crash (bug of wp parsing after v0.4.40)
+    //    watcha: fixed selectors not to select people or genre
+    //    watcha: now don't show info at all on 이어보기
+    //    watcha: fixed a weird bug of not showing info when entering single-page from list-screen
+    //    netflix: fixed url changes behavior (bug of v0.4.40)
+    //    netflix: fixed a bug of getting wrong formatted title
+    //    netflix: improved searching by using more correct type
+    //    fixed a crash when aka-searching (bug of v0.4.40)
+    //    fixed a bug of not storing imdb url, etc (bug of v0.4.40)
+    //    improved searching: 'tv mini series' type added
+    //    now searches year-1 to year+1 range when aka-searching
+    //    fixed.js: added 'SPY×FAMILY', 'KILL LIST' cases
+    //    internal: now awaits gm_cache (idk this is really needed)
+    //    TODO: solve '퍼시픽 림: 어둠의 시간'
