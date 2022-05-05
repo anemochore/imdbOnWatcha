@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.54
+// @version      0.4.55
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -79,7 +79,7 @@ class FyGlobal {
     //캐시 없으면 생성
     const tempCache = await GM_getValue(GM_CACHE_KEY);
     if(!tempCache) {
-      GM_setValue(GM_CACHE_KEY, {});
+      await GM_setValue(GM_CACHE_KEY, {});
     }
     else {
       //dirty fix
@@ -91,7 +91,7 @@ class FyGlobal {
         }
       }
       if(count > 0) {
-        GM_setValue(GM_CACHE_KEY, tempCache);
+        await GM_setValue(GM_CACHE_KEY, tempCache);
         toast.log('cache fixed (string year to number year): ' + count);
       }
     }
@@ -123,7 +123,7 @@ class FyGlobal {
 
     //check api keys
     if(!RAPID_API_KEY || RAPID_API_KEY == DEFAULT_MSG) {
-      GM_setValue('RAPID_API_KEY', DEFAULT_MSG);
+      await GM_setValue('RAPID_API_KEY', DEFAULT_MSG);
       alert("set RAPID_API_KEY in Tampermonkey's setting first.");
       toast.log();
       return;
@@ -1752,7 +1752,7 @@ class FyGlobal {
       cache.imdbRatingFetchedDate = new Date().toISOString();
       cache.imdbVisitedDate = new Date().toISOString();
       otCache[keys[idx]] = cache;
-      GM_setValue(GM_CACHE_KEY, otCache);
+      await GM_setValue(GM_CACHE_KEY, otCache);
     }
     else {
       toast.log('this title is not yet stored on the cache.');

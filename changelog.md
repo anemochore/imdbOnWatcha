@@ -244,3 +244,5 @@
     //    fixed.js: added 'SPY×FAMILY', 'KILL LIST' cases
     //    internal: now awaits gm_cache (idk this is really needed)
     //    TODO: solve '퍼시픽 림: 어둠의 시간'
+    // ver 0.4.55 @ 2022-5-5
+    //    internal: awaits setting gm_cache (missed from v0.4.54)
