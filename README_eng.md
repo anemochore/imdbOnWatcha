@@ -1,5 +1,5 @@
 # imdb on watcha
-Search and show IMDb ratings on Watcha, Netflix running on [Tampermonkey](https://www.tampermonkey.net/).
+Search and show IMDb ratings on Watcha, Netflix, Wavve running on [Tampermonkey](https://www.tampermonkey.net/).
 
 ## features
 1. Searches Korean titles on [Watcha Pedia](https://pedia.watcha.com/) to get English titles.
@@ -26,11 +26,12 @@ Search and show IMDb ratings on Watcha, Netflix running on [Tampermonkey](https:
 ## supported sites
 1. watcha.com
 2. www.netflix.com
+3. www.waave.com
 3. m.kinolights.com/title/ pages
 4. www.imdb.com/title/ pages
 
 ## todo
-1. support for waave
+~~1. support for waave~~
 3. support for disney+
 4. support for seezn
 1. support for imdb my rating (when accessing www.imdb.com)

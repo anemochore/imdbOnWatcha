@@ -1,6 +1,3 @@
-div.fy-item {
-}
-
 div.watcha_com {
   position: absolute;
   z-index: 999;
@@ -11,8 +8,17 @@ div.www_netflix_com {
   z-index: 999;
 }
 
-.fy-item .fy-edit, .fy-item .fy-external-site, .fy-item .fy-imdb-rating.over-na {
-  color: inherit;  /* should be white */
+div.www_wavve_com {
+  position: absolute;
+  z-index: 999;
+}
+
+div.www_wavve_com>a {
+  display: inline !important;
+}
+
+.fy-edit, .fy-external-site, .fy-imdb-rating.over-na {
+  color: white;
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
@@ -72,7 +78,6 @@ div.www_netflix_com {
 }
 
 .fy-imdb-rating.over-na {
-  color: inherit;
   background-color: inherit;
 }
 

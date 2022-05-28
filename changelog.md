@@ -246,3 +246,8 @@
     //    TODO: solve '퍼시픽 림: 어둠의 시간'
     // ver 0.4.55 @ 2022-5-5
     //    internal: awaits setting gm_cache (missed from v0.4.54)
+    // ver 0.4.59 @ 2022-5-28
+    //    fixed wrong css
+    //    internal: added setting regarding 'isTVSeries' and refactored relevant funcs
+    //    kino: fixed a bug not updating (maybe their code has changed)
+    //    wavve: now supports wavve (partially)

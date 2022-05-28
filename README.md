@@ -1,5 +1,5 @@
 # imdb on watcha
-[탬퍼멍키](https://www.tampermonkey.net/)와 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 왓챠, 넷플릭스, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
+[탬퍼멍키](https://www.tampermonkey.net/)와 [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 이용해 왓챠, 넷플릭스, 웨이브, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
 
 - English readme is available on `README_eng.md`.
 
@@ -28,14 +28,15 @@
 ## 지원 사이트
 1. watcha.com
 2. www.netflix.com
-3. m.kinolights.com/title pages
-4. www.imdb.com/title/ pages
+3. www.waave.com
+4. m.kinolights.com/title pages
+5. www.imdb.com/title/ pages
 
 ## todo
-1. support for waave
-3. support for disney+
-4. support for seezn
-1. support for imdb my rating (when accessing www.imdb.com)
+~~1. support for waave~~
+2. support for disney+
+3. support for seezn
+4. support for imdb my rating (when accessing www.imdb.com)
 5. support for uflix (but... now i don't have an account there)
 6. setting.js 문서화
 

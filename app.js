@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.55
+// @version      0.4.59
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -9,6 +9,7 @@
 // @include      https://watcha.com/*
 // @include      https://www.netflix.com/*
 // @include      https://m.kinolights.com/*
+// @include      https://www.wavve.com/*
 // @include      https://www.imdb.com/title/*
 // @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
 // @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/settings.js
@@ -220,6 +221,29 @@ class FyGlobal {
     }
   }
 
+  defaultHandler = async (m, o) => {
+    fy.observer.disconnect();
+
+    if(fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+      let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
+      if(largeDiv) {
+        //if already updated, no more update when scrolling, etc
+        toast.log();
+        fy.observer.observe(fy.root, fy.observerOption);
+        return;
+      }
+
+      largeDiv = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
+      if(!largeDiv)
+        largeDiv = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
+
+      fy.largeDivUpdate(largeDiv);
+    }
+    else {
+      fy.handlerWrapUp(fy.selectorsForListItems);
+    }
+  };
+
   handlers = {
     'm.kinolights.com': async () => {
       //fy.observer.disconnect();
@@ -228,29 +252,6 @@ class FyGlobal {
       const largeDiv = document.querySelector(fy.selectorOnSinglePage);
       if(largeDiv)
         fy.largeDivUpdate(largeDiv);
-    },
-
-    'watcha.com': async (m, o) => {
-      fy.observer.disconnect();
-
-      if(document.location.pathname.startsWith('/contents/')) {
-        let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
-        if(largeDiv) {
-          //if already updated, no more update when scrolling, etc
-          toast.log();
-          fy.observer.observe(fy.root, fy.observerOption);
-          return;
-        }
-
-        largeDiv = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
-        if(!largeDiv)
-          largeDiv = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
-
-        fy.largeDivUpdate(largeDiv);
-      }
-      else {
-        fy.handlerWrapUp(fy.selectorsForListItems);
-      }
     },
 
     'www.netflix.com': async (m, o) => {
@@ -300,6 +301,9 @@ class FyGlobal {
       else
         fy.handlerWrapUp(fy.selectorsForListItems);
     },
+
+    'watcha.com': this.defaultHandler,
+    'www.wavve.com': this.defaultHandler,
   };
 
   handlerWrapUp = (selectors) => {
@@ -345,6 +349,18 @@ class FyGlobal {
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, year});
     },
+
+    'www.wavve.com': async (largeDiv) => {
+      //on large div (=single content) page
+      const selectors = fy.selectorsForSinglePage;
+      const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+
+      //제목이 lazy loading인데 귀찮으니 메타에서 가져온다.
+      const titleSelector = 'meta[data-vue-meta="ssr"][property="og:title"]';
+      const title = (await elementReady(titleSelector, document.head)).content.replace(/^\[wavve\]/, '');
+
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title});
+    },
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
@@ -379,7 +395,7 @@ class FyGlobal {
     }
   };
 
-  baseElementProc = (itemDivs, numberToBaseEl) => {
+  defaultBaseElementProc = (itemDivs, numberToBaseEl) => {
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
 
@@ -398,11 +414,12 @@ class FyGlobal {
       const baseEl = fy.getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
       const el = baseEl.querySelector(fy.selectorsForSinglePage.targetEl);
       el.setAttribute(FY_UNIQ_STRING, '');
-      el.classList.add(FY_UNIQ_STRING);
+      el.classList.add(FY_UNIQ_STRING);  //this is not wokring!
     },
 
-    'watcha.com': this.baseElementProc,
-    'www.netflix.com': this.baseElementProc,
+    'watcha.com': this.defaultBaseElementProc,
+    'www.netflix.com': this.defaultBaseElementProc,
+    'www.wavve.com': this.defaultBaseElementProc,
   };
 
   async searchById(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, type: null, forceUpdate: false, selectors: {}}) {
@@ -501,13 +518,18 @@ class FyGlobal {
 
     fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
 
+    //get titles
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
 
       let title = trueData.title;
       if(!title && baseEl)
         title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
-      if(!title) return;
+      console.log('truedata', baseEl, trueData.selectors.title, baseEl.querySelector(trueData.selectors.title));
+      if(!title) {
+        console.warn('no title found on single page or large div!');
+        return;
+      }
 
       allTitles[i] = title;
 
@@ -593,12 +615,15 @@ class FyGlobal {
       console.log(`org. titles scraping done: ${searchLength}`);
       await fy.parseWpScrapeResults_(otScrapeResults, otData, allTitles);
     }
+
     fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, allTitles);
   }
 
   searches = {
     'm.kinolights.com': this.searchByTitle,
     'www.netflix.com': this.searchByTitle,
+    'www.wavve.com': this.searchByTitle,
+
     'watcha.com': this.searchById,
   };
 
@@ -1436,10 +1461,11 @@ class FyGlobal {
 
     function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
       let numberToParent = fy.numberToBaseEl;
-        if(selectors.determineSinglePageBy)
-          numberToParent++;
+      if(!isNaN(numberToParent) && selectors.determineSinglePageBy)
+        numberToParent++;
 
-      const div = fy.getParentsFrom_(fyItemToUpdate, numberToParent).querySelector('div.'+FY_UNIQ_STRING);
+      const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent)
+      let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
@@ -1534,9 +1560,15 @@ class FyGlobal {
   //small utils
   getTypeFromLargeDiv_(selectors, baseEl) {
     if(selectors.isTVSeries) {
-      const seasonEls = [...baseEl.querySelectorAll(selectors.isTVSeries.selector)]
-      .filter(el => el.innerText.match(selectors.isTVSeries.contains));
-      if(seasonEls.length > 0)
+      let seasonEls;
+      if(selectors.isTVSeries.numberToBaseEl) {
+        const seasonDiv = fy.getParentsFrom_(baseEl, selectors.isTVSeries.numberToBaseEl);
+        seasonEls = [...seasonDiv.querySelectorAll(selectors.isTVSeries.selector)];
+      }
+      else {
+        seasonEls = [...baseEl.querySelectorAll(selectors.isTVSeries.selector)];
+      }
+      if(seasonEls.filter(el => el.innerText.match(selectors.isTVSeries.contains)).length > 0)
         return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
       else
         return 'not TV Series';  //not tv series. should not be null

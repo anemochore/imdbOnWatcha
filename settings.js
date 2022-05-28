@@ -19,6 +19,7 @@ SETTINGS['watcha.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
+    determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
     determineSinglePageBy: 'section>div',  //if edit link is the child of this el, it is single-page
     title: 'h1',
     isTVSeries: {
@@ -88,5 +89,42 @@ SETTINGS['www.netflix.com'] = {
       contains: /시즌 \d+개/,
     },
     targetEl: 'div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
+  },
+};
+
+
+SETTINGS['www.wavve.com'] = {
+  includingPaths: ['/my', '/player'],
+  rootSelector: 'div#app',
+
+  //'the last element'(fyItem) selection.
+  selector: 'div.wrap>ul>li>div.portrait:not(['+FY_UNIQ_STRING+'])>a.con-text-wrap, ' + //my/like_movie
+  'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
+  //In above case,
+  //div.title... will be set FY_UNIQ_STRING, so it should be 'the base element' and 
+  //div.ptrack... will be 'the last element'.
+  //After updating, 'the base element' will have 'the info element'(.fy-item) child.
+  //Where to put FY_UNIQ_STRING? It depends on clickability and aesthetics.
+  numberToBaseEl: 1,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
+
+  selectorsForListItems: {
+    title: 'strong.con-tit, span.title1',  //this should be the child of 'the last element'.
+    targetEl: 'a.con-text-wrap, div.portrait',  //'the last element'
+  },
+
+  //large-div works like a single-page. don't use both.
+  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',
+
+  //more selectors are hard-coded. below are mainly for edit()
+  selectorsForSinglePage: {
+    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
+    determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
+    title: 'h1>span',
+    isTVSeries: {
+      numberToBaseEl: 1,
+      selector: 'div.player-nav>ul>li',
+      contains: '에피소드',
+    },
+    targetEl: 'section.vod-player',
   },
 };
