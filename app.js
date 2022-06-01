@@ -525,7 +525,6 @@ class FyGlobal {
       let title = trueData.title;
       if(!title && baseEl)
         title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
-      console.log('truedata', baseEl, trueData.selectors.title, baseEl.querySelector(trueData.selectors.title));
       if(!title) {
         console.warn('no title found on single page or large div!');
         return;
