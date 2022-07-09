@@ -251,3 +251,6 @@
     //    internal: added setting regarding 'isTVSeries' and refactored relevant funcs
     //    kino: fixed a bug not updating (maybe their code has changed)
     //    wavve: now supports wavve (partially)
+    // ver 0.4.60 @ 2022-7-10
+    //    watcha: changed wishlist pathname due to its change
+    //    TODO: add support for watcha main page

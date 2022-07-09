@@ -3,7 +3,7 @@ const FY_UNIQ_STRING = 'fy-item';
 const SETTINGS = {};
 
 SETTINGS['watcha.com'] = {
-  includingPaths: ['/browse', '/explore', '/watched', '/wishes', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
+  includingPaths: ['/browse', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
   rootSelector: 'main',
   selector: 'section:not([class$="BrowseSection"]) ul>li>article[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div',  //list item
   selectorOnSinglePage: 'header>div>section:not(['+FY_UNIQ_STRING+'])>div>h1',  //single-page
