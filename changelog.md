@@ -254,3 +254,6 @@
     // ver 0.4.60 @ 2022-7-10
     //    watcha: changed wishlist pathname due to its change
     //    TODO: add support for watcha main page
+    // ver 0.4.61 @ 2022-7-27
+    //    temporary disabled waave support except for single-page
+    //    TODO: add support for more waave

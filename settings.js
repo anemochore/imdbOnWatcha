@@ -94,7 +94,7 @@ SETTINGS['www.netflix.com'] = {
 
 
 SETTINGS['www.wavve.com'] = {
-  includingPaths: ['/my', '/player'],
+  includingPaths: ['/player'],  //'/my', 
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
