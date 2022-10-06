@@ -257,3 +257,7 @@
     // ver 0.4.61 @ 2022-7-27
     //    temporary disabled waave support except for single-page
     //    TODO: add support for more waave
+    // ver 0.4.64 @ 2022-10-7
+    //    kino (with setting): fix a bug not getting org-title (maybe their dom has changed)
+    //    wp: if no match, search org-title again (if available, like kino). limitation: in this case, compare the date only due to not chainging locale
+    //    wp: fix a bug not getting page url (use getAttribute("href") instead of .href) (maybe their code has changed)

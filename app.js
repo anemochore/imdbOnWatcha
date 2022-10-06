@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.61
+// @version      0.4.64
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -334,7 +334,7 @@ class FyGlobal {
       //on single content page
       const selectors = fy.selectorsForSinglePage;
 
-      const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle));
+      const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle)).replace(/ ·$/, '');
       const year = parseInt(fy.getTextFromNode_(largeDiv.querySelector(selectors.year)));
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year});
@@ -384,7 +384,7 @@ class FyGlobal {
       }
     }
 
-     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
+    //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       toast.log('large div on single-page update triggered...');
       await fy.search([largeDiv], trueData);
@@ -580,12 +580,12 @@ class FyGlobal {
     }
     else if(!trueData.id) {
       //목록 업데이트
-      let PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
+      const PREFIX = 'https://pedia.watcha.com/ko-KR/search?query=';
       //왓챠피디아는 .을 없애야 함... 왜죠? 예: 0.0MHz
       const otSearchResults = await fy.fetchAll(titles.map(title => title ? PREFIX + encodeURIComponent(title.replace(/\./g, '')) : null), {
         headers: {'Accept-Language': 'ko-KR'},
       });
-      fy.parseWpSearchResults_(otSearchResults, otData, trueData, titles);
+      await fy.parseWpSearchResults_(otSearchResults, otData, trueData, titles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
         console.log(`org. titles searching result is empty.`);
@@ -701,8 +701,8 @@ class FyGlobal {
 
 
   //parsing and scraping funcs
-  parseWpSearchResults_(results, otData, trueData, titles) {
-    results.forEach((result, i) => {
+  async parseWpSearchResults_(results, otData, trueData, titles, needsEngSearch = false) {
+    for await(const [i, result] of results.entries()) {
       const title = titles[i];
       if(!result) {
         if(title) {
@@ -726,18 +726,18 @@ class FyGlobal {
       let sDivs = [...targetDoc.querySelectorAll(selector)];
 
       //최상위 섹션, 영화, TV 프로그램만 처리
-      const sUrls = [], sTitles = [], sYears = [], sTypes = [];
+      let sUrls = [], sTitles = [], sYears = [], sTypes = [];
       sDivs.forEach((sDiv, j) => {
         const header = sDiv.querySelector('header>h2');
         //첫 번째(최상위) 섹션은 헤더가 없음
         let info;
         if(!header && j == 0) {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child')];
-          sUrls.push(...info.map(el => el.parentNode.href));
+          sUrls.push(...info.map(el => el.parentNode.getAttribute("href")));  //no .href
         }
         else if(header.innerText == '영화' || header.innerText == 'TV 프로그램') {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child>div[class]')];
-          sUrls.push(...info.map(el => el.parentNode.parentNode.href));
+          sUrls.push(...info.map(el => el.parentNode.parentNode.getAttribute("href")));  //no .href
           sTypes.push(...Array(info.length).fill(header.innerText == '영화' ? 'Movie' : 'TV Series'));
         }
 
@@ -769,8 +769,9 @@ class FyGlobal {
         otData[i].otFlag = '??';
         return;  //continue
       }
+      sUrls = sUrls.map(el => 'https://pedia.watcha.com' + el);
 
-      let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0, idxForSeason1;
+      let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0, idxForSeason1, possibleIdx;
       sTitles.forEach((sTitle, j) => {
         if(sTitle) {
           let found = false;
@@ -782,11 +783,18 @@ class FyGlobal {
               if(!idxForSeason1)
                 idxForSeason1 = j;
           }
-          else if(sTitle == title) {
-            //TV물이 아니면 제목이 일치해야 함. trueYear가 있다면 아이템의 연도와도 일치해야 함.
-            found = true;
-            if(trueData.year && trueData.year != sYears[j])
-              found = false;
+          else {
+            if(sTitle == title) {
+              //TV물이 아니면 제목이 일치해야 함. trueYear가 있다면 아이템의 연도와도 일치해야 함.
+              found = true;
+              if(trueData.year && trueData.year != sYears[j])
+                found = false;
+            }
+            else if(trueData.year == sYears[j]) {
+              //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
+              if(!possibleIdx)
+                possibleIdx = j;
+            }
           }
 
           if(found) {
@@ -800,33 +808,75 @@ class FyGlobal {
       });
       const titleForWarning = `${title} (trueYear: ${trueData.year}, trueType: "${trueData.type}")`;
       if(exactMatchCount > 1) {
+        needsEngSearch = false;
         console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on wp. so taking the first result: ${sTitles[idx]}`);
         otData[i].otFlag = '?';
       }
       else if(idx == -1) {
-        idx = 0;
-
         if(!isNaN(parseInt(idxForSeason1))) {
+          needsEngSearch = false;
           idx = idxForSeason1;
           if(!trueData.type) {
+            idx = 0;
             console.warn(`${titleForWarning} is maybe TV series. so taking the first result with 'season 1': ${sTitles[idx]}`);
             otData[i].otFlag = '?';
           }
         }
         else {
-          console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result: ${sTitles[idx]}`);
-          if(sTitles.filter(el => el).length == 1)
-            otData[i].otFlag = '?';
-          else
-            otData[i].otFlag = '??';
+          if(needsEngSearch) {
+            //영어 페이지 검색해도 결과 없음(영어 페이지에도 제목은 한국어로 나오므로 정확한 비교는 불가능)
+            needsEngSearch = false;
+
+            if(possibleIdx) {
+              idx = possibleIdx;
+              console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the same date: ${sTitles[idx]}`);
+              otData[i].otFlag = '?';
+            }
+            else {
+              idx = 0;
+              console.warn(`${titleForWarning} seems not found on wp among many (or one) and Eng-page-searching yields no match either. so just taking the first result: ${sTitles[idx]}`);
+              if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
+              else otData[i].otFlag = '??';
+            }
+          }
+          else {
+            //검색 결과 없음. 아직 영어 페이지 검색은 안 했지만...
+            if(!trueData.orgTitle) {
+              //원제가 없다면 영어 페이지 검색도 불가능
+              idx = 0;
+              console.warn(`${titleForWarning} seems not found on wp among many (or one) and Eng-page-searching is not possible (no org title). so just taking the first result: ${sTitles[idx]}`);
+              if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
+              else otData[i].otFlag = '??';
+            }
+            else {
+              //원제가 있다면(키노) 원제로 영어 페이지 재검색
+              console.warn(`${titleForWarning} seems not found on wp among many (or one). so re-searching Eng-page with org title: ${trueData.orgTitle}...`);
+
+              const titlesforEngSearch = [];
+              titlesforEngSearch[i] = trueData.orgTitle;
+
+              const ENG_SEARCH_PREFIX = 'https://pedia.watcha.com/en-KR/search?query=';
+              const engOtSearchResults = await fy.fetchAll(titlesforEngSearch.map(title => title ? ENG_SEARCH_PREFIX + encodeURIComponent(title.replace(/\./g, '')) : null), {
+                headers: {'Accept-Language': 'en-KR'},  //헤더가 안 먹히는지 한국어로 나오므로 원제 비교는 불가능...
+              });
+              needsEngSearch = true;
+              await fy.parseWpSearchResults_(engOtSearchResults, otData, trueData, titlesforEngSearch, needsEngSearch);
+            }
+          }
         }
       }
+      else {
+        //검색 결과 있음
+        needsEngSearch = false;
+      }
 
-      const id = fy.getIdFromValidUrl_(sUrls[idx]);
-      otData[i].id = id;
-      otData[i].otUrl = fy.getUrlFromId_(id);
-      otData[i].type = sTypes[idx];
-    });
+      if(!needsEngSearch) {
+        const id = fy.getIdFromValidUrl_(sUrls[idx]);
+        otData[i].id = id;
+        otData[i].otUrl = fy.getUrlFromId_(id);
+        otData[i].type = sTypes[idx];
+      }
+    }
   }
 
   async parseWpScrapeResults_(results, otData, allTitles, needToGetSeason1 = false) {
@@ -1902,7 +1952,7 @@ class FyGlobal {
         if(!url)
           resolve(null);
         else {
-          //console.log('fetching', url);  //dev+++
+          //console.debug('fetching', url);  //dev+++
           fy.XHR = GM_xmlhttpRequest({
             method: 'GET',
             headers: headers,

@@ -48,7 +48,7 @@ SETTINGS['m.kinolights.com'] = {
       selector: 'span.tv-label',
       contains: 'TV',
     },
-    orgTitle: 'h4.title-en',
+    orgTitle: 'p.metadata>span:first-child',
     year: 'p.metadata>span:last-child',
     targetEl: 'span.imdb-wrap>div.score',
   },
