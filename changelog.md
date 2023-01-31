@@ -263,3 +263,4 @@
     //    wp: fix a bug not getting page url (use getAttribute("href") instead of .href) (maybe their code has changed)
     // ver 0.4.65 @ 2023-2-1
     //    fixed wrongly setting ?? when searching/scraping (bug of v0.4.54)
+    //    settings.js: edited selectors according to watcha dom change
