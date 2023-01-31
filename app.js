@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.64
+// @version      0.4.65
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1349,8 +1349,8 @@ class FyGlobal {
                     found = true;
                   }
                 }
-                else if(possibleType && !possibleType.includes('Series') && !possibleType.includes('Episode') && !type.includes('Series') && !type.includes('Episode') && possibleYear && possibleYear == years[j]) {
-                  //type이 있으면 type과 year 일치. wp 결과가 정확하지 않으면...? 어쩔 수 없다... 넘어가자...
+                else if(possibleType == 'not TV Series' && !type.includes('Series') && !type.includes('Episode') && possibleYear && possibleYear == years[j]) {
+                  //type이 있으면 type(느슨하게)과 year 일치. wp 결과가 정확하지 않으면...? 어쩔 수 없다... 넘어가자...
                   found = true;
                 }
 
