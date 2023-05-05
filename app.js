@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.66
+// @version      0.4.67
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1697,6 +1697,7 @@ class FyGlobal {
     const trueOrgTitle = imdbData.originalTitleText.text;
     const trueYear = imdbData.releaseYear.year;
     const trueType = imdbData.titleType.text;
+    console.info('trueOrgTitle, trueYear, trueType', trueOrgTitle, trueYear, trueType);
 
     /*
     let imdbRating = document.querySelector('div[data-testid$="aggregate-rating__score"]>span[class]');
@@ -1746,18 +1747,8 @@ class FyGlobal {
     else {
       idx = orgTitles.indexOf(trueOrgTitle);
 
-      let newIdx = -1;
-      if(idx > -1) {
-        orgTitles.slice(idx).some((sTitle, i) => {
-          if(sTitle == trueOrgTitle && years[i] == trueYear) {
-            //exact match
-            newIdx = i;
-            return true;  //break (take the first match)
-          }
-        });
-      }
-
-      if(newIdx == -1)
+      console.log(orgTitles[idx], years[idx]);
+      if(!(idx > -1 && years[idx] == trueYear))  //if not exact match
         idx = -1;
     }
 

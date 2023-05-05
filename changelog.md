@@ -264,6 +264,7 @@
     // ver 0.4.65 @ 2023-2-1
     //    fixed wrongly setting ?? when searching/scraping (bug of v0.4.54)
     //    settings.js: edited selectors according to watcha dom change
-    // ver 0.4.66 @ 2023-5-6
+    // ver 0.4.67 @ 2023-5-6
     //    fixed readme
     //    settings.js: edited watcha main selectors
+    //    fixed imdb code (not recognizing matching org-title)
