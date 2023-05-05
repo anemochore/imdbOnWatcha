@@ -265,4 +265,5 @@
     //    fixed wrongly setting ?? when searching/scraping (bug of v0.4.54)
     //    settings.js: edited selectors according to watcha dom change
     // ver 0.4.66 @ 2023-5-6
+    //    fixed readme
     //    settings.js: edited watcha main selectors
