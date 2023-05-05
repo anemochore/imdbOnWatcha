@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.67
+// @version      0.4.68
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -228,14 +228,17 @@ class FyGlobal {
       let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
       if(largeDiv) {
         //if already updated, no more update when scrolling, etc
+        console.info('large-div already updated.');
         toast.log();
         fy.observer.observe(fy.root, fy.observerOption);
         return;
       }
 
       largeDiv = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
-      if(!largeDiv)
+      if(!largeDiv) {
+        console.info('waiting for large-div...');
         largeDiv = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
+      }
 
       fy.largeDivUpdate(largeDiv);
     }

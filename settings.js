@@ -26,7 +26,7 @@ SETTINGS['watcha.com'] = {
       selector: 'span',
       contains: /시즌 \d+개/,
     },
-    targetEl: 'h1[class$="large"]',
+    targetEl: 'section>div>h1',
     numberToBaseEl: 3,  //this is not used when edit
     id: 'a[href^="/watch/"]',  //this is not used when edit
   },
