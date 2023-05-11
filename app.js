@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.68
+// @version      0.4.71
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -603,7 +603,21 @@ class FyGlobal {
     //수동 업데이트 시에는 무조건 스크레이핑
     if((!trueData.id && !trueData.orgTitle) || trueData.forceUpdate) {
       toast.log('scraping org. titles...');
-      const otScrapeResults = await fy.fetchAll(titles.map((title, i) => title ? otData[i].otUrl : null), {
+      const otScrapeResults = await fy.fetchAll(titles.map((title, i) => {
+        //bug of ~v0.4.68
+        if(title) {
+          if(otData[i]?.otUrl?.endsWith('pedia.watcha.comnull')) {
+            console.debug('cleared wrong wp url. :(');
+            otData[i].otUrl = null;
+            return null;
+          }
+
+          if(otData[i].otUrl)
+            return otData[i].otUrl;
+        }
+        return null;
+      }),
+      {
         headers: {'Accept-Language': 'en-KR'},
       });
       searchLength = otScrapeResults.filter(el => el).length;
@@ -712,13 +726,19 @@ class FyGlobal {
           console.warn('search for',title,'on wp failed! no result at all!');
           otData[i].otFlag = '??';
         }
-        return;  //continue
+        continue;  //continue
+      }
+
+      let movieString = '영화', tvString = 'TV 프로그램';
+      const targetDoc = new DOMParser().parseFromString(result, 'text/html');
+      if(targetDoc.documentElement.lang != 'ko-KR') {
+        console.warn('wp loaded in not Korean (ko-KR). so exact match is not possible.');
+        otData[i].otFlag = '?';
+        movieString = 'Movies', tvString = 'TV Shows';
       }
 
       //to update cache
       otData[i].query = title;
-
-      const targetDoc = new DOMParser().parseFromString(result, 'text/html');
 
       //to make selecting easier
       [...targetDoc.querySelectorAll('style[data-emotion-css]')].forEach(el => {
@@ -737,11 +757,18 @@ class FyGlobal {
         if(!header && j == 0) {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child')];
           sUrls.push(...info.map(el => el.parentNode.getAttribute("href")));  //no .href
+          sTypes.push(...info.map(el => el.lastChild.innerText).map(el => getType_(el)));
         }
-        else if(header.innerText == '영화' || header.innerText == 'TV 프로그램') {
+        else if(header.innerText == movieString || header.innerText == tvString) {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child>div[class]')];
           sUrls.push(...info.map(el => el.parentNode.parentNode.getAttribute("href")));  //no .href
-          sTypes.push(...Array(info.length).fill(header.innerText == '영화' ? 'Movie' : 'TV Series'));
+          sTypes.push(...Array(info.length).fill(header.innerText).map(el => getType_(el)));
+        }
+
+        function getType_(el) {
+          if(el == movieString)   return 'Movie';
+          else if(el == tvString) return 'TV Series';
+          else                    return null;
         }
 
         if(info) {
@@ -770,9 +797,9 @@ class FyGlobal {
         console.warn(title, 'seems not found on wp!');
         console.debug(targetDoc.documentElement.outerHTML);
         otData[i].otFlag = '??';
-        return;  //continue
+        continue;  //continue
       }
-      sUrls = sUrls.map(el => 'https://pedia.watcha.com' + el);
+      sUrls = sUrls.map(el => el ? 'https://pedia.watcha.com' + el : null);
 
       let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0, idxForSeason1, possibleIdx;
       sTitles.forEach((sTitle, j) => {
@@ -1019,7 +1046,7 @@ class FyGlobal {
     let imdbSuffix = '?info=base_info';
 
     //물론, 원제가 있는 애들만 찾는다. 없으면 못 찾지.
-    //wp는 movie와 video를 구분하지 않으므로, tv 시리즈만 넘긴다.
+    //wp는 movie와 video를 구분하지 않고, tv 시리즈와 tv 미니 시리즈도 못 구분하니 타입은 패스...
     let filtered = orgTitles.map((orgTitle, i) => 
       orgTitle ? imdbPrefix + encodeURIComponent(orgTitles[i]) + imdbSuffix + '&year=' + years[i] + '&exact=true' + fy.getTypeString_(types[i])
       : null);
@@ -1277,7 +1304,8 @@ class FyGlobal {
             else if(imdbDatum.needsReSearch == 'try aka search') {
               //finally, aka search failed too
               imdbData[i].imdbFlag = '??';
-              imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+              if(!imdbData[i].imdbUrl)
+                imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
               imdbData[i].needsReSearch = 'failed';
             }
             //else
@@ -1307,7 +1335,8 @@ class FyGlobal {
               //결국 실패
               delete imdbData[i].searchAgain;
               imdbData[i].imdbFlag = '??';
-              imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
+              if(!imdbData[i].imdbUrl)
+                imdbData[i].imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle+' '+year);
               console.log(`alternative searching during scraping failed for: ${orgTitle}`);
             }
           }
@@ -1330,14 +1359,18 @@ class FyGlobal {
 
               const possibleType = otDatum.type || trueData.type || null;
               const possibleYear = otDatum.year || trueData.year || null;
-              //exact match(TV물이면 type까지 일치)
-              if(sTitle == orgTitle && (
-                (!possibleType || (possibleType != 'TV Series' && possibleType != 'TV Mini Series')) ||
-                (possibleType == 'TV Series' && (type == 'TV Series' || type == 'TV Mini Series')) ||
-                (possibleType == 'TV Mini Series' && type == 'TV Mini Series'))) {
+              //exact match(TV물이면 type까지 '느슨하게' 일치)
+              if(possibleType == 'not TV Series' && !type.includes('Series') && !type.includes('Episode') && possibleYear && possibleYear == years[j]) {
+                //type이 있으면 type(느슨하게)과 year 일치. wp 결과가 정확하지 않으면...? 어쩔 수 없다... 넘어가자...
+                found = true;
+              }
+              else if(sTitle == orgTitle && (
+                (!possibleType || !possibleType.includes('Series')) ||
+                (possibleType.includes('Series') && type.includes('Series')))) {
 
-                let found = false;
+                let found = true;
                 if(!possibleType) {
+                  found = false;
                   //type이 없으면 영화 우선
                   if(type == 'Movie')
                     weights[j] = 4;
@@ -1351,10 +1384,6 @@ class FyGlobal {
                   if(weights[j] > 0) {
                     found = true;
                   }
-                }
-                else if(possibleType == 'not TV Series' && !type.includes('Series') && !type.includes('Episode') && possibleYear && possibleYear == years[j]) {
-                  //type이 있으면 type(느슨하게)과 year 일치. wp 결과가 정확하지 않으면...? 어쩔 수 없다... 넘어가자...
-                  found = true;
                 }
 
                 if(found) {
@@ -1628,11 +1657,14 @@ class FyGlobal {
   }
 
   getTypeString_(typeString) {
+    //wp는 tv 시리즈와 tv 미니 시리즈도 못 구분하니 타입은 패스...
+    /*
     if(typeString == 'TV Series')
       return '&titleType=tvSeries';
     else if(typeString == 'TV Mini Series')
       return '&titleType=tvMiniSeries';
     else
+      */
       return '';
   }
 

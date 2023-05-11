@@ -269,3 +269,7 @@
     //    settings.js: edited watcha main selectors
     //    fixed imdb code (not recognizing matching org-title)
     //    settings.js: edited watcha large-div selectors
+    // ver 0.4.71 @ 2023-5-11
+    //    wp: fixed generating wrong url
+    //    wp: improved scraping logic (locale header seems not working anymore)
+    //    improved imdb searching logic (tv series vs tv mini series problem)
