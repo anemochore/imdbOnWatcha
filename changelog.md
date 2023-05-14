@@ -273,3 +273,5 @@
     //    wp: fixed generating wrong url
     //    wp: improved scraping logic (locale header seems not working anymore)
     //    improved imdb searching logic (tv series vs tv mini series problem)
+    // ver 0.4.72 @ 2023-5-15
+    //    fixed wrong db key ('orgtitles')

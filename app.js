@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.71
+// @version      0.4.72
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1037,7 +1037,7 @@ class FyGlobal {
         });
 
         if(oldTitle != orgTitles[i]) {
-          otData[i].orgTitles = orgTitles[i];
+          otData[i].orgTitle = orgTitles[i];
         }
       }
     });
