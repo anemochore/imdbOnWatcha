@@ -275,3 +275,5 @@
     //    improved imdb searching logic (tv series vs tv mini series problem)
     // ver 0.4.72 @ 2023-5-15
     //    fixed wrong db key ('orgtitles')
+    // ver 0.4.73 @ 2023-5-20
+    //    fixed a imdb parsing bug of v0.4.72

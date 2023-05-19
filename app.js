@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.72
+// @version      0.4.73
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1359,6 +1359,8 @@ class FyGlobal {
 
               const possibleType = otDatum.type || trueData.type || null;
               const possibleYear = otDatum.year || trueData.year || null;
+
+              let found = false;
               //exact match(TV물이면 type까지 '느슨하게' 일치)
               if(possibleType == 'not TV Series' && !type.includes('Series') && !type.includes('Episode') && possibleYear && possibleYear == years[j]) {
                 //type이 있으면 type(느슨하게)과 year 일치. wp 결과가 정확하지 않으면...? 어쩔 수 없다... 넘어가자...
@@ -1368,7 +1370,7 @@ class FyGlobal {
                 (!possibleType || !possibleType.includes('Series')) ||
                 (possibleType.includes('Series') && type.includes('Series')))) {
 
-                let found = true;
+                found = true;
                 if(!possibleType) {
                   found = false;
                   //type이 없으면 영화 우선
@@ -1381,18 +1383,18 @@ class FyGlobal {
                   else if(type == 'TV Mini Series')
                     weights[j] = 1;
 
-                  if(weights[j] > 0) {
+                  if(weights[j] > 0) 
                     found = true;
-                  }
                 }
+              }
+                
 
-                if(found) {
-                  if(idx == -1) {
-                    idx = j;
-                    imdbDatum.imdbFlag = '';
-                  }
-                  exactMatchCount++;
+              if(found) {
+                if(idx == -1) {
+                  idx = j;
+                  imdbDatum.imdbFlag = '';
                 }
+                exactMatchCount++;
               }
             });
 
