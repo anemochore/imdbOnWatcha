@@ -50,7 +50,7 @@ SETTINGS['m.kinolights.com'] = {
     },
     orgTitle: 'p.metadata>span:first-child',
     year: 'p.metadata>span:last-child',
-    targetEl: 'span.imdb-wrap>div.score',
+    targetEl: '.imdb-wrap>.score',
   },
 };
 
