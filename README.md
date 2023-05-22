@@ -17,7 +17,7 @@
 3. 탬퍼멍키 설정 화면에서 '설정 모드'를 '상급자'로 고르고 탬퍼멍키 화면을 새로고침하면, 스크립트에 'Storage' 탭이 생긴다. 앞으로 여기에 캐시가 저장된다.
 4. 이후 왓챠 등에 접속하면 API 키를 넣으라고 alert가 뜰 거다. [무료 API](https://rapidapi.com/SAdrian/api/data-imdb1/)를 구독하고 API 키를 받는다.
 5. 스크립트의 'Storage' 탭에 가서 `"RAPID_API_KEY"` 키에 자신의 API 키 값을 넣는다(JSON 형식이다).
-6. 왓챠 등에 다시 접속하기 전에 왓챠피디아에 가서 언어를 영어로 바꾼다(영문 제목으로 imdb를 검색해야 하므로 어쩔 수 없다!).
+6. 왓챠 등에 다시 접속하기 전에 왓챠피디아에 가서 언어가 한국어가 아니면 한국어로 바꾼다!
 7. 이후 왓챠 등에 다시 접속하면 스크립트가 실행될 거다.
 8. 스크립트 로그는 콘솔을 참고. DEBUG 레벨에서는 더 많은 정보를 볼 수 있다.
 9. 무료 API이므로 요청을 너무 많이 보내면 차단당한다. 개발자에게 사정하면 풀어준다...
@@ -28,16 +28,17 @@
 ## 지원 사이트
 1. watcha.com
 2. www.netflix.com
-3. www.waave.com (현재 미이용 중이라 업데이트 중지)
-4. m.kinolights.com/title pages
-5. www.imdb.com/title/ pages
+3. www.disneyplus.com/ko-kr/ list pages
+4. www.waave.com (현재 미이용 중이라 업데이트 중지)
+5. m.kinolights.com/title pages
+6. www.imdb.com/title/ pages
 
 ## todo
-~~1. support for waave~~
-2. support for disney+
-3. support for seezn
+1. support for waave (maybe done)
+2. support for disney+ (partially done)
+3. support for seezn (no account now)
 4. support for imdb my rating (when accessing www.imdb.com)
-5. support for uflix (but... now i don't have an account there)
+5. support for uflix (no account now)
 6. setting.js 문서화
 
 ## 버전 히스토리

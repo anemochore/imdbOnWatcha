@@ -1,16 +1,17 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.74
+// @version      0.4.77
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
-// @include      https://watcha.com/*
-// @include      https://www.netflix.com/*
-// @include      https://m.kinolights.com/*
-// @include      https://www.wavve.com/*
-// @include      https://www.imdb.com/title/*
+// @match        https://watcha.com/*
+// @match        https://www.netflix.com/*
+// @match        https://m.kinolights.com/*
+// @match        https://www.wavve.com/*
+// @match        https://www.disneyplus.com/ko-kr/*
+// @match        https://www.imdb.com/title/*
 // @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
 // @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/settings.js
 // @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fixes.js
@@ -63,9 +64,9 @@ class FyGlobal {
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
-    this.handler = this.handlers[fy.site];
+    this.handler = this.handlers[fy.site] || this.defaultHandler;
+    this.preUpdateDivs = this.preUpdateDivses[fy.site] || this.defaultBaseElementProc;
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
-    this.preUpdateDivs = this.preUpdateDivses[fy.site];
     this.search = this.searches[fy.site];
 
     //global vars & flags
@@ -304,9 +305,6 @@ class FyGlobal {
       else
         fy.handlerWrapUp(fy.selectorsForListItems);
     },
-
-    'watcha.com': this.defaultHandler,
-    'www.wavve.com': this.defaultHandler,
   };
 
   handlerWrapUp = (selectors) => {
@@ -364,6 +362,10 @@ class FyGlobal {
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, title});
     },
+
+    'www.disneyplus.com': (largeDiv) => {
+      //todo+++
+    }
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
@@ -419,10 +421,6 @@ class FyGlobal {
       el.setAttribute(FY_UNIQ_STRING, '');
       el.classList.add(FY_UNIQ_STRING);  //this is not wokring!
     },
-
-    'watcha.com': this.defaultBaseElementProc,
-    'www.netflix.com': this.defaultBaseElementProc,
-    'www.wavve.com': this.defaultBaseElementProc,
   };
 
   async searchById(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, type: null, forceUpdate: false, selectors: {}}) {
@@ -529,7 +527,7 @@ class FyGlobal {
       if(!title && baseEl)
         title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
       if(!title) {
-        console.warn('no title found on single page or large div!');
+        console.warn('no title found on', item);
         return;
       }
 
@@ -639,6 +637,7 @@ class FyGlobal {
     'm.kinolights.com': this.searchByTitle,
     'www.netflix.com': this.searchByTitle,
     'www.wavve.com': this.searchByTitle,
+    'www.disneyplus.com': this.searchByTitle,
 
     'watcha.com': this.searchById,
   };
@@ -732,7 +731,7 @@ class FyGlobal {
       let movieString = '영화', tvString = 'TV 프로그램';
       const targetDoc = new DOMParser().parseFromString(result, 'text/html');
       if(targetDoc.documentElement.lang != 'ko-KR') {
-        console.warn('wp loaded in not Korean (ko-KR). so exact match is not possible.');
+        console.debug('wp loaded in not Korean (ko-KR). so exact match is not possible for',title);
         otData[i].otFlag = '?';
         movieString = 'Movies', tvString = 'TV Shows';
       }
@@ -765,9 +764,9 @@ class FyGlobal {
           sTypes.push(...Array(info.length).fill(header.innerText).map(el => getType_(el)));
         }
 
-        function getType_(el) {
-          if(el == movieString)   return 'Movie';
-          else if(el == tvString) return 'TV Series';
+        function getType_(str) {
+          if(str == movieString)   return 'Movie';
+          else if(str == tvString) return 'TV Series';
           else                    return null;
         }
 
@@ -779,10 +778,7 @@ class FyGlobal {
             sTypes.push(...info.map(el => {
               const typeText = el[2]?.innerText;
               if(typeText)
-                if(typeText == '영화')
-                  return 'Movie';
-                else if(typeText == 'TV 프로그램')
-                  return 'TV Series';
+                return getType_(typeText);
             }));
           }
         }
@@ -807,9 +803,10 @@ class FyGlobal {
           let found = false;
           if((!trueData.type || (trueData.type == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
             //TV물이면(혹은 type을 아예 모르면) 제목이 일치하거나 '시즌 1' 등 붙인 거랑 일치해야 함(연도 무관!).
-            if(sTitle == title || sTitle == title + ' 시즌 1' || sTitle == title + ' 1기' || (trueData.type == 'TV Series' && sTitle == title + ' 1'))
+            if(sTitle == title || sTitle == title + ' 시즌 1' || sTitle == title + ' Season 1' || sTitle == title + ' 1기' || (trueData.type == 'TV Series' && sTitle == title + ' 1')) {
               found = true;
-            else if(sTitle.endsWith(' 시즌 1') || sTitle.endsWith(' 1기'))
+            }
+            else if(sTitle.endsWith(' 시즌 1') || sTitle.endsWith('Season 1') || sTitle.endsWith(' 1기'))
               if(!idxForSeason1)
                 idxForSeason1 = j;
           }
@@ -924,7 +921,7 @@ class FyGlobal {
         let targetDoc = new DOMParser().parseFromString(result, 'text/html');
 
         let [orgTitle, tempYear] = targetDoc.title
-        .replace(/ - Watcha Pedia$/, '').replace(/\)$/, '').split(' (');
+        .replace(/ - Watcha Pedia$/, '').replace(/ - 왓챠피디아$/, '').replace(/\)$/, '').split(' (');
         const oldTitle = orgTitle;
 
         //wp는 원제를 따로 표시한다. 근데 imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
@@ -1071,9 +1068,9 @@ class FyGlobal {
     else if(searchLength > 0) {
       if(!trueData.imdbId) {
         console.log(`imdb searching possibly done: ${searchLength}`);
-        imdbData = await parseImdbResults_('search', imdbResults);  //imdbData, etc are passed. imdbData and imdbResults are mutated.
+        imdbData = await parseImdbResults_('search', imdbResults, imdbData);
 
-        filtered = await searchAgainIfNeeded_(imdbResults, filtered);  //imdbData, etc are passed too.
+        filtered = await searchAgainIfNeeded_(imdbResults, imdbData, filtered);
       }
       else {
         imdbPrefix = 'https://' + RAPID_API_HOST + '/titles/';  //왓챠 large-div라면 바로 ratings 엔드포인트 사용
@@ -1100,7 +1097,7 @@ class FyGlobal {
         }
         else {
           console.log(`getting imdb ratings done: ${filtered.filter(el => el).length}`);
-          newImdbData = await parseImdbResults_('rating', imdbResults);  //imdbData, etc are passed. imdbData and imdbResults are mutated.
+          newImdbData = await parseImdbResults_('rating', imdbResults, imdbData);
         }
       }
 
@@ -1140,7 +1137,7 @@ class FyGlobal {
     fy.updateDivs(itemDivs, otData, trueData.selectors);
 
 
-    async function searchAgainIfNeeded_(imdbResults, filtered) {
+    async function searchAgainIfNeeded_(imdbResults, imdbData, filtered) {
       let reSearchLength, toReSearch;
       let sImdbData = [], localResults;
 
@@ -1171,8 +1168,7 @@ class FyGlobal {
         toast.log(`now re-searching infos and ratings on imdb for ${reSearchLength} items...`);
         localResults = await fy.fetchAll(toReSearch, HEADERS, FETCH_INTERVAL);
 
-        sImdbData = await parseImdbResults_('search', localResults);  //imdbData, etc are passed. imdbData and imdbResults are mutated.
-
+        sImdbData = await parseImdbResults_('search', localResults, imdbData);
         sImdbData = sImdbData.map((el, i) => localResults[i] && el.imdbId ? el : null);
         reSearchLength = sImdbData.filter(el => el).length;
         if(reSearchLength > 0) {
@@ -1217,6 +1213,7 @@ class FyGlobal {
           newImdbData[i] = imdbData[i];
 
           filtered[i] = null;
+          //console.debug('scraping passed:', targetDatum.orgTitle);
           searchAndScraped++;
         }
       });
@@ -1226,7 +1223,7 @@ class FyGlobal {
       return filtered;
     }
 
-    async function parseImdbResults_(parseType, imdbResults) {
+    async function parseImdbResults_(parseType, imdbResults, imdbData) {
       let res, imdbDatum;
       let resTitle, resYear, resType;
       for(const [i, r] of imdbResults.entries()) {  //to use async in for loop
@@ -1318,11 +1315,10 @@ class FyGlobal {
 
             const againImdbRes = Array(imdbResults.length).fill(null);
             againImdbRes.results = [{searchAgain: true}];
-            const againImdbData = await parseImdbResults_('search', againImdbRes);  //imdbData, etc are passed.
+            const againImdbData = await parseImdbResults_('search', againImdbRes, imdbData);
 
-            const againFiltered = await searchAgainIfNeeded_(againImdbRes, filtered);  //imdbData, etc are passed too.
+            const againFiltered = await searchAgainIfNeeded_(againImdbRes, imdbData, filtered);
             if(againImdbData[i].imdbFlag && againImdbData[i].imdbFlag != '??') {
-              console.log('otDaum',otData[i])
               filtered = againFiltered;  //referenced-cloning is ok
               res.results = [againImdbRes.results[0]];  //referenced-cloning is ok
               delete res.results[0].searchAgain;
@@ -1421,7 +1417,7 @@ class FyGlobal {
               idx = 0;
               if(imdbDatum.needsReSearch == 'try aka search') {
                 console.warn(`taking just the first aka search result: ${titles[idx]} for ${orgTitle}`);
-                imdbDatum = imdbData[idx];
+                imdbDatum = res.results[idx];
                 imdbDatum.imdbFlag = '?';
               }
               else {
@@ -1899,7 +1895,7 @@ class FyGlobal {
       otDatum = otCache[title] || {};
 
     //search target el (fyItem. the last element)
-    const targetEl = baseEl.querySelector(selectors.targetEl);
+    const targetEl = baseEl.querySelector(selectors.targetEl) || baseEl;
 
     //get input
     let imdbId, imdbUrl;

@@ -1,3 +1,7 @@
+div.fy-item>a {
+  text-decoration: none;
+}
+
 div.watcha_com {
   position: absolute;
   z-index: 999;
@@ -15,6 +19,11 @@ div.www_wavve_com {
 
 div.www_wavve_com>a {
   display: inline !important;
+}
+
+div.www_disneyplus_com {
+  position: absolute;
+  z-index: 999;
 }
 
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {

@@ -14,7 +14,7 @@ SETTINGS['watcha.com'] = {
   selectorsForListItems: {
     id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
     title: 'div[aria-hidden]>p',
-    targetEl: 'a[class]>div',
+    targetEl: 'a[class]>div',  //targetEl is for edit()
   },
 
   //more selectors are hard-coded. below are mainly for edit()
@@ -50,7 +50,7 @@ SETTINGS['m.kinolights.com'] = {
     },
     orgTitle: 'p.metadata>span:first-child',
     year: 'p.metadata>span:last-child',
-    targetEl: '.imdb-wrap>.score',
+    targetEl: '.imdb-wrap>div.score',
   },
 };
 
@@ -72,7 +72,7 @@ SETTINGS['www.netflix.com'] = {
   numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
-    title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the direct child of 'the last element'.
+    title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
     targetEl: 'div[id]>div.ptrack-content',
   },
 
@@ -100,12 +100,7 @@ SETTINGS['www.wavve.com'] = {
   //'the last element'(fyItem) selection.
   selector: 'div.wrap>ul>li>div.portrait:not(['+FY_UNIQ_STRING+'])>a.con-text-wrap, ' + //my/like_movie
   'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
-  //In above case,
-  //div.title... will be set FY_UNIQ_STRING, so it should be 'the base element' and 
-  //div.ptrack... will be 'the last element'.
-  //After updating, 'the base element' will have 'the info element'(.fy-item) child.
-  //Where to put FY_UNIQ_STRING? It depends on clickability and aesthetics.
-  numberToBaseEl: 1,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
+  numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
 
   selectorsForListItems: {
     title: 'strong.con-tit, span.title1',  //this should be the child of 'the last element'.
@@ -127,4 +122,40 @@ SETTINGS['www.wavve.com'] = {
     },
     targetEl: 'section.vod-player',
   },
+};
+
+
+SETTINGS['www.disneyplus.com'] = {
+  preventMultipleUrlChanges: true,  //hack 
+
+  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/search', '/ko-kr/home'],  //todo: '/ko-kr/series',
+  rootSelector: 'div#webAppRoot',
+
+  //'the last element'(fyItem) selection.
+  selector: 'div.gv2-asset:not(['+FY_UNIQ_STRING+'])>a',
+  numberToBaseEl: 1,
+
+  selectorsForListItems: {
+    title: 'div[aria-label]',  //this should be the child of 'the last element'.
+    //when targetEl is omitted, baseEl will be used.
+  },
+
+  /* WIP below (just placeholders) */
+
+  //large-div works like a single-page. don't use both.
+  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',
+
+  //more selectors are hard-coded. below are mainly for edit()
+  selectorsForSinglePage: {
+    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
+    determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
+    title: 'h1>span',
+    isTVSeries: {
+      numberToBaseEl: 1,
+      selector: 'div.player-nav>ul>li',
+      contains: '에피소드',
+    },
+    targetEl: 'section.vod-player',
+  },
+  
 };
