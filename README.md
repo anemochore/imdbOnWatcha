@@ -28,7 +28,7 @@
 ## 지원 사이트
 1. watcha.com
 2. www.netflix.com
-3. www.waave.com
+3. www.waave.com (현재 미이용 중이라 업데이트 중지)
 4. m.kinolights.com/title pages
 5. www.imdb.com/title/ pages
 

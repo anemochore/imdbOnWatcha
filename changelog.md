@@ -277,5 +277,6 @@
     //    fixed wrong db key ('orgtitles')
     // ver 0.4.73 @ 2023-5-20
     //    fixed a imdb parsing bug of v0.4.72
-    // ver 0.4.74 @ 2023-5-23
+    // ver 0.4.75 @ 2023-5-23
     //    settings.js: edited selectors according to kinolights dom change
+    //    updated readme
