@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.82
-// @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
-// @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
+// @version      0.4.83
+// @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
+// @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
 // @match        https://watcha.com/*
@@ -12,9 +12,9 @@
 // @match        https://www.wavve.com/*
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.imdb.com/title/*
-// @resource     CSS https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fy_css.css
-// @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/settings.js
-// @require      https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/fixes.js
+// @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
+// @require      https://anemochore.github.io/imdbOnWatcha/settings.js
+// @require      https://anemochore.github.io/imdbOnWatcha/fixes.js
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
 // @grant        GM_setValue

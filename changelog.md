@@ -282,9 +282,10 @@
     //    updated readme
     //    disney+ support (only list items for now)
     //    fixed aka search logic
-    // ver 0.4.82 @ 2023-5-31
+    // ver 0.4.83 @ 2023-5-31
     //    netflix: fixed a small event-related syntax error
     //    wp: improved debug message when no result found (mainly for netflix)
     //    settings.js: changed variable name (determinePathnameByWhenUpdating)
     //    wavve: fixed settings etc (maybe DOM change)
     //    wavve: supports /my page again
+    //    now use github pages in tm settings
