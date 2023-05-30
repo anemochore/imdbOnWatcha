@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.83
+// @version      0.4.85
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -225,7 +225,7 @@ class FyGlobal {
   defaultHandler = async (m, o) => {
     fy.observer.disconnect();
 
-    if(fy.selectorsForSinglePage.determinePathnameByWhenUpdating && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameByWhenUpdating)) {
+    if(fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
       let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
       if(largeDiv) {
         //if already updated, no more update when scrolling, etc
@@ -325,7 +325,8 @@ class FyGlobal {
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
-      const id = fy.getIdFromValidUrl_(fy.getParentsFrom_(largeDiv, fy.selectorsForSinglePage.numberToBaseEl).querySelector(fy.selectorsForSinglePage.id)?.href);
+      const id = fy.getIdFromValidUrl_((fy.getParentsFrom_(largeDiv, fy.selectorsForSinglePage.numberToBaseEl).querySelector(fy.selectorsForSinglePage.id) || document.location).href);
+      console.debug('id on largeDivUpdates', id);
       const url = fy.getUrlFromId_(id);
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, id, url});
@@ -370,7 +371,7 @@ class FyGlobal {
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = fy.getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
-    const type = fy.getTypeFromLargeDiv_(trueData.selectors, baseEl);
+    const type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
     trueData.type = type;
 
     let sEl = baseEl.querySelector('div.'+FY_UNIQ_STRING);
@@ -446,18 +447,17 @@ class FyGlobal {
       //일단 캐시에 제목이 있다면 그게 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};
 
+      console.log('trueData.id:', trueData.id);
       let id;
-      if(trueData.forceUpdate) {
-        //수동 업데이트 또는 large-div
+      if(trueData.forceUpdate || trueData.id) {
+        //수동 업데이트 또는 large-div 등 true type을 알 때
         id = trueData.id;
+        console.debug('got id (1):', id, baseEl, selectors.id);
       }
       else if(otData[i].id) {
         //그 밖의 경우는 캐시를 우선시. 시즌 1로 id가 변경되었을 수 있으니까.
         //또 tv 물의 경우 2화 링크(이어보기)가 떠 있을 수도 있으니까.
         id = fy.useCacheIfAvailable_(otData[i].id, otData[i]);  //캐시에 있으면 null이고 페칭하지 않음.
-      }
-      else {
-        id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
       }
 
       if(id) {
@@ -466,10 +466,18 @@ class FyGlobal {
         otData[i].otUrl = fy.getUrlFromId_(id);
       }
 
-
-      //true type이 있는데 캐시에 type 정보가 없다면 저장한다. large-div 업데이트 시에.
-      if(trueData.type && !otData[i].type)
+      if(trueData.type && !otData[i].type) {
+        //true type이 있는데 캐시에 type 정보가 없다면 저장한다. large-div 업데이트 시에.
         otData[i].type = trueData.type;
+        console.debug('type (large):', trueData.type);
+      }
+      else {
+        //리스트에도 type이 있으면 이용한다.
+        let type = fy.getTypeFromDiv_(trueData.selectors, item);
+        console.debug('type (list):', type);
+        if(type)
+          otData[i].type = type;
+      }
 
       otData[i].query = title;
 
@@ -483,6 +491,7 @@ class FyGlobal {
 
     //start searching
     //찾을 제목에 대해 내부 캐시 적용.
+    console.log(ids);
     let searchLength = fy.setInternalCache_(ids, otData);
 
     if(searchLength == 0) {
@@ -531,6 +540,14 @@ class FyGlobal {
         console.debug('title selector:', trueData.selectors.title);
         return;
       }
+
+      /*
+      //아직 지원하는 사이트 없음. 웨이브 /my 루트에 표시되긴 하는데 귀찮다.
+      let type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
+      console.debug('type (by title)', type);
+      if(type)
+        otData[i].type = type;
+      */
 
       allTitles[i] = title;
 
@@ -926,11 +943,17 @@ class FyGlobal {
         .replace(/ - Watcha Pedia$/, '').replace(/ - 왓챠피디아$/, '').replace(/\)$/, '').split(' (');
         const oldTitle = orgTitle;
 
+        let loadedInEnglish = true;
+        if(targetDoc.documentElement.lang != 'en-KR') {
+          console.debug('wp loaded in not English (en-KR). exact match may not possible if the org. title is non-English:', orgTitle);
+          loadedInEnglish = false;
+        }
+
         //wp는 원제를 따로 표시한다. 근데 imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
         //출처: https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
         const possibleRealOrgTitle = targetDoc.querySelector('div[class*="-Summary"]')?.firstChild.textContent;  //innerText 아님
-        if(orgTitle != possibleRealOrgTitle) {
-          if(possibleRealOrgTitle && isAllLatinChars(possibleRealOrgTitle))
+        if(possibleRealOrgTitle && orgTitle != possibleRealOrgTitle) {
+          if(isAllLatinChars(possibleRealOrgTitle) || !loadedInEnglish)
             orgTitle = possibleRealOrgTitle;
 
           function isAllLatinChars(str) {
@@ -1385,7 +1408,6 @@ class FyGlobal {
                     found = true;
                 }
               }
-                
 
               if(found) {
                 if(idx == -1) {
@@ -1640,22 +1662,31 @@ class FyGlobal {
 
 
   //small utils
-  getTypeFromLargeDiv_(selectors, baseEl) {
-    if(selectors.isTVSeries) {
-      let seasonEls;
-      if(selectors.isTVSeries.numberToBaseEl) {
-        const seasonDiv = fy.getParentsFrom_(baseEl, selectors.isTVSeries.numberToBaseEl);
-        seasonEls = [...seasonDiv.querySelectorAll(selectors.isTVSeries.selector)];
+  getTypeFromDiv_(selectors, baseEl) {
+    let nestedSelector = selectors.isTVSeries || selectors.types;  //either not and/or
+    if(nestedSelector) {
+      let els;
+      if(nestedSelector.numberToBaseEl) {
+        const div = fy.getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
+        els = [...div.querySelectorAll(nestedSelector.selector)];
       }
       else {
-        seasonEls = [...baseEl.querySelectorAll(selectors.isTVSeries.selector)];
+        els = [...baseEl.querySelectorAll(nestedSelector.selector)];
       }
+      console.debug('els', els, baseEl);  //dev+++
 
-      if(seasonEls.filter(el => el.innerText.match(selectors.isTVSeries.contains)).length > 0)
-        return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
-      else
-        return 'not TV Series';  //not tv series. should not be null
+      if(selectors.isTVSeries) {
+        if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
+          return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
+        else
+          return 'not TV Series';  //not tv series. should not be null
+      }
+      else if(selectors.types) {
+        const key = els[0]?.innerText;
+        return nestedSelector?.mapping[key];
+      }
     }
+    return null;
   }
 
   getTypeString_(typeString) {
@@ -1686,6 +1717,7 @@ class FyGlobal {
     if(el)
       result = el.innerText || el.alt || el.getAttribute('aria-label') || el.querySelector('img').alt;
 
+    console.debug('text (title):', result);
     return result;
   }
 
@@ -1877,14 +1909,18 @@ class FyGlobal {
 
     //determine single-page
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
-    const isSinglePage = rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode;
+
+    let isSinglePage = false;
+    if((fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) ||
+      (rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
+      isSinglePage = true;
     console.debug('isSinglePage:', isSinglePage);
 
     let selectors = rule;
     if(!isSinglePage)
       selectors = fy.selectorsForListItems;
 
-    const type = fy.getTypeFromLargeDiv_(selectors, baseEl);
+    const type = fy.getTypeFromDiv_(selectors, baseEl);
     console.debug('type:', type);
 
     //search id and title

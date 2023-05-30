@@ -15,20 +15,26 @@ SETTINGS['watcha.com'] = {
     id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
     title: 'div[aria-hidden]>p',
     targetEl: 'a[class]>div',  //targetEl is for edit()
+    types: {  //either use types or isTVSeries
+      selector: 'div+p+p',
+      mapping: {'영화': 'Movie', 'TV 프로그램': 'Tv Series'},  //미니 시리즈는 어쩔...
+    },
   },
 
-  //more selectors are hard-coded. below are mainly for edit()
+  //more selectors are hard-coded. below are mainly for edit() on single-page
   selectorsForSinglePage: {
-    determinePathnameByWhenUpdating: '/contents/',  //exceptionally, this is for updating large_div
+    determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
     determineSinglePageBy: 'section>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h1',
     isTVSeries: {
-      selector: 'span',
+      numberToBaseEl: 1,
+      selector: 'h1+p>span',
       contains: /시즌 \d+개/,
     },
     targetEl: 'section>div>h1',  //this should not be omitted.
     numberToBaseEl: 3,  //this is not used when edit
-    id: 'a[href^="/watch/"]',  //this is not used when edit
+    //if id is not provided, use document url instead
+    //id: 'a[href^="/watch/"]',  //this is not used when edit
   },
 };
 
@@ -112,7 +118,7 @@ SETTINGS['www.wavve.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameByWhenUpdating: '/player/',  //exceptionally, this is for updating large_div
+    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
     determineSinglePageBy: 'div',
     title: 'h1>em',
     isTVSeries: {
@@ -147,7 +153,7 @@ SETTINGS['www.disneyplus.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameByWhenUpdating: '/player/',  //exceptionally, this is for updating large_div
+    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
     determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
     title: 'h1>span',
     isTVSeries: {
