@@ -29,7 +29,7 @@
 1. watcha.com
 2. www.netflix.com
 3. www.disneyplus.com/ko-kr/ list pages
-4. www.waave.com/player pages (still updating)
+4. www.waave.com: /player & /my pages (still updating)
 5. m.kinolights.com/title pages
 6. www.imdb.com/title/ pages
 
