@@ -282,5 +282,6 @@
     //    updated readme
     //    disney+ support (only list items for now)
     //    fixed aka search logic
-    // ver 0.4.78 @ 2023-5-31
+    // ver 0.4.79 @ 2023-5-31
     //    netflix: fixed a small event-related syntax error
+    //    wp: improved debug message when no result found (mainly for netflix)

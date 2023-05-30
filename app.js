@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.78
+// @version      0.4.79
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -791,7 +791,8 @@ class FyGlobal {
 
       if(sUrls.length == 0) {
         console.warn(title, 'seems not found on wp!');
-        console.debug(targetDoc.documentElement.outerHTML);
+        //console.debug(targetDoc.documentElement.outerHTML);
+        console.debug('check this url: https://pedia.watcha.com' + ;targetDoc.head.querySelector('link[href^="/ko-KR/search?query="]').getAttribute('href'));  //no .href
         otData[i].otFlag = '??';
         continue;  //continue
       }
@@ -1781,7 +1782,7 @@ class FyGlobal {
     else {
       idx = orgTitles.indexOf(trueOrgTitle);
 
-      console.log(orgTitles[idx], years[idx]);
+      //console.log(orgTitles[idx], years[idx]);
       if(!(idx > -1 && years[idx] == trueYear))  //if not exact match
         idx = -1;
     }
