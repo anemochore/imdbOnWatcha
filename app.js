@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.79
+// @version      0.4.82
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -528,6 +528,7 @@ class FyGlobal {
         title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
       if(!title) {
         console.warn('no title found on', item);
+        console.debug('title selector:', trueData.selectors.title);
         return;
       }
 
@@ -1649,6 +1650,7 @@ class FyGlobal {
       else {
         seasonEls = [...baseEl.querySelectorAll(selectors.isTVSeries.selector)];
       }
+
       if(seasonEls.filter(el => el.innerText.match(selectors.isTVSeries.contains)).length > 0)
         return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
       else
@@ -1682,7 +1684,7 @@ class FyGlobal {
     let result = null;
 
     if(el)
-      result = el.innerText || el.alt || el.getAttribute('aria-label');
+      result = el.innerText || el.alt || el.getAttribute('aria-label') || el.querySelector('img').alt;
 
     return result;
   }
@@ -1874,14 +1876,16 @@ class FyGlobal {
     const baseEl = fy.getParentsFrom_(el, fy.numberToBaseEl+1);
 
     //determine single-page
-    const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;
+    const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
     const isSinglePage = rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode;
+    console.debug('isSinglePage:', isSinglePage);
 
     let selectors = rule;
     if(!isSinglePage)
       selectors = fy.selectorsForListItems;
 
     const type = fy.getTypeFromLargeDiv_(selectors, baseEl);
+    console.debug('type:', type);
 
     //search id and title
     let id, url, title, otDatum;
@@ -1893,6 +1897,7 @@ class FyGlobal {
 
     const titleEl = baseEl.querySelector(selectors.title);
     title = fy.getTextFromNode_(titleEl);
+    console.debug('title:', title);
     if(!otDatum)
       otDatum = otCache[title] || {};
 

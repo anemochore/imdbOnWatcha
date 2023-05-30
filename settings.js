@@ -19,14 +19,14 @@ SETTINGS['watcha.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
-    determineSinglePageBy: 'section>div',  //if edit link is the child of this el, it is single-page
+    determinePathnameByWhenUpdating: '/contents/',  //exceptionally, this is for updating large_div
+    determineSinglePageBy: 'section>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h1',
     isTVSeries: {
       selector: 'span',
       contains: /시즌 \d+개/,
     },
-    targetEl: 'section>div>h1',
+    targetEl: 'section>div>h1',  //this should not be omitted.
     numberToBaseEl: 3,  //this is not used when edit
     id: 'a[href^="/watch/"]',  //this is not used when edit
   },
@@ -81,7 +81,7 @@ SETTINGS['www.netflix.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForLargeDiv: {
-    determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el, it is single-page
+    determineSinglePageBy: 'div.previewModal--container>div',
     title: 'h3>strong',
     year: 'div.videoMetadata--second-line>div.year',
     isTVSeries: {
@@ -94,7 +94,7 @@ SETTINGS['www.netflix.com'] = {
 
 
 SETTINGS['www.wavve.com'] = {
-  includingPaths: ['/player'],  //'/my', 
+  includingPaths: ['/player', '/my'], 
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
@@ -108,19 +108,19 @@ SETTINGS['www.wavve.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',
+  selectorOnSinglePage: 'section.player-contents>div.video-wrap:not(['+FY_UNIQ_STRING+'])',
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
-    determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
-    title: 'h1>span',
+    determinePathnameByWhenUpdating: '/player/',  //exceptionally, this is for updating large_div
+    determineSinglePageBy: 'div',
+    title: 'h1>em',
     isTVSeries: {
-      numberToBaseEl: 1,
+      numberToBaseEl: 2,
       selector: 'div.player-nav>ul>li',
       contains: '에피소드',
     },
-    targetEl: 'section.vod-player',
+    targetEl: 'section.player-contents>div.video-wrap>div',  //class of last div varies.
   },
 };
 
@@ -147,7 +147,7 @@ SETTINGS['www.disneyplus.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
+    determinePathnameByWhenUpdating: '/player/',  //exceptionally, this is for updating large_div
     determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
     title: 'h1>span',
     isTVSeries: {
