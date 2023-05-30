@@ -225,7 +225,7 @@ class FyGlobal {
   defaultHandler = async (m, o) => {
     fy.observer.disconnect();
 
-    if(fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+    if(fy.selectorsForSinglePage.determinePathnameByWhenUpdating && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameByWhenUpdating)) {
       let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
       if(largeDiv) {
         //if already updated, no more update when scrolling, etc
@@ -792,7 +792,7 @@ class FyGlobal {
       if(sUrls.length == 0) {
         console.warn(title, 'seems not found on wp!');
         //console.debug(targetDoc.documentElement.outerHTML);
-        console.debug('check this url: https://pedia.watcha.com' + ;targetDoc.head.querySelector('link[href^="/ko-KR/search?query="]').getAttribute('href'));  //no .href
+        console.debug('check this url: https://pedia.watcha.com' + targetDoc.head.querySelector('link[href^="/ko-KR/search?query="]').getAttribute('href'));  //no .href
         otData[i].otFlag = '??';
         continue;  //continue
       }
