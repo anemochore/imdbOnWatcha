@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.77
+// @version      0.4.78
 // @updateURL    https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @downloadURL  https://raw.githubusercontent.com/anemochore/imdbOnWatcha/master/app.js
 // @description  try to take over the world!
@@ -1616,17 +1616,18 @@ class FyGlobal {
           styleEl.style.transitionDuration = '2s';
           styleEl.addEventListener('transitioncancel', onFinished);
           styleEl.addEventListener('transitionend', onFinished);
+        }
 
-          function onFinished(e) {
-            e.target.style.transitionDuration = '0s';
-            e.target.style.background = '';
-            try {
-              e.target.removeEventListener('transitioncancel');
-              e.target.removeEventListener('transitionend');
-            }
-            catch(e) {
-              console.debug('removing listeners failed on', e);
-            }
+        function onFinished(e) {
+          e.target.style.transitionDuration = '0s';
+          e.target.style.background = '';
+          try {
+            e.target.removeEventListener('transitioncancel', onFinished);
+            e.target.removeEventListener('transitionend', onFinished);
+            console.debug('removing listeners succeeded.');
+          }
+          catch(e) {
+            console.debug('removing listeners failed:', e);
           }
         }
       }
