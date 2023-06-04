@@ -414,7 +414,7 @@ class FyGlobal {
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
 
-      console.debug('item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl);
+      //console.debug('item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl);
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
         baseEl.setAttribute(FY_UNIQ_STRING, '');
         const infoEl = document.createElement('div');
