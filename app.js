@@ -65,7 +65,7 @@ class FyGlobal {
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
-    this.search = this.searches[fy.site] || this.searchByTitle,;
+    this.search = this.searches[fy.site] || this.searchByTitle;
     this.handler = this.handlers[fy.site] || this.defaultHandler;
     this.preUpdateDivs = this.preUpdateDivses[fy.site] || this.defaultBaseElementProc;
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
