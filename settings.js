@@ -2,6 +2,8 @@ const FY_UNIQ_STRING = 'fy-item';
 
 const SETTINGS = {};
 
+//see the comments in detail on neflix
+
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
   rootSelector: 'main',
@@ -14,7 +16,7 @@ SETTINGS['watcha.com'] = {
   selectorsForListItems: {
     id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
     title: 'div[aria-hidden]>p',
-    targetEl: 'a[class]>div',  //targetEl is for edit()
+    targetEl: 'a[class]>div',  //targetEl is for edit(). it should be 'the last element'.
     types: {  //either use types or isTVSeries
       selector: 'div+p+p',
       mapping: {'영화': 'Movie', 'TV 프로그램': 'Tv Series'},  //미니 시리즈는 어쩔...
@@ -79,7 +81,7 @@ SETTINGS['www.netflix.com'] = {
 
   selectorsForListItems: {
     title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
-    targetEl: 'div[id]>div.ptrack-content',
+    targetEl: 'div[id]>div.ptrack-content',  //'the last element'
   },
 
   //large-div works like a single-page. don't use both.
@@ -139,14 +141,15 @@ SETTINGS['www.disneyplus.com'] = {
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  selector: 'div.gv2-asset:not(['+FY_UNIQ_STRING+'])>a',
+  selector: 'div.gv2-asset:not(['+FY_UNIQ_STRING+'])>a[data-gv2elementkey]',
   //numberToBaseEl: 1,
 
   selectorsForListItems: {
     title: 'div[aria-label]',  //this should be the child of 'the last element'.
-    //when targetEl is omitted, baseEl will be used.
+    targetEl: 'a[data-gv2elementkey]',  //targetEl is for edit(). when targetEl is omitted, baseEl will be used.
   },
 
+  //below are WIP
   //large-div works like a single-page. don't use both.
   selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',  //wip
 

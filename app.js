@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.87
+// @version      0.4.89
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -414,6 +414,7 @@ class FyGlobal {
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
 
+      console.debug('item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl);
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
         baseEl.setAttribute(FY_UNIQ_STRING, '');
         const infoEl = document.createElement('div');
@@ -456,18 +457,22 @@ class FyGlobal {
       //일단 캐시에 제목이 있다면 그게 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};
 
-      console.log('trueData.id:', trueData.id);
+      console.log('trueData.id & otData[i].id (searchById):', trueData.id, otData[i].id);
       let id;
       if(trueData.forceUpdate || trueData.id) {
         //수동 업데이트 또는 large-div 등 true type을 알 때
         id = trueData.id;
-        console.debug('got id (1):', id, baseEl, selectors.id);
       }
       else if(otData[i].id) {
-        //그 밖의 경우는 캐시를 우선시. 시즌 1로 id가 변경되었을 수 있으니까.
+        //아니면 캐시를 우선시. 시즌 1로 id가 변경되었을 수 있으니까.
         //또 tv 물의 경우 2화 링크(이어보기)가 떠 있을 수도 있으니까.
         id = fy.useCacheIfAvailable_(otData[i].id, otData[i]);  //캐시에 있으면 null이고 페칭하지 않음.
       }
+      else {
+        //캐시에 없으면 div에서 가져와야 한다.
+         id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
+      }
+      console.log('title, id (searchById):', title, id);
 
       if(id) {
         ids[i] = id;
@@ -478,12 +483,12 @@ class FyGlobal {
       if(trueData.type && !otData[i].type) {
         //true type이 있는데 캐시에 type 정보가 없다면 저장한다. large-div 업데이트 시에.
         otData[i].type = trueData.type;
-        console.debug('type (large):', trueData.type);
+        //console.debug('type (large):', trueData.type);
       }
       else {
         //리스트에도 type이 있으면 이용한다.
         let type = fy.getTypeFromDiv_(trueData.selectors, item);
-        console.debug('type (list):', type);
+        //console.debug('type (list):', type);
         if(type)
           otData[i].type = type;
       }
@@ -500,7 +505,6 @@ class FyGlobal {
 
     //start searching
     //찾을 제목에 대해 내부 캐시 적용.
-    console.log(ids);
     let searchLength = fy.setInternalCache_(ids, otData);
 
     if(searchLength == 0) {
@@ -1682,7 +1686,7 @@ class FyGlobal {
       else {
         els = [...baseEl.querySelectorAll(nestedSelector.selector)];
       }
-      console.debug('els', els, baseEl);  //dev+++
+      //console.debug('els', els, baseEl);  //dev+++
 
       if(selectors.isTVSeries) {
         if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
@@ -1947,6 +1951,7 @@ class FyGlobal {
       otDatum = otCache[title] || {};
 
     //search target el (fyItem. the last element)
+    //console.debug('selectors.targetEl, baseEl', selectors.targetEl, baseEl);
     const targetEl = baseEl.querySelector(selectors.targetEl) || baseEl;
 
     //get input
@@ -1983,12 +1988,12 @@ class FyGlobal {
       imdbId = fy.getIdFromValidUrl_(imdbUrl);
 
       if(imdbUrl == otDatum.imdbUrl) {
-        if(otDatum.imdbFlag != '') {
+        //if(otDatum.imdbFlag != '') {
           toast.log('imdb flag was reset (imdb url is confirmed).');
           otDatum.imdbFlag = '';
-        }
-        else
-          return;
+        //}
+        //else
+          //return;
       }
     }
 
@@ -2066,7 +2071,7 @@ function fadingAlert() {
   s.color = 'Black';
   s.backgroundColor = 'LawnGreen';
   s.overflow = 'auto';
-  s.zIndex = '998';  //z-index on css is 999
+  s.zIndex = '1000';  //z-index on css is 999
 
   this.log = async (...txt) => {
     if(txt.length == 0) {
