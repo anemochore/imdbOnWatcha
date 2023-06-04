@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.85
+// @version      0.4.86
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -541,6 +541,11 @@ class FyGlobal {
         return;
       }
 
+      if(title.includes(':') &&  title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
+        title = title.replace(/ \(에피소드 [0-9]+\)$/, '');
+        console.debug('(에피소드 x) was stripped.', title);
+      }
+
       /*
       //아직 지원하는 사이트 없음. 웨이브 /my 루트에 표시되긴 하는데 귀찮다.
       let type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
@@ -749,7 +754,7 @@ class FyGlobal {
       let movieString = '영화', tvString = 'TV 프로그램';
       const targetDoc = new DOMParser().parseFromString(result, 'text/html');
       if(targetDoc.documentElement.lang != 'ko-KR') {
-        console.debug('wp loaded in not Korean (ko-KR). so exact match is not possible for',title);
+        console.debug('wp loaded in not Korean (ko-KR) when searching. so exact match is not possible for',title);
         otData[i].otFlag = '?';
         movieString = 'Movies', tvString = 'TV Shows';
       }
@@ -945,7 +950,7 @@ class FyGlobal {
 
         let loadedInEnglish = true;
         if(targetDoc.documentElement.lang != 'en-KR') {
-          console.debug('wp loaded in not English (en-KR). exact match may not possible if the org. title is non-English:', orgTitle);
+          console.debug('wp loaded in not English (en-KR) when scraping. exact match may not possible if the org. title is non-English:', orgTitle);
           loadedInEnglish = false;
         }
 
@@ -1717,7 +1722,7 @@ class FyGlobal {
     if(el)
       result = el.innerText || el.alt || el.getAttribute('aria-label') || el.querySelector('img').alt;
 
-    console.debug('text (title):', result);
+    //console.debug('text (title):', result);
     return result;
   }
 
@@ -1921,7 +1926,7 @@ class FyGlobal {
       selectors = fy.selectorsForListItems;
 
     const type = fy.getTypeFromDiv_(selectors, baseEl);
-    console.debug('type:', type);
+    //console.debug('type:', type);
 
     //search id and title
     let id, url, title, otDatum;
@@ -1933,7 +1938,7 @@ class FyGlobal {
 
     const titleEl = baseEl.querySelector(selectors.title);
     title = fy.getTextFromNode_(titleEl);
-    console.debug('title:', title);
+    //console.debug('title:', title);
     if(!otDatum)
       otDatum = otCache[title] || {};
 
