@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.86
+// @version      0.4.87
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -61,13 +61,22 @@ class FyGlobal {
     toast.log('fy script started.');
     //this.started = true;
 
+    //load setting
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
+    this.search = this.searches[fy.site] || this.searchByTitle,;
     this.handler = this.handlers[fy.site] || this.defaultHandler;
     this.preUpdateDivs = this.preUpdateDivses[fy.site] || this.defaultBaseElementProc;
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
-    this.search = this.searches[fy.site];
+
+    //numberToBaseEl 자동으로 지정
+    if(!fy.numberToBaseEl) {
+      let tSelector = fy.selector.split(',')[0]  //selector가 여러 개일 때까지는 지원하지 않음.
+      .split(FY_UNIQ_STRING).pop();
+      fy.numberToBaseEl = tSelector.match(/[^(]>/g)?.length || 1;  //fy-item 이후 > 개수
+      console.debug('numberToBaseEl was auto calculated based on selector:', fy.numberToBaseEl);
+    }
 
     //global vars & flags
     this.prevLocation = document.location;
@@ -657,11 +666,6 @@ class FyGlobal {
   }
 
   searches = {
-    'm.kinolights.com': this.searchByTitle,
-    'www.netflix.com': this.searchByTitle,
-    'www.wavve.com': this.searchByTitle,
-    'www.disneyplus.com': this.searchByTitle,
-
     'watcha.com': this.searchById,
   };
 

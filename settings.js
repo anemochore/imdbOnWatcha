@@ -9,7 +9,7 @@ SETTINGS['watcha.com'] = {
   selectorOnSinglePage: 'header>div>section:not(['+FY_UNIQ_STRING+'])>div>h1',  //single-page
   //large-div is removed at 2022 1Q
 
-  numberToBaseEl: 2,  //when edit, this number + 1 is used
+  //numberToBaseEl: 2,  //when edit, this number + 1 is used
 
   selectorsForListItems: {
     id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
@@ -75,7 +75,7 @@ SETTINGS['www.netflix.com'] = {
 
   largeDivSamePathName: true,  //hack for netflix
 
-  numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
+  //numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
     title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
@@ -106,7 +106,7 @@ SETTINGS['www.wavve.com'] = {
   //'the last element'(fyItem) selection.
   selector: 'div.wrap>ul>li>div.portrait:not(['+FY_UNIQ_STRING+'])>a.con-text-wrap, ' + //my/like_movie
   'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
-  numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
+  //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
 
   selectorsForListItems: {
     title: 'strong.con-tit, span.title1',  //this should be the child of 'the last element'.
@@ -134,22 +134,21 @@ SETTINGS['www.wavve.com'] = {
 SETTINGS['www.disneyplus.com'] = {
   preventMultipleUrlChanges: true,  //hack 
 
-  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/search', '/ko-kr/home'],  //todo: '/ko-kr/series',
+  //no '/ko-kr/search' page
+  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home'],  //todo: '/ko-kr/series',
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
   selector: 'div.gv2-asset:not(['+FY_UNIQ_STRING+'])>a',
-  numberToBaseEl: 1,
+  //numberToBaseEl: 1,
 
   selectorsForListItems: {
     title: 'div[aria-label]',  //this should be the child of 'the last element'.
     //when targetEl is omitted, baseEl will be used.
   },
 
-  /* WIP below (just placeholders) */
-
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',
+  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',  //wip
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {

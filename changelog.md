@@ -292,5 +292,6 @@
     //    watcha: fixed large-div scraping
     //    wp: improved some logic (in vain) for non-english titles searching
     //    TODO: make sure edit() work!!!
-    // ver 0.4.86 @ 2023-6-4
+    // ver 0.4.87 @ 2023-6-4
     //    disney+: improved title search...
+    //    settings: now numberToBaseEl is generated automatically if omitted.
