@@ -26,7 +26,7 @@ SETTINGS['watcha.com'] = {
   //more selectors are hard-coded. below are mainly for edit() on single-page
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
-    determineSinglePageBy: 'section>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
+    //determineSinglePageBy: 'section>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h1',
     isTVSeries: {
       numberToBaseEl: 1,
@@ -121,7 +121,6 @@ SETTINGS['www.wavve.com'] = {
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
     determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
-    determineSinglePageBy: 'div',
     title: 'h1>em',
     isTVSeries: {
       numberToBaseEl: 2,

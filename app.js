@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.91
+// @version      0.4.92
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -472,7 +472,7 @@ class FyGlobal {
         //캐시에 없으면 div에서 가져와야 한다.
          id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
       }
-      console.log('title, id (searchById):', title, id);
+      //console.log('title, id (searchById):', title, id);
 
       if(id) {
         ids[i] = id;
@@ -1691,7 +1691,6 @@ class FyGlobal {
       else {
         els = [...baseEl.querySelectorAll(nestedSelector.selector)];
       }
-      //console.debug('els', els, baseEl);  //dev+++
 
       if(selectors.isTVSeries) {
         if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
@@ -1928,9 +1927,11 @@ class FyGlobal {
     //determine single-page
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
 
+    //console.debug('el, baseEl:', el, baseEl);
     let isSinglePage = false;
     if((rule.determinePathnameBy && document.location.pathname.startsWith(rule.determinePathnameBy)) ||
-      (rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
+      (rule?.determineSinglePageBy == true) ||
+      (!rule.determinePathnameBy && baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
       isSinglePage = true;
     console.debug('isSinglePage:', isSinglePage);
 

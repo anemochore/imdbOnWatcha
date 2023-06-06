@@ -297,6 +297,7 @@
     //    settings: now numberToBaseEl is generated automatically if omitted.
     //    watcha: fixed a bug of id searching of v0.4.85
     //    disney+: fixed edit() behaviors (along with settings)
-    // ver 0.4.91 @ 2023-6-7
+    // ver 0.4.92 @ 2023-6-7
     //    netflix: fix edit() bug of v0.4.85
     //    wp: changed searching behaviors for a netflix title
+    //    wavve: fix edit() not working bug of v0.4.85
