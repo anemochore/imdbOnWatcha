@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.92
+// @version      0.4.95
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -108,11 +108,13 @@ class FyGlobal {
     }
 
     //to get the previous url. https://stackoverflow.com/a/52809105
+    //this is not working on wavve.com
     window.addEventListener('locationchange', e => {
       fy.entry(e);
     });
 
     history.pushState = (f => function pushState() {
+      //console.debug(`location on pushState: ${fy.prevLocation.href} -> ${document.location.href}`);
       fy.prevLocation = document.location;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('pushstate'));
@@ -121,6 +123,7 @@ class FyGlobal {
     })(history.pushState);
 
     history.replaceState = (f => function replaceState() {
+      //console.debug(`location on replaceState: ${fy.prevLocation.href} -> ${document.location.href}`);
       fy.prevLocation = document.location;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('replacestate'));
@@ -161,12 +164,17 @@ class FyGlobal {
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
-    if(fy.isFetching && (
-      (fy.largeDivSamePathName && fy.prevLocation.href != curLocation.href) ||
+    //console.debug(`location on entry: ${fy.prevLocation.href} -> ${curLocation.href}`);
+    let urlChanged = false;
+    if(fy.isFetching && 
+      ((fy.largeDivSamePathName && fy.prevLocation.href != curLocation.href) ||
       (!fy.largeDivSamePathName && fy.prevLocation.origin+fy.prevLocation.pathname != curLocation.origin+curLocation.pathname))) {
-      toast.log('url changed. so aborting current fetching...');
+      toast.log('url changed. so aborting current possible fetching...');
       fy.xhrAbort();
+      urlChanged = true;
+    }
 
+    if(urlChanged || fy.forceLargeDivUpdateOnUrlChange) {
       //reset fy-item attributs
       const itemDivs = [...fy.root.querySelectorAll('['+FY_UNIQ_STRING+']')];
       itemDivs.forEach((item, i) => {
@@ -178,22 +186,24 @@ class FyGlobal {
     toast.log();
 
     const isExit = determineExit_();
-    if(!isExit && !fy.isFetching) {
-      let selector = fy.selector || '';
-      if(fy.selectorOnLargeDiv)
-        selector += ', ' + fy.selectorOnLargeDiv;
-      if(fy.selectorOnSinglePage)
-        selector += ', ' + fy.selectorOnSinglePage;
-      selector = selector.replace(/^, /, '');
+    if(isExit || fy.isFetching)
+      return;
 
-      if(fy.preventMultipleUrlChanges)
-        fy.isFetching = true;  //hack for kino
+    //entry point
+    let selector = fy.selector || '';
+    if(fy.selectorOnLargeDiv)
+      selector += ', ' + fy.selectorOnLargeDiv;
+    if(fy.selectorOnSinglePage)
+      selector += ', ' + fy.selectorOnSinglePage;
+    selector = selector.replace(/^, /, '');
 
-      toast.log('waiting for page loading (or changing)...');
-      await elementReady(selector, fy.root);
-      fy.handler();  //force first run
-    }
-    
+    if(fy.preventMultipleUrlChanges)
+      fy.isFetching = true;  //hack for kino
+
+    toast.log('waiting for page loading (or changing)...');
+    await elementReady(selector, fy.root);
+    fy.handler();  //force first run
+
     function determineExit_() {
       let result = false;
 
@@ -235,7 +245,7 @@ class FyGlobal {
     fy.observer.disconnect();
 
     if(fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
-      let largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
+      const largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
       if(largeDiv) {
         //if already updated, no more update when scrolling, etc
         console.info('large-div already updated.');
@@ -244,13 +254,13 @@ class FyGlobal {
         return;
       }
 
-      largeDiv = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
-      if(!largeDiv) {
+      const largeDivTargetEl = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
+      if(!largeDivTargetEl) {
         console.info('waiting for large-div...');
-        largeDiv = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
+        largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
       }
 
-      fy.largeDivUpdate(largeDiv);
+      fy.largeDivUpdate(largeDivTargetEl);
     }
     else {
       fy.handlerWrapUp(fy.selectorsForListItems);
@@ -364,13 +374,19 @@ class FyGlobal {
     'www.wavve.com': async (largeDiv) => {
       //on large div (=single content) page
       const selectors = fy.selectorsForSinglePage;
-      const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
 
-      //제목이 lazy loading인데 귀찮으니 메타에서 가져온다.
-      const titleSelector = 'meta[data-vue-meta="ssr"][property="og:title"]';
-      const title = (await elementReady(titleSelector, document.head)).content.replace(/^\[wavve\]/, '');
+      //이미 업데이트된 상태에서 url이 바뀌었다면 fy-item을 제거
+      const fyItem = document.querySelector('.'+FY_UNIQ_STRING);
+      if(fyItem)
+        fyItem.parentNode.removeChild(fyItem);
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title});
+      //lazy loading이 극심해서 제목을 여기서 처리-_-
+      const titleEl = await elementReady(selectors.title, largeDiv, false);
+      const title = fy.getTextFromNode_(titleEl);
+
+      const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0].innerText.split(':').pop().trim();
+
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, year});
     },
 
     'www.disneyplus.com': (largeDiv) => {
@@ -383,7 +399,7 @@ class FyGlobal {
     const type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
     trueData.type = type;
 
-    let sEl = baseEl.querySelector('div.'+FY_UNIQ_STRING);
+    let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
     let otFlag, imdbFlag;
     if(sEl) {
       //already updated (maybe)
@@ -414,7 +430,7 @@ class FyGlobal {
     itemDivs.forEach((item, i) => {
       const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
 
-      //console.debug('item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl);
+      //console.debug('preupdate: item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl, baseEl.getAttribute(FY_UNIQ_STRING));
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
         baseEl.setAttribute(FY_UNIQ_STRING, '');
         const infoEl = document.createElement('div');
@@ -550,7 +566,6 @@ class FyGlobal {
         title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
       if(!title) {
         console.warn('no title found on', item);
-        console.debug('title selector:', trueData.selectors.title);
         return;
       }
 
@@ -834,7 +849,7 @@ class FyGlobal {
       }
       sUrls = sUrls.map(el => el ? 'https://pedia.watcha.com' + el : null);
 
-      let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0, idxForSeason1, possibleIdx;
+      let idx = -1, firstNotNullIdx = -1, exactMatchCount = 0, idxForSeason1, possibleIdxWithSameDate, closeDate = 9999, possibleIdxWithCloseDate;
       sTitles.forEach((sTitle, j) => {
         if(sTitle) {
           let found = false;
@@ -851,13 +866,19 @@ class FyGlobal {
             if(sTitle == title) {
               //TV물이 아니면 제목이 일치해야 함. trueYear가 있다면 아이템의 연도와도 일치해야 함.
               found = true;
-              if(trueData.year && trueData.year != sYears[j])
+              if(trueData.year && trueData.year != sYears[j]) {
                 found = false;
+                const curCloseDate = Math.abs(trueData.year - sYears[j]);
+                if(curCloseDate < closeDate) {
+                  closeDate = curCloseDate;
+                  possibleIdxWithCloseDate = j;
+                }
+              }
             }
             else if(trueData.year == sYears[j]) {
               //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
-              if(!possibleIdx)
-                possibleIdx = j;
+              if(!possibleIdxWithSameDate)
+                possibleIdxWithSameDate = j;
             }
           }
 
@@ -891,8 +912,8 @@ class FyGlobal {
             //영어 페이지 검색해도 결과 없음(영어 페이지에도 제목은 한국어로 나오므로 정확한 비교는 불가능)
             needsEngSearch = false;
 
-            if(possibleIdx) {
-              idx = possibleIdx;
+            if(possibleIdxWithSameDate) {
+              idx = possibleIdxWithSameDate;
               console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the same date: ${sTitles[idx]}`);
               otData[i].otFlag = '?';
             }
@@ -907,10 +928,17 @@ class FyGlobal {
             //검색 결과 없음. 아직 영어 페이지 검색은 안 했지만...
             if(!trueData.orgTitle) {
               //원제가 없다면 영어 페이지 검색도 불가능
-              idx = 0;
-              console.warn(`${titleForWarning} seems not found on wp among many (or one) and Eng-page-searching is not possible (no org title). so just taking the first result: ${sTitles[idx]}`);
-              if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
-              else otData[i].otFlag = '??';
+              if(possibleIdxWithCloseDate) {
+                console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the closest date: ${sTitles[idx]}`);
+                idx = possibleIdxWithCloseDate;
+                otData[i].otFlag = '?';
+              }
+              else {
+                idx = 0;
+                console.warn(`${titleForWarning} seems not found on wp among many (or one) and Eng-page-searching is not possible (no org title). so just taking the first result: ${sTitles[idx]}`);
+                if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
+                else otData[i].otFlag = '??';
+              }
             }
             else {
               //원제가 있다면(키노) 원제로 영어 페이지 재검색
@@ -1732,9 +1760,9 @@ class FyGlobal {
     let result = null;
 
     if(el)
-      result = el.innerText || el.alt || el.getAttribute('aria-label') || el.querySelector('img').alt;
+      result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
 
-    //console.debug('text (title):', result);
+    //console.debug('on getTextFromNode_(), title, el:', result, el);
     return result;
   }
 
@@ -1952,7 +1980,6 @@ class FyGlobal {
 
     const titleEl = baseEl.querySelector(selectors.title);
     title = fy.getTextFromNode_(titleEl);
-    //console.debug('title:', title);
     if(!otDatum)
       otDatum = otCache[title] || {};
 
@@ -2098,20 +2125,18 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function elementReady(selector, baseEl) {
+function elementReady(selector, baseEl, countEmpty = true) {
   return new Promise((resolve, reject) => {
     if(!baseEl)
       baseEl = document.documentElement;
 
-    let els = [...baseEl.querySelectorAll(selector)];
-    if(els.length > 0)
-      resolve(els[els.length-1]);
-
     new MutationObserver(async (m, o) => {
       let els = [...baseEl.querySelectorAll(selector)];
       if(els.length > 0) {
-        o.disconnect();
-        resolve(els[els.length-1]);
+        if(countEmpty || els.pop().childNodes.length > 0) {
+          o.disconnect();
+          resolve(els[els.length-1]);
+        }
       }
     })
     .observe(baseEl, {

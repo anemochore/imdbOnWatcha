@@ -110,6 +110,9 @@ SETTINGS['www.wavve.com'] = {
   'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
   //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
 
+  largeDivSamePathName: true,
+  forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
+
   selectorsForListItems: {
     title: 'strong.con-tit, span.title1',  //this should be the child of 'the last element'.
     targetEl: 'a.con-text-wrap, div.portrait',  //'the last element'
@@ -127,7 +130,7 @@ SETTINGS['www.wavve.com'] = {
       selector: 'div.player-nav>ul>li',
       contains: '에피소드',
     },
-    targetEl: 'section.player-contents>div.video-wrap>div',  //class of last div varies.
+    targetEl: 'section.player-contents>div.video-wrap>div:not(.'+FY_UNIQ_STRING+')',  //class of last div varies.
   },
 };
 

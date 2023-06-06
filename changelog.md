@@ -300,4 +300,7 @@
     // ver 0.4.92 @ 2023-6-7
     //    netflix: fix edit() bug of v0.4.85
     //    wp: changed searching behaviors for a netflix title
-    //    wavve: fix edit() not working bug of v0.4.85
+    //    wavve: fixed edit() not working bug of v0.4.85
+    //    wavve: fixed single-page updating work when navigating
+    //    wavve: improved single-page searching to use year too
+    //    wp: improved searching to choose the title with the closest date when there're many same titles
