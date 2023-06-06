@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.89
+// @version      0.4.90
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -1924,7 +1924,7 @@ class FyGlobal {
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
 
     let isSinglePage = false;
-    if((fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) ||
+    if((rule.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) ||
       (rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
       isSinglePage = true;
     console.debug('isSinglePage:', isSinglePage);
