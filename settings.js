@@ -26,7 +26,7 @@ SETTINGS['watcha.com'] = {
   //more selectors are hard-coded. below are mainly for edit() on single-page
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
-    //determineSinglePageBy: 'section>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
+    //determineSinglePageBy: 'section>div',  //use either determineSinglePageBy or determineSinglePageBy
     title: 'h1',
     isTVSeries: {
       numberToBaseEl: 1,
@@ -89,7 +89,7 @@ SETTINGS['www.netflix.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForLargeDiv: {
-    determineSinglePageBy: 'div.previewModal--container>div',
+    determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h3>strong',
     year: 'div.videoMetadata--second-line>div.year',
     isTVSeries: {
