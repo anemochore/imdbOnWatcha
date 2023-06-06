@@ -1929,7 +1929,7 @@ class FyGlobal {
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
 
     let isSinglePage = false;
-    if((rule.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) ||
+    if((rule.determinePathnameBy && document.location.pathname.startsWith(rule.determinePathnameBy)) ||
       (rule?.determineSinglePageBy == true || baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
       isSinglePage = true;
     console.debug('isSinglePage:', isSinglePage);
