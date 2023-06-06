@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.90
+// @version      0.4.91
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -775,16 +775,21 @@ class FyGlobal {
         el.remove();
       });
 
-      const selector = 'div[class*="StyledTabContentContainer"] section>section ';
+      const selector = 'div[class*="StyledTabContentContainer"] section>section';
       let sDivs = [...targetDoc.querySelectorAll(selector)];
 
-      //최상위 섹션, 영화, TV 프로그램만 처리
       let sUrls = [], sTitles = [], sYears = [], sTypes = [];
+
+      const headerSelector = 'header>h2';
+      if(sDivs[0] && !sDivs[0].querySelector(headerSelector))  //최상위 섹션의 중요도를 낮춤(검색 정확도를 높이기 위해). ex: 주(咒)
+        sDivs.push(sDivs.shift())
+
+      //최상위 섹션('콘텐츠', 영화, TV 프로그램만 처리
       sDivs.forEach((sDiv, j) => {
-        const header = sDiv.querySelector('header>h2');
+        const header = sDiv.querySelector(headerSelector);
         //첫 번째(최상위) 섹션은 헤더가 없음
         let info;
-        if(!header && j == 0) {
+        if(!header) {  // && j == 0) {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child')];
           sUrls.push(...info.map(el => el.parentNode.getAttribute("href")));  //no .href
           sTypes.push(...info.map(el => el.lastChild.innerText).map(el => getType_(el)));
@@ -793,12 +798,6 @@ class FyGlobal {
           info = [...sDiv.querySelectorAll('ul>li>a>div:last-child>div[class]')];
           sUrls.push(...info.map(el => el.parentNode.parentNode.getAttribute("href")));  //no .href
           sTypes.push(...Array(info.length).fill(header.innerText).map(el => getType_(el)));
-        }
-
-        function getType_(str) {
-          if(str == movieString)   return 'Movie';
-          else if(str == tvString) return 'TV Series';
-          else                    return null;
         }
 
         if(info) {
@@ -812,6 +811,12 @@ class FyGlobal {
                 return getType_(typeText);
             }));
           }
+        }
+
+        function getType_(str) {
+          if(str == movieString)   return 'Movie';
+          else if(str == tvString) return 'TV Series';
+          else                    return null;
         }
       });
 
