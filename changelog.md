@@ -304,3 +304,5 @@
     //    wavve: fixed single-page updating work when navigating
     //    wavve: improved single-page searching to use year too
     //    wp: improved searching to choose the title with the closest date when there're many same titles
+    // ver 0.4.96 @ 2023-6-23
+    //    internal: removed temp log

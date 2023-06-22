@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha
 // @namespace    http://tampermonkey.net/
-// @version      0.4.95
+// @version      0.4.96
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -473,7 +473,7 @@ class FyGlobal {
       //일단 캐시에 제목이 있다면 그게 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};
 
-      console.log('trueData.id & otData[i].id (searchById):', trueData.id, otData[i].id);
+      //console.log('trueData.id & otData[i].id (searchById):', trueData.id, otData[i].id);
       let id;
       if(trueData.forceUpdate || trueData.id) {
         //수동 업데이트 또는 large-div 등 true type을 알 때
@@ -990,8 +990,8 @@ class FyGlobal {
         const oldTitle = orgTitle;
 
         let loadedInEnglish = true;
-        if(targetDoc.documentElement.lang != 'en-KR') {
-          console.debug('wp loaded in not English (en-KR) when scraping. exact match may not possible if the org. title is non-English:', orgTitle);
+        if(!targetDoc.documentElement.lang.startsWith('en')) {
+          console.debug(`wp loaded in not English when scraping: ${targetDoc.documentElement.lang}. exact match may not possible if the org. title is non-English: ${orgTitle}`);
           loadedInEnglish = false;
         }
 
