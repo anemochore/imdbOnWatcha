@@ -306,3 +306,5 @@
     //    wp: improved searching to choose the title with the closest date when there're many same titles
     // ver 0.4.96 @ 2023-6-23
     //    internal: removed temp log
+    // ver 0.5.0 @ 2023-6-23
+    //    internal: split files
