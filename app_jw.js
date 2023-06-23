@@ -43,13 +43,25 @@ class FyGlobal {
 
   async run() {
     fy.site = document.location.host;
-    /*
-    [fy.lang, fy.country] = navigator.language.split('-');
-    if(!fy.country)
-      fy.country = 'kr';
-    else
-      fy.country = fy.country.toLowerCase());
-    */
+
+    fy.locale = navigator.language.replace('-', '_');
+    [fy.lang, fy.country] = fy.locale.split('_');
+    if(!fy.country) {
+      //대~충!
+      switch(fy.lang) {
+        case 'ko':
+          fy.country = 'KR';
+          break;
+        case 'ja':
+          fy.country = 'JP';
+          break;
+        default:
+          fy.country = 'US';
+      }
+    }
+    if(fy.locale == fy.lang)
+      fy.locale = fy.locale + '_' + fy.country;
+
 
     //imdb 접속 시 캐시 업데이트
     if(fy.site == 'www.imdb.com') {
@@ -67,7 +79,7 @@ class FyGlobal {
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
       this[k] = v;
 
-    this.search = this.searches[fy.site] || this.searchByTitle;
+    this.search = this.searchByTitle;
     this.handler = this.handlers[fy.site] || this.defaultHandler;
     this.preUpdateDivs = this.preUpdateDivses[fy.site] || this.defaultBaseElementProc;
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
@@ -138,12 +150,14 @@ class FyGlobal {
     });
 
     //check api keys
+    /*
     if(!RAPID_API_KEY || RAPID_API_KEY == DEFAULT_MSG) {
       await GM_setValue('RAPID_API_KEY', DEFAULT_MSG);
       alert("set RAPID_API_KEY in Tampermonkey's setting first.");
       toast.log();
       return;
     }
+    */
 
     //css 로딩
     const css = GM_getResourceText('CSS');
@@ -473,23 +487,23 @@ class FyGlobal {
         return;
       }
 
-      if(title.includes(':') &&  title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
+      if(title.includes(':') && title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
         title = title.replace(/ \(에피소드 [0-9]+\)$/, '');
-        console.debug('(에피소드 x) was stripped.', title);
+        console.info('(에피소드 x) was stripped.', title);
       }
-
-      /*
-      //아직 지원하는 사이트 없음. 웨이브 /my 루트에 표시되긴 하는데 귀찮다.
-      let type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
-      console.debug('type (by title)', type);
-      if(type)
-        otData[i].type = type;
-      */
 
       allTitles[i] = title;
 
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
+
+      //타입 얻기. 왓챠 보관함이나 웨이브 /my 루트 정도?
+      let type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
+      if(type) {
+        //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입 사용
+        if(!otData[i].type || otData[i].otFlag != '')
+          otData[i].type = type;
+      }
 
       if(!trueData.forceUpdate)
         titles[i] = fy.useCacheIfAvailable_(title, otData[i], trueData);
@@ -531,23 +545,25 @@ class FyGlobal {
 
     if(searchLength == 0) {
       console.log(`nothing to search or scrape on wp.`);
-      fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, allTitles);
+      fy.searchWrapUp_(itemDivs, otData, trueData);
       return;
     }
     else if(!trueData.id) {
-      //목록 업데이트
-      const URL = `https://apis.justwatch.com/content/titles/en_US/popular`;
-      const qTitles = titles.map(title => title ? title : null);
+      //업데이트
+      toast.log('searching org. titles...');
+
+      const URL = `https://apis.justwatch.com/content/titles/${fy.locale}/popular`;
+      const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
       const urls = qTitles.map(title => title ? URL: null)
       const otSearchResults = await fy.fetchAll(urls, {}, qTitles, {
-        fields: ['id','title','object_type','original_release_year','scoring','full_path','external_ids'],
+        fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
       });
 
-      await fy2.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
+      fy2.parseJwSearchResults_(otSearchResults, otData, trueData, qTitles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
         console.log(`org.(eng.) titles searching result is empty.`);
-        //fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, allTitles);
+        fy.searchWrapUp_(itemDivs, otData, trueData);
         return;
       }
       else {
@@ -555,8 +571,17 @@ class FyGlobal {
       }
     }
 
-    //fy.searchImdbAndWrapUp_(itemDivs, otData, trueData, allTitles);
+    fy.searchWrapUp_(itemDivs, otData, trueData);
   }
+
+  searchWrapUp_(itemDivs, otData, trueData) {
+    //내부 캐시 사용했다면 적용
+    fy.getInternalCache_(otData);
+
+    //change flow: update divs
+    fy.updateDivs(itemDivs, otData, trueData.selectors);
+  }
+
 
   //other utils...
   useCacheIfAvailable_(value, cache, trueData = {}) {
@@ -616,6 +641,21 @@ class FyGlobal {
   }
 
   //common(?) publics
+  getCleanTitle(title) {
+    const seasonString = 
+    title.match(/ 시즌( |)[0-9]+( |$)/) || 
+    title.match(/ [0-9]+기( |$)/) || 
+    title.match(/ Season( |)[0-9]+( |$)/);  //todo: 일본어에서 1기는??
+    if(seasonString)
+      return title.replace(seasonString[0], '');
+    else
+      return title;
+  }
+
+  getCleanTokens(title) {
+    return title.replace(/[:-]/g, '').split(' ').filter(el => el);
+  }
+
   updateDivs(itemDivs, otData, selectors = {}) {
     //toast.log('updating divs...');
     itemDivs.forEach((item, i) => {
@@ -860,40 +900,6 @@ class FyGlobal {
     const trueType = imdbData.titleType.text;
     console.info('trueOrgTitle, trueYear, trueType', trueOrgTitle, trueYear, trueType);
 
-    /*
-    let imdbRating = document.querySelector('div[data-testid$="aggregate-rating__score"]>span[class]');
-    if(imdbRating)
-      imdbRating = parseFloat(imdbRating.innerText);
-    else
-      imdbRating = 'n/a';
-
-    let trueOrgTitle = document.title.replace(/ - IMDb$/, '');
-    trueOrgTitle = trueOrgTitle.replace(/ \(TV Episode( (\d{4})\)|\))$/, '');
-
-    //ex: \"The Kill Count\" Saw 3D (2010) (TV Episode 2018)
-    //ex: \"Review It\" Spider-Man 2 (2004) (TV Episode)
-    let trueYear;
-    [trueOrgTitle, trueYear] = trueOrgTitle.split(' (');
-
-    //ex1: \"We Eat Films\" Saw 3D (TV Episode 2010)
-    //ex2: Majutsushi Orphen Mubouhen (TV Series 1998–1999) -> take the first year
-    //ex3: Sorcerous Stabber Orphen (TV Series 2020– )
-    //ex4: The Promised Neverland (TV Series)
-    if(!trueYear || isNaN(parseInt(trueYear.slice(0, 4)))) {
-      const tempTitle = document.title.replace(/ - IMDb$/, '');
-      trueYear = tempTitle.match(/(\d{4})–(\d{4})\)$/);  //ex2
-      if(trueYear)
-        trueYear = trueYear[1];
-      else {
-        trueYear = document.title.replace(/ - IMDb$/, '').match(/(\d{4})(– |)\)$/);  //ex1 and ex3
-        if(trueYear)
-          trueYear = trueYear[1];
-      }
-    }
-    else
-      trueYear = trueYear.slice(0, 4);
-    */
-
     const keys = Object.keys(otCache);
     const values = Object.values(otCache);
     const ids = values.map(el => el.imdbId);
@@ -1110,9 +1116,6 @@ class FyGlobal {
     fy.isFetching = true;
 
     const results = [];
-
-    //if(!order) {  //faster
-    //https://lavrton.com/javascript-loops-how-to-handle-async-await-6252dd3c795/
     const promises = urls.map(async (url, i) => {
       results[i] = await fetchOne_(url, headers, querys[i], constQuery);
     });
@@ -1123,12 +1126,14 @@ class FyGlobal {
 
 
     async function fetchOne_(url, headers, query, constQuery) {
+      //쿼리가 있으면 POST + json
       return new Promise((resolve, reject) => {
         if(!url)
           resolve(null);
         else {
           //console.debug('fetching', url);  //dev+++
 
+          //detail object. see https://wiki.greasespot.net/GM.xmlHttpRequest
           let payload = {
             method: 'GET',
             headers: headers,
@@ -1142,10 +1147,16 @@ class FyGlobal {
           };
 
           if(query) {
-            payload.method = 'POST';
+            payload.method = 'POST';  //헤더에 json 생략해도 작동하는 거 확인
+            payload.responseType = 'json';
+            payload.onload = res => {
+              resolve(JSON.parse(res.responseText));
+            };
+
             const params = constQuery;
             params.query = query;
-            payload.body = JSON.stringify(params);
+            //console.debug('query', query);  //dev+++
+            payload.data = JSON.stringify(params);
           }
 
           fy.XHR = GM_xmlhttpRequest(payload);
