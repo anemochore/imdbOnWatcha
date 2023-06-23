@@ -1,4 +1,4 @@
-class ParseSites {
+class ParseWP {
   //parsing and scraping funcs
   async parseWpSearchResults_(results, otData, trueData, titles, needsEngSearch = false) {
     for await(const [i, result] of results.entries()) {
