@@ -13,7 +13,7 @@
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
-// @require      https://anemochore.github.io/imdbOnWatcha/parseSites.js
+// @require      https://anemochore.github.io/imdbOnWatcha/parseWP.js
 // @require      https://anemochore.github.io/imdbOnWatcha/utils.js
 // @require      https://anemochore.github.io/imdbOnWatcha/settings.js
 // @require      https://anemochore.github.io/imdbOnWatcha/fixes.js
