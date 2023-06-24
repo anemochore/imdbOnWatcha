@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.2
+// @version      0.6.3
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app_jw.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app_jw.js
 // @description  try to take over the world!
@@ -300,51 +300,26 @@ class FyGlobal {
     },
 
     'www.netflix.com': async (m, o) => {
-      fy.observer.disconnect();
+      //fy.observer.disconnect();
 
-      let largeDiv = fy.root.querySelector(fy.selectorsForLargeDiv.year);
-      if(largeDiv) {
-        //이미 페이지는 로딩된 상태. single-page는 대부분 이 경우일 것 같은데??
-        largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
-        if(largeDiv) {
+      if(location.search.startsWith('?jbv=') || location.pathname.startsWith('/title/')) {
+        //large-div or single-page
+        let largeDiv = fy.root.querySelector(fy.selectorsForLargeDiv.year);
+        if(!largeDiv)
+          await elementReady(fy.selectorsForLargeDiv.year, fy.root);
+
+        const realLargeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
+        if(realLargeDiv) {
           //업데이트를 안 했을 때만 업데이트
           const selectors = fy.selectorsForLargeDiv;
-          const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+          const baseEl = fy.getParentsFrom_(realLargeDiv, fy.numberToBaseEl);
           await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
+          await fy.largeDivUpdate(realLargeDiv);
         }
       }
-      /*
-      else if(document.location.pathname.startsWith('/title/')) {
-        //single-page에서 로딩이 안 됐다고?? 이 경우는 안 일어나는 것 같다...
-        await elementReady(fy.selectorsForLargeDiv.year, fy.root);
-        largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
-        console.debug('largeDiv after wait1', largeDiv);
-      }
-      */
-      else if(m) {
-        //large-div on list-items
-        if(m.filter(el => el.addedNodes).map(el => [...el.addedNodes]).flat().map(el => el.className).includes('match-score-wrapper')) {
-          const largeDiv2 = fy.root.querySelector(fy.selectorOnLargeDiv);  //assuming it exists
-          if(fy.observer2) {
-            fy.observer2.disconnect();
-            fy.observer2 = null;
-          }
-          console.debug('an additional observer added.');
-          fy.observer2 = new MutationObserver(fy.handler);
-          fy.observer2.observe(largeDiv2, {attributes: true});
-        }
-        else if(m.map(el => el.attributeName).includes('style')) {
-          fy.observer2.disconnect();
-          fy.observer2 = null;
-          largeDiv = await elementReady(fy.selectorOnLargeDiv, fy.root);
-          console.debug('the additional observer disconnecteded and large-div loaded');
-        }
-      }
-
-      if(largeDiv)
-        await fy.largeDivUpdate(largeDiv);
-      else
+      else {
         fy.handlerWrapUp(fy.selectorsForListItems);
+      }
     },
   };
 
@@ -438,6 +413,7 @@ class FyGlobal {
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = fy.getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
     const type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
+    console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
     trueData.type = type;
 
     let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
@@ -593,7 +569,7 @@ class FyGlobal {
         return;
       }
       else {
-        console.log(`jw  searching done (or passed): ${searchLength}`);
+        console.log(`jw searching done (or passed): ${searchLength}`);
       }
     }
 
@@ -691,8 +667,10 @@ class FyGlobal {
       }
 
       let rating = 'n/a', ratingCss = 'na';
-      if(otDatum.imdbRating == '??')
+      if(otDatum.imdbRating == '??') {
         rating = '??';  //possibly not yet updated
+        otDatum.imdbFlag = '';  //???? -> ??
+      }
       else if(fy.isValidRating_(otDatum.imdbRating)) {
         rating = parseFloat(otDatum.imdbRating);
         [...Array(10).keys()].reverse().some(n => {
@@ -734,10 +712,10 @@ class FyGlobal {
           try {
             e.target.removeEventListener('transitioncancel', onFinished);
             e.target.removeEventListener('transitionend', onFinished);
-            console.debug('removing listeners succeeded.');
+            console.debug('removing blink listeners succeeded.');
           }
           catch(e) {
-            console.debug('removing listeners failed:', e);
+            console.debug('removing blink listeners failed:', e);
           }
         }
       }
@@ -913,7 +891,7 @@ class FyGlobal {
       (rule?.determineSinglePageBy == true) ||
       (!rule.determinePathnameBy && baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
       isSinglePage = true;
-    console.debug('isSinglePage:', isSinglePage);
+    //console.debug('isSinglePage:', isSinglePage);
 
     let selectors = rule;
     if(!isSinglePage)

@@ -94,7 +94,7 @@ SETTINGS['www.netflix.com'] = {
     year: 'div.videoMetadata--second-line>div.year',
     isTVSeries: {
       selector: 'div.videoMetadata--second-line>span.duration',
-      contains: /시즌 \d+개/,
+      contains: /(시즌 \d+개|에피소드 \d+개)/,
     },
     targetEl: 'div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
   },
