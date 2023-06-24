@@ -227,25 +227,25 @@ class ParseWP {
         const oldTitle = orgTitle;
 
         let loadedInEnglish = true;
-        if(!targetDoc.documentElement.lang.startsWith('en')) {
-          console.debug(`wp loaded in not English when scraping: ${targetDoc.documentElement.lang}. exact match may not possible if the org. title is non-English: ${orgTitle}`);
-          loadedInEnglish = false;
-        }
+        if(!targetDoc.documentElement.lang.startsWith('en')) loadedInEnglish = false;
 
         //wp는 원제를 따로 표시한다. 근데 imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
         //출처: https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
-        const possibleRealOrgTitle = targetDoc.querySelector('div[class*="-Summary"]')?.firstChild.textContent;  //innerText 아님
+        const possibleRealOrgTitle = targetDoc.querySelector('div[data-rowindex="0"] h1+div').textContent;
         if(possibleRealOrgTitle && orgTitle != possibleRealOrgTitle) {
-          if(isAllLatinChars(possibleRealOrgTitle) || !loadedInEnglish)
-            orgTitle = possibleRealOrgTitle;
+          orgTitle = possibleRealOrgTitle;
 
-          function isAllLatinChars(str) {
-            //https://stackoverflow.com/a/32851131/6153990
-            return !/[^\u0000-\u00ff]/g.test(str);
+          if(!isAllLatinChars(orgTitle)) {
+            if(loadedInEnglish) {
+              orgTitle = oldTitle;
+            }
+            else {
+              console.warn(`when scraping, wp was loaded in non-English language (${targetDoc.documentElement.lang}) and org. title is non-English (${possibleRealOrgTitle}). exact match may not possible`);
+            }
           }
         }
 
-        const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.innerText == 'Series');
+        const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.innerText == 'Series' || '시리즈');
         if(seriesH2.length > 0)
           otData[i].type = 'TV Series';
 
@@ -256,14 +256,14 @@ class ParseWP {
           if(otData[i].type == 'TV Series') {
             let possibleSeason = oldTitle.match(/ Season ([0-9]+)$/);
             if((!possibleSeason && seriesH2.length == 0) || (possibleSeason && parseInt(possibleSeason[1]) == 1)) {
-              //'시즌 2' 식으로 안 끝나고 하단에 다른 시리즈 정보도 없다면, 혹은 시즌 1이라면.
+              //'시즌 2' 식으로 안 끝나고 다른 시리즈 정보도 없다면, 혹은 시즌 1이라면.
               toReSearch[i] = null;
               found = true;
             }
 
             if(!found) {
               const seriesSection = seriesH2[0].parentNode.parentNode.parentNode.parentNode;
-              const season1div = [...seriesSection.querySelectorAll('ul>li div[class*="StyledText"]')].filter(el => el.innerText.endsWith(' Season 1'));
+              const season1div = [...seriesSection.querySelectorAll('ul>li div[class*="StyledText"]')].filter(el => el.innerText.endsWith(' Season 1') || el.innerText.endsWith(' 1기'));
               if(season1div.length > 0) {
                 newId = fy.getIdFromValidUrl_(season1div[0].parentNode.parentNode.parentNode.href);
                 newUrl = fy.getUrlFromId_(newId);
@@ -300,8 +300,13 @@ class ParseWP {
         break;  //for while
 
       localResults = await fy.fetchAll(toReSearch), {
-        headers: {'Accept-Language': 'en-KR'},
+        headers: {'Accept-Language': 'en-KR'},  //not working
       };
     }  //of while
+
+    function isAllLatinChars(str) {
+      //https://stackoverflow.com/a/32851131/6153990
+      return !/[^\u0000-\u00ff]/g.test(str);
+    }
   }
 }

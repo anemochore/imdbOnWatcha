@@ -16,6 +16,8 @@ class ParseJW {
         return;  //continue
       }
 
+      const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
+      const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
       const movieString = 'movie', tvString = 'show';
 
       //to update cache
@@ -34,7 +36,7 @@ class ParseJW {
       let sImdbIds = result.map(el => el.external_ids.filter(el => el.provider == 'imdb')[0]?.external_id);
       let sOrgTitles = result.map(el => el.original_title);
 
-      //todo+++
+      //todo: being improved...
       let idx = -1, exactMatchCount = 0, possibleIdxWithSameDateOrType, possibleIdxWithCloseDate, closeDate = 9999, tokenCount = 0;
       sTitles.forEach((sTitle, j) => {
         if(sTitle) {
@@ -65,7 +67,7 @@ class ParseJW {
             }
           }
 
-          if(title.length > 3) {  //fuzzy matching
+          if(title.length > fuzzyThresholdLength) {  //fuzzy matching
             if(!found) {
               if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
                 found = true;
@@ -76,15 +78,10 @@ class ParseJW {
                 console.info(`colons were ignored for ${title} and ${sTitle}`);
               }
             }
-
-            if(!found) {
-              //todo: do fuzzysort
-              //https://github.com/farzher/fuzzysort
-            }
           }
 
           if(found) {
-            if(idx == -1) {
+            if(idx == -1 || !fy.isValidRating_(sRatings[idx])) {
               idx = j;
               otData[i].otFlag = '';
             }
@@ -94,26 +91,42 @@ class ParseJW {
       });
       const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
       if(exactMatchCount > 1) {
-        console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result: ${sTitles[idx]}`);
+        //검색 결과 많음
+        console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result with rating: ${sTitles[idx]} (${sYears[idx]})`);
         otData[i].otFlag = '?';
       }
       else if(idx == -1) {
-        //검색 결과 없음.
+        //검색 결과 없음
         if(possibleIdxWithCloseDate) {
           console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the closest date: ${sTitles[idx]}`);
           idx = possibleIdxWithCloseDate;
           otData[i].otFlag = '?';
         }
-        else if(possibleIdxWithSameDateOrType) {
-          idx = possibleIdxWithSameDateOrType;
-          console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the same date or type: ${sTitles[idx]}`);
-          otData[i].otFlag = '?';
-        }
         else {
-          idx = 0;
-          console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result: ${sTitles[idx]}`);
-          if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
-          else otData[i].otFlag = '??';
+          if(title.length > fuzzyThresholdLength) {
+            //https://github.com/farzher/fuzzysort
+            let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
+            if(first.length > 0) {
+              console.log(first);
+              first = first[0];
+              idx = sTitles.indexOf(first?.target);
+              console.warn(`no. exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
+            }
+          }
+
+          if(idx == -1) {
+            if(possibleIdxWithSameDateOrType) {
+              idx = possibleIdxWithSameDateOrType;
+              console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the same date or type: ${sTitles[idx]}`);
+              otData[i].otFlag = '?';
+            }
+            else {
+              idx = 0;
+              console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result: ${sTitles[idx]}`);
+              if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
+              else otData[i].otFlag = '??';
+            }
+          }
         }
       }
 

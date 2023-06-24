@@ -14,9 +14,11 @@
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
+// @require      https://anemochore.github.io/imdbOnWatcha/parseWP.js
 // @require      https://anemochore.github.io/imdbOnWatcha/utils.js
 // @require      https://anemochore.github.io/imdbOnWatcha/settings.js
 // @require      https://anemochore.github.io/imdbOnWatcha/fixes.js
+// @require      https://cdn.jsdelivr.net/npm/fuzzysort@2.0.4/fuzzysort.min.js
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
 // @grant        GM_setValue
@@ -24,6 +26,7 @@
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // @connect      apis.justwatch.com
+// @connect      pedia.watcha.com
 
 // ==/UserScript==
 
@@ -276,7 +279,7 @@ class FyGlobal {
         largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
       }
 
-      fy.largeDivUpdate(largeDivTargetEl);
+      await fy.largeDivUpdate(largeDivTargetEl);
     }
     else {
       fy.handlerWrapUp(fy.selectorsForListItems);
@@ -290,7 +293,7 @@ class FyGlobal {
 
       const largeDiv = document.querySelector(fy.selectorOnSinglePage);
       if(largeDiv)
-        fy.largeDivUpdate(largeDiv);
+        await fy.largeDivUpdate(largeDiv);
     },
 
     'www.netflix.com': async (m, o) => {
@@ -336,7 +339,7 @@ class FyGlobal {
       }
 
       if(largeDiv)
-        fy.largeDivUpdate(largeDiv);
+        await fy.largeDivUpdate(largeDiv);
       else
         fy.handlerWrapUp(fy.selectorsForListItems);
     },
@@ -356,15 +359,33 @@ class FyGlobal {
   };
 
   largeDivUpdates = {
-    'watcha.com': (largeDiv) => {
+    'watcha.com': async (largeDiv) => {
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
-      const id = fy.getIdFromValidUrl_((fy.getParentsFrom_(largeDiv, fy.selectorsForSinglePage.numberToBaseEl).querySelector(fy.selectorsForSinglePage.id) || document.location).href);
-      console.debug('id on largeDivUpdates', id);
+      const id = fy.getIdFromValidUrl_((fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.id) || document.location).href);
+      const title = fy.getTextFromNode_(fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
+      const type = fy.getTypeFromDiv_(selectors, fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl));
+      console.debug('id, title, type on largeDivUpdates', id, title, type);
+
       const url = fy.getUrlFromId_(id);
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, id, url});
+      toast.log(`scraping wp for org. title for ${title} (${id})...`);
+      const otScrapeResults = await fy.fetchAll([url], {
+        headers: {'Accept-Language': 'en-US'},
+      });
+
+      const watchaLargeOtData = [{
+        id: id,
+        otUrl: url,
+        type: type,
+      }];
+      await fy2.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, [title], true);
+      const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
+      console.log(`org. titles scraping done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
+
+      //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, type});
     },
 
     'm.kinolights.com': (largeDiv) => {
@@ -718,7 +739,7 @@ class FyGlobal {
       if(otDatum.otUrl)
         targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
 
-      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[WP]${flag}</span>`;
+      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
 
       if(otDatum.otUrl)
         targetInnerHtml += `</a>`;
