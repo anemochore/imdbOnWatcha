@@ -42,6 +42,7 @@ const GM_CACHE_KEY = 'OT_CACHE_WITH_IMDB_RATINGS';
 
 const UPDATE_INTERVAL_DAYS_ORG_TITLES = 30;  //in days
 const UPDATE_INTERVAL_DAYS_IMDB_VISITED = 7;  //in days
+const YEAR_DIFFERENCE_THRESHOLD = 5;  //if year difference is larger than this const, discard it.
 
 class FyGlobal {
 
@@ -370,7 +371,7 @@ class FyGlobal {
       const type = fy.getTypeFromDiv_(selectors, fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl));
       //console.debug('id, title, type on largeDivUpdates', id, title, type);
 
-      const url = fy.getUrlFromId_(id);
+      const url = 'https://pedia.watcha.com/en-US/contents/' + id;  //english page
 
       toast.log(`scraping wp for org. title, etc for ${title} (${id})...`);
       //연도를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
@@ -568,7 +569,7 @@ class FyGlobal {
     let searchLength = fy.setInternalCache_(titles, otData);
 
     if(searchLength == 0) {
-      console.log(`nothing to search or scrape on wp.`);
+      console.log(`nothing to search or scrape on jw.`);
       fy.searchWrapUp_(itemDivs, otData, trueData);
       return;
     }
@@ -584,10 +585,10 @@ class FyGlobal {
         page_size: 10,  //hard limit
       });
 
-      fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, qTitles);
+      fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
-        console.log(`jw searching result is empty.`);
+        console.log('jw searching result is empty.');
         fy.searchWrapUp_(itemDivs, otData, trueData);
         return;
       }
@@ -648,7 +649,7 @@ class FyGlobal {
     function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
       let numberToParent = fy.numberToBaseEl + 1;
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
-        numberToParent = selectors.numberToBaseEl;
+        numberToParent = selectors.numberToBaseEl || numberToParent;
 
       const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent);
       let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
@@ -882,16 +883,14 @@ class FyGlobal {
     return validUrl ? validUrl.split('/').pop().split('?')[0] : null;
   }
 
-  getUrlFromId_(id = null, targetSite = 'watcha.com') {
+  getImdbUrlFromId_(id, title) {
     let url = null;
+    if(id && id != 'n/a')
+      url = 'https://www.imdb.com/title/' + id;
+    else
+      url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(title);
 
-    if(id) {
-      if(targetSite == 'watcha.com')
-        url = 'https://pedia.watcha.com/en-KR/contents/' + id;  //english page
-      else if(targetSite == 'www.imdb.com')
-        url = 'https://www.imdb.com/title/' + id;
-    }
-    return url;  
+    return url;
   }
 
   isValidRating_(rating = 'n/a') {
@@ -921,24 +920,21 @@ class FyGlobal {
       selectors = fy.selectorsForListItems;
 
     const type = fy.getTypeFromDiv_(selectors, baseEl);
-    console.debug('type on edit():', type);
 
-    //search id and title
-    let id, url, title, otDatum;
-    id = fy.getIdFromValidUrl_(baseEl.querySelector(selectors.id)?.href);
+    //search title, etc
+    let url, title, otDatum;
 
     //캐시에 있다면 사용.
-    if(id)
-      otDatum = await fy.getObjFromWpId_(id);
-
     const titleEl = baseEl.querySelector(selectors.title);
     title = fy.getTextFromNode_(titleEl);
+    //console.debug('title, type, otDatum on edit():', title, type, otDatum);
     if(!otDatum)
       otDatum = otCache[title] || {};
 
     //search target el (fyItem. the last element)
     //console.debug('selectors.targetEl, baseEl', selectors.targetEl, baseEl);
     const targetEl = baseEl.querySelector(selectors.targetEl) || baseEl;
+    //console.debug('selectors.targetEl, baseEl, targetEl', selectors.targetEl, baseEl, targetEl);
 
     //get input
     let imdbId, imdbUrl;
@@ -951,7 +947,6 @@ class FyGlobal {
         return;
       }
       url = url.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
-      id = fy.getIdFromValidUrl_(url);
 
       if(url == otDatum.otUrl) {
         if(otDatum.otFlag != '') {
@@ -985,7 +980,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, id, url, type, imdbId, imdbUrl, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, url, type, imdbId, imdbUrl, forceUpdate: true, selectors});
   }
 
   xhrAbort() {

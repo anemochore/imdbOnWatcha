@@ -56,14 +56,14 @@ class ImdbRun {
 
           cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
           cache.imdbRating = 'n/a';
-          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle);
+          cache.imdbUrl = getImdbUrlFromId_(null, orgTitle);
         }
         else if(Math.abs(parseInt(cache.year) - trueYear) > 1) {
           toast.log('year on imdb is ' + trueYear + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
 
           cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
           cache.imdbRating = 'n/a';
-          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle);
+          cache.imdbUrl = getImdbUrlFromId_(null, orgTitle);
         }
         else {
           if(cache.imdbUrl.startsWith('https://www.imdb.com/find?') || cache.imdbFlag == '??') {
@@ -73,11 +73,17 @@ class ImdbRun {
             cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
             cache.year = trueYear;
           }
-          else
-            toast.log('rating (only) for '+orgTitle+' ('+cache.year+') was successfully updated and/or flag was unset on the cache.');
-
-          cache.imdbRating = imdbRating;
+          else {
+            if(cache.imdbRating != imdbRating) {
+              toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+cache.year+').');
+              cache.imdbRating = imdbRating;
+            }
+            else {
+              toast.log('imdb rating on cache was confirmed for '+orgTitle+' ('+cache.year+').');
+            }
+          }
         }
+        console.log('imdb flag was reset.')
         cache.imdbFlag = '';
       }
       else if(imdbRating != cache.imdbRating) {
@@ -96,7 +102,7 @@ class ImdbRun {
           cache.imdbRating = imdbRating;
         }
       }
-      else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) < 5) {
+      else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) <= YEAR_DIFFERENCE_THRESHOLD) {
         toast.log('rating is the same, but the year on imdb is ' + trueYear + ', which slightly differs from ' + cache.year + ' on cache. other cache data looks healthy, so updating the year only.');
 
         cache.year = trueYear;
