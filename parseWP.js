@@ -1,6 +1,7 @@
 class ParseWP {
   //parsing and scraping funcs
   async parseWpSearchResults_(results, otData, trueData, titles, needsEngSearch = false) {
+    //is this func still working...??? i don't know! (23-6-24)
     for await(const [i, result] of results.entries()) {
       const title = titles[i];
       if(!result) {
@@ -222,6 +223,11 @@ class ParseWP {
 
         let targetDoc = new DOMParser().parseFromString(result, 'text/html');
 
+        //to make selecting easier
+        [...targetDoc.querySelectorAll('style[data-emotion-css]')].forEach(el => {
+          el.remove();
+        });
+
         let [orgTitle, tempYear] = targetDoc.title
         .replace(/ - Watcha Pedia$/, '').replace(/ - 왓챠피디아$/, '').replace(/\)$/, '').split(' (');
         const oldTitle = orgTitle;
@@ -230,8 +236,8 @@ class ParseWP {
         if(!targetDoc.documentElement.lang.startsWith('en')) loadedInEnglish = false;
 
         //wp는 원제를 따로 표시한다. 근데 imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
-        //출처: https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
-        const possibleRealOrgTitle = targetDoc.querySelector('div[data-rowindex="0"] h1+div').textContent;
+        //https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
+        const possibleRealOrgTitle = targetDoc.querySelector('div[data-rowindex="0"] h1+div')?.textContent;
         if(possibleRealOrgTitle && orgTitle != possibleRealOrgTitle) {
           orgTitle = possibleRealOrgTitle;
 
@@ -240,12 +246,12 @@ class ParseWP {
               orgTitle = oldTitle;
             }
             else {
-              console.warn(`when scraping, wp was loaded in non-English language (${targetDoc.documentElement.lang}) and org. title is non-English (${possibleRealOrgTitle}). exact match may not possible`);
+              console.warn(`when scraping, wp was loaded in non-English language and org. title is non-English (${possibleRealOrgTitle}). exact match may not possible`);
             }
           }
         }
 
-        const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.innerText == 'Series' || '시리즈');
+        const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.innerText == 'Series' || el.innerText == '시리즈');
         if(seriesH2.length > 0)
           otData[i].type = 'TV Series';
 

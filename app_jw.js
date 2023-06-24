@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.0
+// @version      0.6.2
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app_jw.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app_jw.js
 // @description  try to take over the world!
@@ -15,6 +15,7 @@
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
 // @require      https://anemochore.github.io/imdbOnWatcha/parseWP.js
+// @require      https://anemochore.github.io/imdbOnWatcha/imdbRun.js
 // @require      https://anemochore.github.io/imdbOnWatcha/utils.js
 // @require      https://anemochore.github.io/imdbOnWatcha/settings.js
 // @require      https://anemochore.github.io/imdbOnWatcha/fixes.js
@@ -66,9 +67,13 @@ class FyGlobal {
       fy.locale = fy.locale + '_' + fy.country;
 
 
-    //imdb 접속 시 캐시 업데이트
+    //for this.edit(), etc
+    unsafeWindow.GM_getValue = GM_getValue;
+    unsafeWindow.GM_setValue = GM_setValue;
+
+      //imdb 접속 시 캐시 업데이트
     if(fy.site == 'www.imdb.com') {
-      fy.imdbRun();
+      fyImdbRun.imdbRun();
       return;
     }
 
@@ -100,9 +105,6 @@ class FyGlobal {
     this.isFetching = false;
     this.indexCaches = [];
     this.keyCaches = [];
-
-    //for this.edit()
-    unsafeWindow.GM_getValue = GM_getValue;
 
     //캐시 없으면 생성
     const tempCache = await GM_getValue(GM_CACHE_KEY);
@@ -366,11 +368,12 @@ class FyGlobal {
       const id = fy.getIdFromValidUrl_((fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.id) || document.location).href);
       const title = fy.getTextFromNode_(fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
       const type = fy.getTypeFromDiv_(selectors, fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl));
-      console.debug('id, title, type on largeDivUpdates', id, title, type);
+      //console.debug('id, title, type on largeDivUpdates', id, title, type);
 
       const url = fy.getUrlFromId_(id);
 
-      toast.log(`scraping wp for org. title for ${title} (${id})...`);
+      toast.log(`scraping wp for org. title, etc for ${title} (${id})...`);
+      //연도를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
       const otScrapeResults = await fy.fetchAll([url], {
         headers: {'Accept-Language': 'en-US'},
       });
@@ -380,9 +383,9 @@ class FyGlobal {
         otUrl: url,
         type: type,
       }];
-      await fy2.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, [title], true);
+      await fyWP.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, [title], type != 'Movie');
       const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
-      console.log(`org. titles scraping done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
+      console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
       //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, type});
@@ -571,24 +574,25 @@ class FyGlobal {
     }
     else if(!trueData.id) {
       //업데이트
-      toast.log('searching org. titles...');
+      toast.log('getting infos from jw...');
 
       const URL = `https://apis.justwatch.com/content/titles/${fy.locale}/popular`;
       const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
       const urls = qTitles.map(title => title ? URL: null)
       const otSearchResults = await fy.fetchAll(urls, {}, qTitles, {
         fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
+        page_size: 10,  //hard limit
       });
 
-      fy2.parseJwSearchResults_(otSearchResults, otData, trueData, qTitles);
+      fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, qTitles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
-        console.log(`org.(eng.) titles searching result is empty.`);
+        console.log(`jw searching result is empty.`);
         fy.searchWrapUp_(itemDivs, otData, trueData);
         return;
       }
       else {
-        console.log(`org.(eng.) titles searching done (or passed): ${searchLength}`);
+        console.log(`jw  searching done (or passed): ${searchLength}`);
       }
     }
 
@@ -603,6 +607,143 @@ class FyGlobal {
     fy.updateDivs(itemDivs, otData, trueData.selectors);
   }
 
+  updateDivs(itemDivs, otData, selectors = {}) {
+    itemDivs.forEach((item, i) => {
+      updateDiv_(item, otData[i], itemDivs.length, selectors);
+    });
+    toast.log(itemDivs.length + ' divs updated!');
+
+    //캐시 반영
+    setGMCache_(GM_CACHE_KEY, otData);
+
+    //wrap up
+    toast.log();
+    if(!fy.preventMultipleUrlChanges)
+      fy.observer.observe(fy.root, fy.observerOption);
+
+    //end of flow
+
+
+    async function setGMCache_(GMKey, array) {
+      //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
+      //다른 비동기 호출이 실행 도중일 수도 있으므로... really??
+
+      //array to obj
+      const obj = {};
+      array.forEach((el, i) => {
+        const title = el.query;
+        if(title) {
+          delete el.query;
+          obj[title] = el;
+        }
+      });
+
+      const targetObj = await GM_getValue(GMKey);
+      Object.assign(targetObj, obj);
+      await GM_setValue(GMKey, targetObj);
+      if(Object.keys(obj).length > 0)
+        console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
+    }
+
+    function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
+      let numberToParent = fy.numberToBaseEl + 1;
+      if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
+        numberToParent = selectors.numberToBaseEl;
+
+      const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent);
+      let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
+
+      if(!div) {
+        console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
+        return;
+      }
+      else if(otDatum.otFlag == '???') {
+        return;
+      }
+
+      let flag = otDatum.otFlag || '';
+      let year = otDatum.year || '';
+      let targetInnerHtml = '';
+
+      if(otDatum.otUrl)
+        targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
+
+      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
+
+      if(otDatum.otUrl)
+        targetInnerHtml += `</a>`;
+
+      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+
+      let label = 'n/a';
+      if(otDatum.imdbRatingFetchedDate) {
+        let yourDate = new Date(otDatum.imdbRatingFetchedDate);
+        if(isNaN(yourDate)) {
+          otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
+          console.debug('fixed invalid fetched-date in cache for ' + otDatum.orgTitle);
+        }
+        else {
+          const offset = yourDate.getTimezoneOffset();
+          yourDate = new Date(yourDate.getTime() - (offset*60*1000));
+          label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
+        }
+      }
+
+      let rating = 'n/a', ratingCss = 'na';
+      if(otDatum.imdbRating == '??')
+        rating = '??';  //possibly not yet updated
+      else if(fy.isValidRating_(otDatum.imdbRating)) {
+        rating = parseFloat(otDatum.imdbRating);
+        [...Array(10).keys()].reverse().some(n => {
+          //[9, 8, 7, ..., 2, 1, 0]
+          if(rating > n) {
+            ratingCss = n;
+            return true;
+          }
+        });
+        rating = rating.toFixed(1);
+      }
+
+      flag = otDatum.imdbFlag || '';
+      if(otDatum.imdbUrl)
+        targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
+
+      targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
+
+      if(otDatum.imdbUrl)
+        targetInnerHtml += `</a>`;
+
+      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
+
+      //let users know it's changed
+      if(div.innerText != '' && div.innerText != targetInnerHtml && totalNumber == 1) {
+        letItBlink(div);
+        //console.debug(div, 're-updated!');
+
+        function letItBlink(styleEl) {
+          styleEl.style.background = 'green';
+          styleEl.style.transitionDuration = '2s';
+          styleEl.addEventListener('transitioncancel', onFinished);
+          styleEl.addEventListener('transitionend', onFinished);
+        }
+
+        function onFinished(e) {
+          e.target.style.transitionDuration = '0s';
+          e.target.style.background = '';
+          try {
+            e.target.removeEventListener('transitioncancel', onFinished);
+            e.target.removeEventListener('transitionend', onFinished);
+            console.debug('removing listeners succeeded.');
+          }
+          catch(e) {
+            console.debug('removing listeners failed:', e);
+          }
+        }
+      }
+
+      div.innerHTML = targetInnerHtml;
+    }
+  }
 
   //other utils...
   useCacheIfAvailable_(value, cache, trueData = {}) {
@@ -675,143 +816,6 @@ class FyGlobal {
 
   getCleanTokens(title) {
     return title.replace(/[:-]/g, '').split(' ').filter(el => el);
-  }
-
-  updateDivs(itemDivs, otData, selectors = {}) {
-    //toast.log('updating divs...');
-    itemDivs.forEach((item, i) => {
-      updateDiv_(item, otData[i], itemDivs.length, selectors);
-    });
-    toast.log(itemDivs.length + ' divs updated!');
-
-    //캐시 반영
-    setGMCache_(GM_CACHE_KEY, otData);
-
-    //wrap up
-    toast.log();
-    if(!fy.preventMultipleUrlChanges)
-      fy.observer.observe(fy.root, fy.observerOption);
-
-    //end of flow
-
-
-    async function setGMCache_(GMKey, array) {
-      //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
-      //다른 비동기 호출이 실행 도중일 수도 있으므로... really??
-
-      //array to obj
-      const obj = {};
-      array.forEach((el, i) => {
-        const title = el.query;
-        if(title) {
-          delete el.query;
-          obj[title] = el;
-        }
-      });
-
-      const targetObj = await GM_getValue(GMKey);
-      Object.assign(targetObj, obj);
-      await GM_setValue(GMKey, targetObj);
-      if(Object.keys(obj).length > 0)
-        console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
-    }
-
-    function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
-      let numberToParent = fy.numberToBaseEl;
-      if(!isNaN(numberToParent) && selectors.determineSinglePageBy)
-        numberToParent++;
-
-      const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent)
-      let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
-
-      if(!div) {
-        console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
-        return;
-      }
-      else if(otDatum.otFlag == '???') {
-        return;
-      }
-
-      let flag = otDatum.otFlag || '';
-      let year = otDatum.year || '';
-      let targetInnerHtml = '';
-
-      if(otDatum.otUrl)
-        targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
-
-      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
-
-      if(otDatum.otUrl)
-        targetInnerHtml += `</a>`;
-
-      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
-
-      let label = 'n/a';
-      if(otDatum.imdbRatingFetchedDate) {
-        let yourDate = new Date(otDatum.imdbRatingFetchedDate);
-        if(isNaN(yourDate)) {
-          otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
-          console.debug('fixed invalid fetched-date in cache for ' + otDatum.orgTitle);
-        }
-        else {
-          const offset = yourDate.getTimezoneOffset();
-          yourDate = new Date(yourDate.getTime() - (offset*60*1000));
-          label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
-        }
-      }
-
-      let rating = 'n/a', ratingCss = 'na';
-      if(fy.isValidRating_(otDatum.imdbRating)) {
-        rating = parseFloat(otDatum.imdbRating);
-        [...Array(10).keys()].reverse().some(n => {
-          //[9, 8, 7, ..., 2, 1, 0]
-          if(rating > n) {
-            ratingCss = n;
-            return true;
-          }
-        });
-        rating = rating.toFixed(1);
-      }
-
-      flag = otDatum.imdbFlag || '';
-      if(otDatum.imdbUrl)
-        targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
-
-      targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
-
-      if(otDatum.imdbUrl)
-        targetInnerHtml += `</a>`;
-
-      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
-
-      //let users know it's changed
-      if(div.innerText != '' && div.innerText != targetInnerHtml && totalNumber == 1) {
-        letItBlink(div);
-        //console.debug(div, 're-updated!');
-
-        function letItBlink(styleEl) {
-          styleEl.style.background = 'green';
-          styleEl.style.transitionDuration = '2s';
-          styleEl.addEventListener('transitioncancel', onFinished);
-          styleEl.addEventListener('transitionend', onFinished);
-        }
-
-        function onFinished(e) {
-          e.target.style.transitionDuration = '0s';
-          e.target.style.background = '';
-          try {
-            e.target.removeEventListener('transitioncancel', onFinished);
-            e.target.removeEventListener('transitionend', onFinished);
-            console.debug('removing listeners succeeded.');
-          }
-          catch(e) {
-            console.debug('removing listeners failed:', e);
-          }
-        }
-      }
-
-      div.innerHTML = targetInnerHtml;
-    }
   }
 
 
@@ -896,131 +900,6 @@ class FyGlobal {
 
 
   ////other publics
-  async imdbRun() {
-    const otCache = await GM_getValue(GM_CACHE_KEY);
-
-    const path = document.location.pathname.replace(/\/$/, '');
-    if(!path.startsWith('/title/') || path.endsWith('/episodes') || path.split('/').length > 3) {
-      toast.log();
-      return;
-    }
-
-    const imdbId = path.split('/')[2];
-
-    const json = document.querySelector('script#__NEXT_DATA__')?.text;
-    let imdbData;
-    if(json)
-      imdbData = JSON.parse(document.querySelector('script#__NEXT_DATA__').text).props.pageProps.aboveTheFoldData;
-
-    let imdbRating = imdbData.ratingsSummary.aggregateRating;
-    if(!fy.isValidRating_(imdbRating))
-      imdbRating = 'n/a';
-
-    const trueOrgTitle = imdbData.originalTitleText.text;
-    const trueYear = imdbData.releaseYear.year;
-    const trueType = imdbData.titleType.text;
-    console.info('trueOrgTitle, trueYear, trueType', trueOrgTitle, trueYear, trueType);
-
-    const keys = Object.keys(otCache);
-    const values = Object.values(otCache);
-    const ids = values.map(el => el.imdbId);
-    const orgTitles = values.map(el => el.orgTitle);
-    const years = values.map(el => el.year);
-    //const flags = values.map(el => el.imdbFlag);
-
-    let idx = -1;
-    if(imdbId && ids.includes(imdbId)) {
-      idx = ids.indexOf(imdbId);
-    }
-    else {
-      idx = orgTitles.indexOf(trueOrgTitle);
-
-      //console.log(orgTitles[idx], years[idx]);
-      if(!(idx > -1 && years[idx] == trueYear))  //if not exact match
-        idx = -1;
-    }
-
-    if(idx > -1) {
-      let cache = otCache[keys[idx]];
-      let cacheFlag = cache.imdbFlag;
-
-      if(cache.imdbFlag != '') {
-        if(fy.isValidRating_(cache.imdbRating) && !fy.isValidRating_(imdbRating)) {
-          toast.log('warning: cache rating is valid but imdb rating is n/a. so deleting the cache which is probably wrong!');
-
-          cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
-          cache.imdbRating = 'n/a';
-          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
-        }
-        else if(Math.abs(parseInt(cache.year) - trueYear) > 1) {
-          toast.log('year on imdb is ' + trueYear + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
-
-          cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
-          cache.imdbRating = 'n/a';
-          cache.imdbUrl = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitles[idx]);
-        }
-        else {
-          if(cache.imdbUrl.startsWith('https://www.imdb.com/find?') || cache.imdbFlag == '??') {
-            toast.log('updated the whole imdb data on cache (id was not set or flag is ??) for '+trueOrgTitle+' ('+trueYear+').');
-
-            cache.imdbId = imdbId;
-            cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
-            cache.year = trueYear;
-          }
-          else
-            toast.log('rating (only) for '+trueOrgTitle+' ('+cache.year+') was successfully updated and/or flag was unset on the cache.');
-
-          cache.imdbRating = imdbRating;
-        }
-        cache.imdbFlag = '';
-      }
-      else if(imdbRating != cache.imdbRating) {
-        if(cache.imdbRating == 'n/a') {
-          toast.log('updated the whole imdb data on cache (flag was not set) for '+trueOrgTitle+' ('+trueYear+').');
-
-          cache.imdbId = imdbId;
-          cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
-          cache.year = trueYear;
-
-          cache.imdbRating = imdbRating;
-        }
-        else if(imdbRating != 'n/a') {
-          toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+trueOrgTitle+' ('+cache.year+').');
-
-          cache.imdbRating = imdbRating;
-        }
-      }
-      else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) < 5) {
-        toast.log('rating is the same, but the year on imdb is ' + trueYear + ', which slightly differs from ' + cache.year + ' on cache. other cache data looks healthy, so updating the year only.');
-
-        cache.year = trueYear;
-      }
-      else {
-        toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
-      }
-
-      //구 버전과의 호환성을 위해
-      if(cache?.type != trueType)
-        cache.type = trueType;
-        
-      if(cache.imdbFlag == '' && cache.orgTitle != trueOrgTitle) {  //flag가 없는데 제목이 다르다면
-        console.log(`title fixed: ${cache.orgTitle} -> ${trueOrgTitle}`);
-        cache.orgTitle = trueOrgTitle;
-      }
-
-      //wrap-up
-      cache.imdbRatingFetchedDate = new Date().toISOString();
-      cache.imdbVisitedDate = new Date().toISOString();
-      otCache[keys[idx]] = cache;
-      await GM_setValue(GM_CACHE_KEY, otCache);
-    }
-    else {
-      toast.log('this title is not yet stored on the cache.');
-    }
-
-    toast.log();
-  }
-
   async edit(el, onSite) {
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
@@ -1042,7 +921,7 @@ class FyGlobal {
       selectors = fy.selectorsForListItems;
 
     const type = fy.getTypeFromDiv_(selectors, baseEl);
-    //console.debug('type:', type);
+    console.debug('type on edit():', type);
 
     //search id and title
     let id, url, title, otDatum;
@@ -1064,19 +943,19 @@ class FyGlobal {
     //get input
     let imdbId, imdbUrl;
     if(onSite == 'ot') {
-      url = prompt("Enter proper Watcha Pedia url: ", otDatum.otUrl);
+      url = prompt("Enter proper JustWatch url: ", otDatum.otUrl);
       if(!url)
         return;
-      else if(!url.startsWith('https://pedia.watcha.com/')) {
+      else if(!url.startsWith('https://www.justwatch.com/')) {
         alert('Not a valid Watcha Pedia url. it should be "https://pedia.watcha.com/en-KR/contents/WP_CODE" format!');
         return;
       }
-      url = url.trim().replace('/ko-KR/', '/en-KR/').replace(/\/\?.*$/, '').replace(/\/$/, '');
+      url = url.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
       id = fy.getIdFromValidUrl_(url);
 
       if(url == otDatum.otUrl) {
         if(otDatum.otFlag != '') {
-          toast.log('WP flag was reset (WP url is confirmed).');
+          toast.log('JW flag was reset (JW url is confirmed).');
           otDatum.otFlag = '';
         }
         else
@@ -1191,5 +1070,7 @@ class FyGlobal {
 
 //first init and run
 unsafeWindow.fy = new FyGlobal();
-unsafeWindow.fy2 = new ParseJW();
+unsafeWindow.fyWP = new ParseWP();
+unsafeWindow.fyJW = new ParseJW();
+unsafeWindow.fyImdbRun = new ImdbRun();
 fy.run();

@@ -4,7 +4,7 @@ class ParseJW {
     results.forEach((r, i) => {
       const result = r?.items;
       const title = qTitles[i];
-      console.debug('title, result', title, result);  //dev+++
+      //console.debug('title, result', title, result);  //dev+++
       if(!title)
         return;  //continue
 
@@ -23,6 +23,7 @@ class ParseJW {
       //to update cache
       otData[i].query = title;
 
+      const trueOrgTitle = trueData.orgTitle || otData[i].orgTitle;  //watcha large-div 같은 경우
       const trueType = trueData.type || otData[i].type;
       const trueYear = trueData.year || otData[i].year;
 
@@ -37,19 +38,20 @@ class ParseJW {
       let sOrgTitles = result.map(el => el.original_title);
 
       //todo: being improved...
-      let idx = -1, exactMatchCount = 0, possibleIdxWithSameDateOrType, possibleIdxWithCloseDate, closeDate = 9999, tokenCount = 0;
+      let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType, possibleIdxWithCloseDate, closeDate = 9999, tokenCount = 0;
       sTitles.forEach((sTitle, j) => {
         if(sTitle) {
+          const sOrgTitle = sOrgTitles[j];
           let found = false;
           if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
-            //TV물이면(혹은 type을 아예 모르면) 제목이 일치해야 함(시즌 무시. 연도 무시)
-            if(sTitle == title) {
+            //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
+            if(title == sTitle || sOrgTitle == trueOrgTitle) {
               found = true;
             }
           }
           else {
-            if(sTitle == title) {
-              //TV물이 아니면 제목이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
+            if(sTitle == title || sOrgTitle == trueOrgTitle) {
+              //TV물이 아니면 제목(원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
               found = true;
               if(trueYear && trueYear != sYears[j]) {
                 found = false;
@@ -62,8 +64,8 @@ class ParseJW {
             }
             else if(trueYear == sYears[j] || trueType == sTypes[j]) {
               //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
-              if(!possibleIdxWithSameDateOrType)
-                possibleIdxWithSameDateOrType = j;
+              if(!maybeIdxWithSameDateOrType)
+                maybeIdxWithSameDateOrType = j;
             }
           }
 
@@ -110,13 +112,18 @@ class ParseJW {
               console.log(first);
               first = first[0];
               idx = sTitles.indexOf(first?.target);
-              console.warn(`no. exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
+              console.warn(`no exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
+            }
+            else {
+              console.info('fuzzysort epic failed for', title);
+              //검색 결과가 너무나 무관하면 같은 날짜나 타입도 안 쓴다.
+              maybeIdxWithSameDateOrType = null;  
             }
           }
 
           if(idx == -1) {
-            if(possibleIdxWithSameDateOrType) {
-              idx = possibleIdxWithSameDateOrType;
+            if(maybeIdxWithSameDateOrType) {
+              idx = maybeIdxWithSameDateOrType;
               console.warn(`${titleForWarning} seems not found on wp among many (or one). so just taking the first result with the same date or type: ${sTitles[idx]}`);
               otData[i].otFlag = '?';
             }
@@ -135,7 +142,7 @@ class ParseJW {
       otData[i].otUrl = sUrls[idx];
       otData[i].type = sTypes[idx];
       otData[i].year = sYears[idx];
-      otData[i].imdbRating = sRatings[idx];
+      otData[i].imdbRating = sRatings[idx] || '??';
       otData[i].imdbId = sImdbIds[idx];
       otData[i].orgTitle = sOrgTitles[idx];
 

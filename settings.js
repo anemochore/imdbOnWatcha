@@ -33,8 +33,8 @@ SETTINGS['watcha.com'] = {
       selector: 'h1+p>span',
       contains: /시즌 \d+개/,
     },
-    targetEl: 'section>div>h1',  //this should not be omitted.
-    numberToBaseEl: 3,  //this is not used when edit
+    targetEl: 'section>div>h1',  //this should not be omitted. used in edit()
+    numberToBaseEl: 2,  //this is not used when edit()
     //if id is not provided, use document url instead
     //id: 'a[href^="/watch/"]',  //this is not used when edit
   },

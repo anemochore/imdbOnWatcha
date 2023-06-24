@@ -308,3 +308,5 @@
     //    internal: removed temp log
     // ver 0.5.0 @ 2023-6-23
     //    internal: split files
+    // ver 0.6.2 @ 2023-6-24
+    //    now use justwatch instead of watcha pedia
