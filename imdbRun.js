@@ -17,14 +17,14 @@ class ImdbRun {
     else
       return;
 
-    let imdbRating = imdbData.ratingsSummary.aggregateRating;
+    let imdbRating = imdbData.ratingsSummary?.aggregateRating;
     if(!fy.isValidRating_(imdbRating))
       imdbRating = 'n/a';
 
     const trueOrgTitle = imdbData.originalTitleText.text;
     const trueYear = imdbData.releaseYear.year;
     const trueType = imdbData.titleType.text;
-    console.info('trueOrgTitle, trueYear, trueType', trueOrgTitle, trueYear, trueType);
+    console.debug('trueOrgTitle, trueYear, trueType, imdbRating', trueOrgTitle, trueYear, trueType, imdbRating);
 
     const keys = Object.keys(otCache);
     const values = Object.values(otCache);

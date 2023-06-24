@@ -413,7 +413,7 @@ class FyGlobal {
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = fy.getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
     const type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
-    console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
+    //console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
     trueData.type = type;
 
     let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
