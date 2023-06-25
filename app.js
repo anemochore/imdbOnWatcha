@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.6
+// @version      0.6.7
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -622,7 +622,7 @@ class FyGlobal {
     }
 
     function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
-      let numberToParent = fy.numberToBaseEl + 1;
+      let numberToParent = fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
         numberToParent = selectors.numberToBaseEl || numberToParent;
 
