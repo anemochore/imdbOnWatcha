@@ -109,6 +109,7 @@ SETTINGS['www.wavve.com'] = {
   selector: 'div.wrap>ul>li>div.portrait:not(['+FY_UNIQ_STRING+'])>a.con-text-wrap, ' + //my/like_movie
   'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
   //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
+  numberToBaseElWhenUpdating: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
 
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching

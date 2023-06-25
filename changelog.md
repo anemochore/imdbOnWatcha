@@ -311,6 +311,7 @@
     // ver 0.6.4 @ 2023-6-24
     //    now use justwatch instead of watcha pedia
     //    netflix: refactored large-div(single-page) logic
-    // ver 0.6.6 @ 2023-6-25
+    // ver 0.6.7 @ 2023-6-25
     //    netflix: refactored large-div(single-page) logic again
     //    jw: improved searching logic
+    //    wavve: fixed not displaying all fy-item divs
