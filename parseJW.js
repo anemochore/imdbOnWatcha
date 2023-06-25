@@ -82,8 +82,8 @@ class ParseJW {
               }
             }
 
-            if(title.length > fuzzyThresholdLength) {  //manual fuzzy matching
-              if(!found && possibleIdxWithCloseDate == -1) {
+            if(!found && trueType != 'TV Series' && possibleIdxWithCloseDate == -1) {
+              if(title.length > fuzzyThresholdLength) {  //manual fuzzy matching (tv 시리즈는 X)
                 if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
                   found = true;
                   console.info(`spaces were ignored for ${title} and ${sTitle}`);
@@ -105,8 +105,8 @@ class ParseJW {
           }
         });
 
+        console.debug('exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
-        //if(maybeIdxWithSameDateOrType > -1) {
         if(exactMatchCount > 1) {
           //검색 결과 많음
           if(possibleIdxWithCloseDate > -1) {

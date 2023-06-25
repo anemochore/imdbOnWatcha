@@ -2,8 +2,8 @@
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
 // @version      0.6.3
-// @updateURL    https://anemochore.github.io/imdbOnWatcha/app_jw.js
-// @downloadURL  https://anemochore.github.io/imdbOnWatcha/app_jw.js
+// @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
+// @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
 // @match        https://watcha.com/*
@@ -82,7 +82,6 @@ class FyGlobal {
       return;
 
     toast.log('fy script started.');
-    //this.started = true;
 
     //load setting
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
@@ -302,20 +301,20 @@ class FyGlobal {
     'www.netflix.com': async (m, o) => {
       //fy.observer.disconnect();
 
-      if(location.search.startsWith('?jbv=') || location.pathname.startsWith('/title/')) {
+      if(location.search.includes('?jbv=') || location.pathname.startsWith('/title/')) {
         //large-div or single-page
-        let largeDiv = fy.root.querySelector(fy.selectorsForLargeDiv.year);
+        let largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
         if(!largeDiv)
-          await elementReady(fy.selectorsForLargeDiv.year, fy.root);
+          largeDiv = await elementReady(fy.selectorOnLargeDiv, fy.root);
 
-        const realLargeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
-        if(realLargeDiv) {
-          //업데이트를 안 했을 때만 업데이트
-          const selectors = fy.selectorsForLargeDiv;
-          const baseEl = fy.getParentsFrom_(realLargeDiv, fy.numberToBaseEl);
-          await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
-          await fy.largeDivUpdate(realLargeDiv);
-        }
+        //wait for lazy loading
+        await elementReady(fy.selectorsForLargeDiv.year, fy.root);
+
+        //업데이트를 안 했을 때만 업데이트
+        const selectors = fy.selectorsForLargeDiv;
+        const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+        await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
+        await fy.largeDivUpdate(largeDiv);
       }
       else {
         fy.handlerWrapUp(fy.selectorsForListItems);
@@ -841,8 +840,13 @@ class FyGlobal {
     if(isNaN(numberOrRoot))
       div = document.documentElement;
     else
-      for(let i = 0; i < numberOrRoot; i++)
+      for(let i = 0; i < numberOrRoot; i++) {
+        if(!div) {
+          console.warn(`did not reched the number of numberOrRoot: ${i}/${numberOrRoot}!`);
+          break;
+        }
         div = div.parentNode;
+      }
 
     return div;
   }

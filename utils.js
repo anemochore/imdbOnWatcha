@@ -40,6 +40,10 @@ function elementReady(selector, baseEl, countEmpty = true) {
     if (!baseEl)
       baseEl = document.documentElement;
 
+    let els = [...baseEl.querySelectorAll(selector)];
+    if(els.length > 0)
+      resolve(els[els.length-1]);
+
     new MutationObserver(async (m, o) => {
       let els = [...baseEl.querySelectorAll(selector)];
       if (els.length > 0) {
