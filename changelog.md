@@ -315,3 +315,9 @@
     //    netflix: refactored large-div(single-page) logic again
     //    jw: improved searching logic
     //    wavve: fixed not displaying all fy-item divs
+    // ver 0.6.10 @ 2023-6-30
+    //    improved searching logic (trigger)
+    //    wavve: suuport upper parts of /my page
+    //    disney+: fix not working bug...
+    //    TODO: add netflix and disneyplus main page
+    //    KNOWN PROBLEM: wavve: clicking fy-item triggers click on underlying div

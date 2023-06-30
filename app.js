@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.7
+// @version      0.6.10
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -275,7 +275,7 @@ class FyGlobal {
         return;
       }
 
-      const largeDivTargetEl = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
+      let largeDivTargetEl = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
       if(!largeDivTargetEl) {
         console.info('waiting for large-div...');
         largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
@@ -399,13 +399,28 @@ class FyGlobal {
       const titleEl = await elementReady(selectors.title, largeDiv, false);
       const title = fy.getTextFromNode_(titleEl);
 
-      const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0].innerText.split(':').pop().trim();
+      const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
+      document.querySelector('table.detail-info-table>tr>th+td')?.innerText.split(',').pop().split('~')[0].trim();  //large-div
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, year});
     },
 
     'www.disneyplus.com': (largeDiv) => {
-      //todo+++
+      //const selectors = fy.selectorsForLargeDiv;
+
+      //제목, 타입 등 여기서 처리하는 게 더 편해서...
+      const title = document.head.querySelector('title').textContent.replace(' | 디즈니+', '');
+      const metaSelector = 'script[type="application/ld+json"]';
+      const metaEl = document.head.querySelector(metaSelector);
+      const meta = JSON.parse(metaEl.textContent);
+
+      let type = meta['@type'];
+      if(type == 'WebSite')  //왜 website???
+        type =  'TV Series';
+
+      const year = null;  //todo
+
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, type, year});
     }
   };
 
@@ -628,6 +643,7 @@ class FyGlobal {
 
       const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent);
       let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
+      //console.debug('baseEl, div on update', baseEl, div)
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
@@ -649,7 +665,7 @@ class FyGlobal {
       if(otDatum.otUrl)
         targetInnerHtml += `</a>`;
 
-      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'ot')" class="fy-edit">edit</a> `;
+      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(event, 'ot')" class="fy-edit">edit</a> `;
 
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
@@ -691,7 +707,7 @@ class FyGlobal {
       if(otDatum.imdbUrl)
         targetInnerHtml += `</a>`;
 
-      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(this, 'imdb')" class="fy-edit">edit</a> `;
+      targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(event, 'imdb')" class="fy-edit">edit</a> `;
 
       //let users know it's changed
       if(div.innerText != '' && div.innerText != targetInnerHtml && totalNumber == 1) {
@@ -726,14 +742,14 @@ class FyGlobal {
   //other utils...
   useCacheIfAvailable_(value, cache, trueData = {}) {
     //캐시에 원제가 있다면 캐시 사용 대상. wp 검색에만 쓰인다. 캐시를 쓴다면 null 반환.
-    if(cache?.orgTitle) {  // && cache?.imdbRating) {
+    if(cache.orgTitle) {
       //단, 캐시가 오래되었다면 다시 페칭.
       if(dateDiffInDays(new Date(), new Date(cache.imdbRatingFetchedDate)) > UPDATE_INTERVAL_DAYS_ORG_TITLES) {
         console.debug(`cache for ${value} is over than ${UPDATE_INTERVAL_DAYS_ORG_TITLES} days. so updating now...`);
         return value;
       }
-      else if(cache.otFlag != '' && trueData.year) {
-        //ot flag가 있고 large-div 업데이트라면 페칭해본다. title 검색 시에만 해당
+      else if((cache.otFlag + cache.imdbFlag).length > 1) {
+        //ot flag와 imdb flag 합쳐서 ??보다 많으면 페칭
         return value;
       }
       else {
@@ -881,10 +897,15 @@ class FyGlobal {
 
 
   ////other publics
-  async edit(el, onSite) {
+  async edit(event, onSite) {
+    //event.preventDefault();  //not working
+    const el = event.target;
+
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
-    const baseEl = fy.getParentsFrom_(el, fy.numberToBaseEl+1);
+    let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
+    const baseEl = fy.getParentsFrom_(el, numberToParent);
+    console.debug('baseEl, div on update', baseEl, el);
 
     //determine single-page
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or

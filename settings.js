@@ -7,8 +7,8 @@ const SETTINGS = {};
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
   rootSelector: 'main',
-  selector: 'section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not(['+FY_UNIQ_STRING+'])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div:not(:has(>figure))',  //list item
-  selectorOnSinglePage: 'header>div>section:not(['+FY_UNIQ_STRING+'])>div>h1',  //single-page
+  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div:not(:has(>figure))`,  //list item
+  selectorOnSinglePage: `header>div>section:not([${FY_UNIQ_STRING}])>div>h1`,  //single-page
   //large-div is removed at 2022 1Q
 
   //numberToBaseEl: 2,  //when edit, this number + 1 is used
@@ -68,7 +68,7 @@ SETTINGS['www.netflix.com'] = {
   rootSelector: 'body',
 
   //'the last element'(fyItem) selection.
-  selector: 'div.title-card-container:not(['+FY_UNIQ_STRING+'])>div[id]>div.ptrack-content',
+  selector: `div.title-card-container:not([${FY_UNIQ_STRING}])>div[id]>div.ptrack-content`,
   //In above case,
   //div.title... will be set FY_UNIQ_STRING, so it should be 'the base element' and 
   //div.ptrack... will be 'the last element'.
@@ -85,7 +85,7 @@ SETTINGS['www.netflix.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnLargeDiv: 'div.previewModal--container:not(['+FY_UNIQ_STRING+'])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
+  selectorOnLargeDiv: `div.previewModal--container:not([${FY_UNIQ_STRING}])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper`,
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForLargeDiv: {
@@ -106,10 +106,12 @@ SETTINGS['www.wavve.com'] = {
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
-  selector: 'div.wrap>ul>li>div.portrait:not(['+FY_UNIQ_STRING+'])>a.con-text-wrap, ' + //my/like_movie
-  'div.swiper-wrapper>div:not(['+FY_UNIQ_STRING+'])>div.portrait',  //my/
+  selector: `div.wrap>ul>li>div.portrait:not([${FY_UNIQ_STRING}])>a.con-text-wrap, `  //my/like_movie
+  + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.landscape, `                 //my/ upper
+  + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.portrait`,                   //my/ lower
   //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
   numberToBaseElWhenUpdating: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
+  numberToBaseElWhenEditing: 2,
 
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
@@ -120,7 +122,7 @@ SETTINGS['www.wavve.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: 'section.player-contents>div.video-wrap:not(['+FY_UNIQ_STRING+'])',
+  selectorOnSinglePage: `section.player-contents>div.video-wrap:not([${FY_UNIQ_STRING}])`,
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
@@ -131,7 +133,7 @@ SETTINGS['www.wavve.com'] = {
       selector: 'div.player-nav>ul>li',
       contains: '에피소드',
     },
-    targetEl: 'section.player-contents>div.video-wrap>div:not(.'+FY_UNIQ_STRING+')',  //class of last div varies.
+    targetEl: `section.player-contents>div.video-wrap>div:not(.${FY_UNIQ_STRING})`,  //class of last div varies.
   },
 };
 
@@ -140,12 +142,12 @@ SETTINGS['www.disneyplus.com'] = {
   preventMultipleUrlChanges: true,  //hack 
 
   //no '/ko-kr/search' page
-  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home'],  //todo: '/ko-kr/series',
+  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  selector: 'div.gv2-asset:not(['+FY_UNIQ_STRING+'])>a[data-gv2elementkey]',
-  //numberToBaseEl: 1,
+  selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
+  numberToBaseElWhenUpdating: 2,
 
   selectorsForListItems: {
     title: 'div[aria-label]',  //this should be the child of 'the last element'.
@@ -154,7 +156,7 @@ SETTINGS['www.disneyplus.com'] = {
 
   //below are WIP
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: 'section.vod-player:not(['+FY_UNIQ_STRING+'])',  //wip
+  selectorOnSinglePage: `section.vod-player:not([${FY_UNIQ_STRING}])`,  //wip
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
