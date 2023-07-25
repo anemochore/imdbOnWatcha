@@ -35,8 +35,8 @@ class ParseJW {
       let sTitles = result.map(el => el.title);
       let sTypes = result.map(el => el.object_type == tvString ? 'TV Series' : 'Movie');
       let sYears = result.map(el => el.original_release_year);
-      let sRatings = result.map(el => el.scoring.filter(el => el.provider_type == 'imdb:score')[0]?.value);
-      let sImdbIds = result.map(el => el.external_ids.filter(el => el.provider == 'imdb')[0]?.external_id);
+      let sRatings = result.map(el => el.scoring?.filter(el => el.provider_type == 'imdb:score')[0]?.value);  //scoring may not present
+      let sImdbIds = result.map(el => el.external_ids?.filter(el => el.provider == 'imdb')[0]?.external_id);  //this too??? idk.
       let sOrgTitles = result.map(el => el.original_title);
 
       //todo: being improved...
@@ -189,7 +189,7 @@ class ParseJW {
       otData[i].imdbUrl = fy.getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
       otData[i].imdbRatingFetchedDate = new Date().toISOString();
 
-      if(sRatings[idx] && sImdbIds[idx])  //if not imdb flag is not set at all.
+      if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
         otData[i].imdbFlag = '';
     });
   }

@@ -48,7 +48,6 @@ class ImdbRun {
     if(idx > -1) {
       const orgTitle = orgTitles[idx];
       let cache = otCache[keys[idx]];
-      let cacheFlag = cache.imdbFlag;
 
       if(cache.imdbFlag != '') {
         if(fy.isValidRating_(cache.imdbRating) && !fy.isValidRating_(imdbRating)) {
@@ -93,14 +92,14 @@ class ImdbRun {
           cache.imdbId = imdbId;
           cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
           cache.year = trueYear;
-
-          cache.imdbRating = imdbRating;
         }
-        else if(imdbRating != 'n/a') {
+        else if(imdbRating == 'n/a') {
+          toast.log('imdb rating is really not present for '+orgTitle+' ('+trueYear+')!');
+        }
+        else {
           toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+cache.year+').');
-
-          cache.imdbRating = imdbRating;
         }
+        cache.imdbRating = imdbRating;
       }
       else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) <= YEAR_DIFFERENCE_THRESHOLD) {
         toast.log('rating is the same, but the year on imdb is ' + trueYear + ', which slightly differs from ' + cache.year + ' on cache. other cache data looks healthy, so updating the year only.');
@@ -111,17 +110,6 @@ class ImdbRun {
         toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
       }
 
-      /*
-      //구 버전과의 호환성을 위해
-      if(cache?.type != trueType)
-        cache.type = trueType;
-
-      //imdb 원제는 로마자로만 되어 있으므로.
-      if(cache.imdbFlag == '' && cache.orgTitle != trueOrgTitle) {  //flag가 없는데 제목이 다르다면
-        console.log(`title fixed: ${cache.orgTitle} -> ${trueOrgTitle}`);
-        cache.orgTitle = trueOrgTitle;
-      }
-      */
 
       //wrap-up
       cache.imdbRatingFetchedDate = new Date().toISOString();
