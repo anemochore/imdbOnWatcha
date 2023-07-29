@@ -102,7 +102,7 @@ SETTINGS['www.netflix.com'] = {
 
 
 SETTINGS['www.wavve.com'] = {
-  includingPaths: ['/player', '/my'], 
+  includingPaths: ['/player', '/my', '/supermultisection'], 
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
@@ -117,7 +117,7 @@ SETTINGS['www.wavve.com'] = {
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
 
   selectorsForListItems: {
-    title: 'strong.con-tit, span.title1',  //this should be the child of 'the last element'.
+    title: 'strong.con-tit, span.title1, span.alt-text',  //this should be the child of 'the last element'.
     targetEl: 'a.con-text-wrap, div.portrait',  //'the last element'
   },
 

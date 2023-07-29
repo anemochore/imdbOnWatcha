@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.11
+// @version      0.6.12
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -813,89 +813,6 @@ class FyGlobal {
   }
 
 
-  //small utils
-  getTypeFromDiv_(selectors, baseEl) {
-    let nestedSelector = selectors.isTVSeries || selectors.types;  //either not and/or
-    if(nestedSelector) {
-      let els;
-      if(nestedSelector.numberToBaseEl) {
-        const div = fy.getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
-        els = [...div.querySelectorAll(nestedSelector.selector)];
-      }
-      else {
-        els = [...baseEl.querySelectorAll(nestedSelector.selector)];
-      }
-
-      if(selectors.isTVSeries) {
-        if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
-          return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
-        else
-          return 'not TV Series';  //not tv series. should not be null
-      }
-      else if(selectors.types) {
-        const key = els[0]?.innerText;
-        return nestedSelector?.mapping[key];
-      }
-    }
-    return null;
-  }
-
-  getTypeString_(typeString) {
-    //wp는 tv 시리즈와 tv 미니 시리즈도 못 구분하니 타입은 패스...
-    /*
-    if(typeString == 'TV Series')
-      return '&titleType=tvSeries';
-    else if(typeString == 'TV Mini Series')
-      return '&titleType=tvMiniSeries';
-    else
-      */
-      return '';
-  }
-
-  getParentsFrom_(div, numberOrRoot) {
-    if(isNaN(numberOrRoot))
-      div = document.documentElement;
-    else
-      for(let i = 0; i < numberOrRoot; i++) {
-        if(!div) {
-          console.warn(`did not reched the number of numberOrRoot: ${i}/${numberOrRoot}!`);
-          break;
-        }
-        div = div.parentNode;
-      }
-
-    return div;
-  }
-
-  getTextFromNode_(el = null) {
-    let result = null;
-
-    if(el)
-      result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
-
-    //console.debug('on getTextFromNode_(), title, el:', result, el);
-    return result;
-  }
-
-  getIdFromValidUrl_(validUrl = null) {
-    return validUrl ? validUrl.split('/').pop().split('?')[0] : null;
-  }
-
-  getImdbUrlFromId_(id, title) {
-    let url = null;
-    if(id && id != 'n/a')
-      url = 'https://www.imdb.com/title/' + id;
-    else
-      url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(title);
-
-    return url;
-  }
-
-  isValidRating_(rating = 'n/a') {
-    return rating != 'n/a' && !isNaN(parseFloat(rating))
-  }
-
-
   ////other publics
   async edit(event, onSite) {
     //event.preventDefault();  //not working
@@ -1063,7 +980,93 @@ class FyGlobal {
     }
   }
 
+
+  //small utils
+  getTypeFromDiv_(selectors, baseEl) {
+    let nestedSelector = selectors.isTVSeries || selectors.types;  //either not and/or
+    if(nestedSelector) {
+      let els;
+      if(nestedSelector.numberToBaseEl) {
+        const div = fy.getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
+        els = [...div.querySelectorAll(nestedSelector.selector)];
+      }
+      else {
+        els = [...baseEl.querySelectorAll(nestedSelector.selector)];
+      }
+
+      if(selectors.isTVSeries) {
+        if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
+          return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
+        else
+          return 'not TV Series';  //not tv series. should not be null
+      }
+      else if(selectors.types) {
+        const key = els[0]?.innerText;
+        return nestedSelector?.mapping[key];
+      }
+    }
+    return null;
+  }
+
+  getTypeString_(typeString) {
+    //wp는 tv 시리즈와 tv 미니 시리즈도 못 구분하니 타입은 패스...
+    /*
+    if(typeString == 'TV Series')
+      return '&titleType=tvSeries';
+    else if(typeString == 'TV Mini Series')
+      return '&titleType=tvMiniSeries';
+    else
+      */
+      return '';
+  }
+
+  getParentsFrom_(div, numberOrRoot) {
+    if(isNaN(numberOrRoot))
+      div = document.documentElement;
+    else
+      for(let i = 0; i < numberOrRoot; i++) {
+        if(!div) {
+          console.warn(`did not reched the number of numberOrRoot: ${i}/${numberOrRoot}!`);
+          break;
+        }
+        div = div.parentNode;
+      }
+
+    return div;
+  }
+
+  getTextFromNode_(el = null) {
+    let result = null;
+
+    if(el)
+      result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
+
+    //console.debug('on getTextFromNode_(), title, el:', result, el);
+    return result;
+  }
+
+  getIdFromValidUrl_(validUrl = null) {
+    return validUrl ? validUrl.split('/').pop().split('?')[0] : null;
+  }
+
+  getImdbUrlFromId_(id, title) {
+    let url = null;
+    if(id && id != 'n/a')
+      url = 'https://www.imdb.com/title/' + id;
+    else
+      url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(title);
+
+    return url;
+  }
+
+  isValidRating_(rating = 'n/a') {
+    return rating != 'n/a' && !isNaN(parseFloat(rating))
+  }
+
 }
+
+
+
 
 
 //first init and run

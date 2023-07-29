@@ -323,3 +323,5 @@
     //    KNOWN PROBLEM: wavve: clicking fy-item triggers click on underlying div
     // ver 0.6.11 @ 2023-7-25
     //    jw, imdb: fixed not working when no rating present
+    // ver 0.6.12 @ 2023-7-29
+    //    wavve: supports /supermultisection
