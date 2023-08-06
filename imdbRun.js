@@ -18,7 +18,7 @@ class ImdbRun {
       return;
 
     let imdbRating = imdbData.ratingsSummary?.aggregateRating;
-    if(!fy.isValidRating_(imdbRating))
+    if(!isValidRating_(imdbRating))
       imdbRating = 'n/a';
 
     const trueOrgTitle = imdbData.originalTitleText.text;
@@ -50,7 +50,7 @@ class ImdbRun {
       let cache = otCache[keys[idx]];
 
       if(cache.imdbFlag != '') {
-        if(fy.isValidRating_(cache.imdbRating) && !fy.isValidRating_(imdbRating)) {
+        if(isValidRating_(cache.imdbRating) && !isValidRating_(imdbRating)) {
           toast.log('warning: cache rating is valid but imdb rating is n/a. so deleting the cache which is probably wrong!');
 
           cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음

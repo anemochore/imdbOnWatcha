@@ -1,6 +1,7 @@
 class ParseWP {
   //parsing and scraping funcs
-  async parseWpScrapeResults_(results, otData, allTitles, needToGetSeason1 = false) {
+  async parseWpScrapeResults_(results, otData, needToGetSeason1 = false) {
+    console.log('otData[0]', otData[0])
     let toReSearch = [], localResults = results.slice();
 
     const END_COUNT = 33;  //The Simpsons (as of 2022-4-29)
@@ -28,7 +29,7 @@ class ParseWP {
 
         //wp는 원제를 따로 표시한다. 근데 imdb 가이드에 따르면 제목은 iso-8859-1만 쓴다.
         //https://help.imdb.com/article/contribution/titles/title-formatting/G56U5ERK7YY47CQB#
-        const possibleRealOrgTitle = targetDoc.querySelector('div[data-rowindex="0"] h1+div')?.textContent;
+        const possibleRealOrgTitle = targetDoc.querySelector('h1+div')?.textContent;
         if(possibleRealOrgTitle && orgTitle != possibleRealOrgTitle) {
           orgTitle = possibleRealOrgTitle;
 
@@ -59,30 +60,30 @@ class ParseWP {
             }
 
             if(!found) {
-              const seriesSection = seriesH2[0].parentNode.parentNode.parentNode.parentNode;
+              const seriesSection = seriesH2[0].closest('section');
               const season1div = [...seriesSection.querySelectorAll('ul>li div[class*="StyledText"]')].filter(el => el.innerText.endsWith(' Season 1') || el.innerText.endsWith(' 1기'));
               if(season1div.length > 0) {
-                newId = fy.getIdFromValidUrl_(season1div[0].parentNode.parentNode.parentNode.href);
-                newUrl = fy.getUrlFromId_(newId);
+                newId = getIdFromValidUrl_(season1div[0].closest('a').href);
+                newUrl = getUrlFromId_(newId);
                 console.log(`found season 1 url for ${orgTitle}: ${newId}. will be re-scraped...`); 
 
                 found = true;
-                otData[i].id = newId;
-                otData[i].otUrl = newUrl;
+                otData[i].wpId = newId;
+                otData[i].wpUrl = newUrl;
                 toReSearch[i] = newUrl;
               }
             }
 
             if(!found) {
-              console.warn('cannot find season 1 when scraping on', newUrl ? newUrl + ' on ' + otData[i].otUrl : otData[i].otUrl);
-              console.debug(targetDoc.documentElement.outerHTML);
+              console.warn(`cannot find season 1 when scraping on ${newUrl ? newUrl + ' on ' + otData[i].wpUrl : otData[i].wpUrl}. so assumes the current page is the season 1 page.`);
+              //console.debug(targetDoc.documentElement.outerHTML);
               otData[i].otFlag = '?';
             }
           }
         }
 
         if(orgTitle == '' || !tempYear) {
-          console.debug('scraping failed on', otData[i].otUrl);
+          console.debug('scraping failed on', otData[i].wpUrl);
           otData[i].otFlag = '???';  //왓챠 '이어보기' 항목
           toReSearch[i] = null;
 
@@ -96,7 +97,7 @@ class ParseWP {
       if(toReSearch.filter(el => el).length == 0)
         break;  //for while
 
-      localResults = await fy.fetchAll(toReSearch), {
+      localResults = await fetchAll(toReSearch), {
         headers: {'Accept-Language': 'en-KR'},  //not working
       };
     }  //of while

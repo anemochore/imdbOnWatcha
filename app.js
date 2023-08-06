@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.13
+// @version      0.6.16
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -33,7 +33,7 @@
 
 
 //singletons
-const toast = new fadingAlert();
+const toast = new FadingAlert();
 toast.log();
 
 
@@ -312,7 +312,7 @@ class FyGlobal {
 
         //업데이트를 안 했을 때만 업데이트
         const selectors = fy.selectorsForLargeDiv;
-        const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+        const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
         await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
         await fy.largeDivUpdate(largeDiv);
       }
@@ -340,39 +340,34 @@ class FyGlobal {
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
-      const id = fy.getIdFromValidUrl_((fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.id) || document.location).href);
-      const title = fy.getTextFromNode_(fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
-      const type = fy.getTypeFromDiv_(selectors, fy.getParentsFrom_(largeDiv, selectors.numberToBaseEl));
-      //console.debug('id, title, type on largeDivUpdates', id, title, type);
+      const wpId = getIdFromValidUrl_(document.location.href);
+      const title = getTextFromNode_(getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
+      const type = getTypeFromDiv_jwUrl(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
 
-      const url = 'https://pedia.watcha.com/en-US/contents/' + id;  //english page
+      const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
-      toast.log(`scraping wp for org. title, etc for ${title} (${id})...`);
+      toast.log(`scraping wp for org. title, etc for ${title} (${wpId})...`);
       //연도를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
-      const otScrapeResults = await fy.fetchAll([url], {
+      const otScrapeResults = await fetchAll([wpUrl], {
         headers: {'Accept-Language': 'en-US'},
       });
 
-      const watchaLargeOtData = [{
-        id: id,
-        otUrl: url,
-        type: type,
-      }];
-      await fyWP.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, [title], type != 'Movie');
+      const watchaLargeOtData = [{wpId, wpUrl, type}];
+      await fyWP.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, type != 'Movie');
       const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
       //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, type});
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
     },
 
     'm.kinolights.com': (largeDiv) => {
       //on single content page
       const selectors = fy.selectorsForSinglePage;
 
-      const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle)).replace(/ ·$/, '');
-      const year = parseInt(fy.getTextFromNode_(largeDiv.querySelector(selectors.year)));
-      const imdbRating = fy.getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
+      const orgTitle = getTextFromNode_(largeDiv.querySelector(selectors.orgTitle)).replace(/ ·$/, '');
+      const year = parseInt(getTextFromNode_(largeDiv.querySelector(selectors.year)));
+      const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, imdbRating});
     },
@@ -380,9 +375,9 @@ class FyGlobal {
     'www.netflix.com': (largeDiv) => {
       //on large div (=single content) page
       const selectors = fy.selectorsForLargeDiv;
-      const baseEl = fy.getParentsFrom_(largeDiv, fy.numberToBaseEl);
+      const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
 
-      const year = parseInt(fy.getTextFromNode_(baseEl.querySelector(selectors.year)));
+      const year = parseInt(getTextFromNode_(baseEl.querySelector(selectors.year)));
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, year});
     },
@@ -398,7 +393,7 @@ class FyGlobal {
 
       //lazy loading이 극심해서 제목을 여기서 처리-_-
       const titleEl = await elementReady(selectors.title, largeDiv, false);
-      const title = fy.getTextFromNode_(titleEl);
+      const title = getTextFromNode_(titleEl);
 
       const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
       document.querySelector('table.detail-info-table>tr>th+td')?.innerText.split(',').pop().split('~')[0].trim();  //large-div
@@ -426,8 +421,8 @@ class FyGlobal {
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
-    const baseEl = fy.getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
-    const type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
+    const baseEl = getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
+    const type = getTypeFromDiv_jwUrl(trueData.selectors, baseEl);
     //console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
     trueData.type = type;
 
@@ -439,9 +434,9 @@ class FyGlobal {
       imdbFlag = sEl.querySelector('.fy-imdb-rating')?.getAttribute('flag');
     }
     else {
-      //not yet updated (first loading)
-      if(trueData.id) {
-        const cache = await fy.getObjFromWpId_(trueData.id);
+      //not yet updated (first loading). watcha
+      if(trueData.wpId) {
+        const cache = await fy.getObjFromWpId_(trueData.wpId);
         otFlag = cache.otFlag;
         imdbFlag = cache.imdbFlag;
       }
@@ -450,6 +445,7 @@ class FyGlobal {
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       toast.log('large div on single-page update triggered...');
+      trueData.forceUpdate = true;
       await fy.search([largeDiv], trueData);
     }
     else {
@@ -460,7 +456,7 @@ class FyGlobal {
 
   defaultBaseElementProc = (itemDivs, numberToBaseEl) => {
     itemDivs.forEach((item, i) => {
-      const baseEl = fy.getParentsFrom_(item, numberToBaseEl);
+      const baseEl = getParentsFrom_(item, numberToBaseEl);
 
       //console.debug('preupdate: item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl, baseEl.getAttribute(FY_UNIQ_STRING));
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
@@ -475,14 +471,14 @@ class FyGlobal {
 
   preUpdateDivses = {
     'm.kinolights.com': itemDivs => {
-      const baseEl = fy.getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
+      const baseEl = getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
       const el = baseEl.querySelector(fy.selectorsForSinglePage.targetEl);
       el.setAttribute(FY_UNIQ_STRING, '');
       el.classList.add(FY_UNIQ_STRING);  //this is not wokring!
     },
   };
 
-  async searchByTitle(itemDivs, trueData = {year: null, type: null, id: null, url: null, imdbId: null, imdbUrl: null, orgTitle: null, title: null, type: null, forceUpdate: false, selectors: {}}) {
+  async searchByTitle(itemDivs, trueData = {}) {
     const otCache = await GM_getValue(GM_CACHE_KEY);
 
     let otData = [];
@@ -493,11 +489,11 @@ class FyGlobal {
 
     //get titles
     itemDivs.forEach((item, i) => {
-      const baseEl = fy.getParentsFrom_(item, fy.numberToBaseEl);
+      const baseEl = getParentsFrom_(item, fy.numberToBaseEl);
 
       let title = trueData.title;
       if(!title && baseEl)
-        title = fy.getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
+        title = getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
       if(!title) {
         console.warn('no title found on', item);
         return;
@@ -514,7 +510,7 @@ class FyGlobal {
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
       //타입 얻기. 왓챠 보관함이나 웨이브 /my 루트 정도?
-      let type = fy.getTypeFromDiv_(trueData.selectors, baseEl);
+      let type = getTypeFromDiv_jwUrl(trueData.selectors, baseEl);
       if(type) {
         //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입 사용
         if(!otData[i].type || otData[i].otFlag != '')
@@ -538,24 +534,23 @@ class FyGlobal {
     }
 
     //large div update or wp manual update
-    if(trueData.id) {
-      otData[0].id = trueData.id;
-      otData[0].otUrl = trueData.url;
-      otData[0].otFlag = '';
+    if(trueData.wpId) {  //watcha
+      otData[0].wpId = trueData.wpId;
+      otData[0].wpUrl = getWpUrlFromId_(trueData.wpId);
+    }
+    if(trueData.jwUrl) {  //edit
+      otData[0].jwUrl = trueData.jwUrl;
     }
 
     //imdb manual update (edit)
     if(trueData.imdbId) {
+      otData[0].imdbId = trueData.imdbId;
       otData[0].imdbUrl = trueData.imdbUrl;
-      otData[0].imdbFlag = '';
-      trueData.id = fy.getIdFromValidUrl_(otData[0].otUrl);  //when edit imdb url, don't search wp (assuming it's the right one)
     }
 
     //kino update
     if(trueData.orgTitle) {
       otData[0].orgTitle = trueData.orgTitle;
-    }
-    if(trueData.orgTitle) {
       otData[0].imdbRating = trueData.imdbRating;  //if search fails, use kino's rating if present
     }
 
@@ -564,27 +559,23 @@ class FyGlobal {
 
     if(searchLength == 0) {
       console.log(`nothing to search or scrape on jw.`);
-      fy.searchWrapUp_(itemDivs, otData, trueData);
-      return;
     }
-    else if(!trueData.id) {
+    else {  //if(!trueData.id) {
       //업데이트
-      toast.log('getting infos from jw...');
+      toast.log(`getting infos from jw... length: ${searchLength}`);
 
       const URL = `https://apis.justwatch.com/content/titles/${fy.locale}/popular`;
       const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
       const urls = qTitles.map(title => title ? URL: null)
-      const otSearchResults = await fy.fetchAll(urls, {}, qTitles, {
+      const otSearchResults = await fetchAll(urls, {}, qTitles, {
         fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
         page_size: 10,  //hard limit
       });
 
-      fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
+      await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
         console.log('jw searching result is empty.');
-        fy.searchWrapUp_(itemDivs, otData, trueData);
-        return;
       }
       else {
         console.log(`jw searching done (or passed): ${searchLength}`);
@@ -645,7 +636,7 @@ class FyGlobal {
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
         numberToParent = selectors.numberToBaseEl || numberToParent;
 
-      const baseEl = fy.getParentsFrom_(fyItemToUpdate, numberToParent);
+      const baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
       let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
       //console.debug('baseEl, div on update', baseEl, div)
 
@@ -661,12 +652,12 @@ class FyGlobal {
       let year = otDatum.year || '';
       let targetInnerHtml = '';
 
-      if(otDatum.otUrl)
-        targetInnerHtml += `<a href="${otDatum.otUrl}" target="_blank">`;
+      if(otDatum.jwUrl)
+        targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank">`;
 
       targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
 
-      if(otDatum.otUrl)
+      if(otDatum.jwUrl)
         targetInnerHtml += `</a>`;
 
       targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(event, 'ot')" class="fy-edit">edit</a> `;
@@ -690,7 +681,7 @@ class FyGlobal {
         rating = '??';  //possibly not yet updated
         otDatum.imdbFlag = '';  //???? -> ??
       }
-      else if(fy.isValidRating_(otDatum.imdbRating)) {
+      else if(isValidRating_(otDatum.imdbRating)) {
         rating = parseFloat(otDatum.imdbRating);
         [...Array(10).keys()].reverse().some(n => {
           //[9, 8, 7, ..., 2, 1, 0]
@@ -825,7 +816,7 @@ class FyGlobal {
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
     let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
-    const baseEl = fy.getParentsFrom_(el, numberToParent);
+    const baseEl = getParentsFrom_(el, numberToParent);
     console.debug('baseEl, div on update', baseEl, el);
 
     //determine single-page
@@ -843,14 +834,14 @@ class FyGlobal {
     if(!isSinglePage)
       selectors = fy.selectorsForListItems;
 
-    const type = fy.getTypeFromDiv_(selectors, baseEl);
+    const type = getTypeFromDiv_jwUrl(selectors, baseEl);
 
     //search title, etc
     let url, title, otDatum;
 
     //캐시에 있다면 사용.
     const titleEl = baseEl.querySelector(selectors.title);
-    title = fy.getTextFromNode_(titleEl);
+    title = getTextFromNode_(titleEl);
     //console.debug('title, type, otDatum on edit():', title, type, otDatum);
     if(!otDatum)
       otDatum = otCache[title] || {};
@@ -862,21 +853,21 @@ class FyGlobal {
 
     //for kino
     selectors = fy.selectorsForSinglePage;
-    const imdbRating = fy.getTextFromNode_(baseEl.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
+    const imdbRating = getTextFromNode_(baseEl.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
 
     //get input
-    let imdbId, imdbUrl;
+    let imdbId, imdbUrl, jwUrl;
     if(onSite == 'ot') {
-      url = prompt("Enter proper JustWatch url: ", otDatum.otUrl);
+      url = prompt("Enter proper JustWatch url: ", otDatum.jwUrl);
       if(!url)
         return;
       else if(!url.startsWith('https://www.justwatch.com/')) {
-        alert('Not a valid Watcha Pedia url. it should be "https://pedia.watcha.com/en-KR/contents/WP_CODE" format!');
+        alert('Not a valid jw url!');
         return;
       }
       url = url.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
 
-      if(url == otDatum.otUrl) {
+      if(url == otDatum.jwUrl) {
         if(otDatum.otFlag != '') {
           toast.log('JW flag was reset (JW url is confirmed).');
           otDatum.otFlag = '';
@@ -884,9 +875,10 @@ class FyGlobal {
         else
           return;
       }
+      jwUrl = url;
     }
     else if(onSite == 'imdb') {
-      imdbUrl = prompt("First make sure that Watcha Pedia info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
+      imdbUrl = prompt("First make sure that JW info is correct. If so, enter proper IMDb title url: ", otDatum.imdbUrl);
       if(!imdbUrl)
         return;
       else if(!imdbUrl.startsWith('https://www.imdb.com/title/')) {
@@ -894,7 +886,7 @@ class FyGlobal {
         return;
       }
       imdbUrl = imdbUrl.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
-      imdbId = fy.getIdFromValidUrl_(imdbUrl);
+      imdbId = getIdFromValidUrl_(imdbUrl);
 
       if(imdbUrl == otDatum.imdbUrl) {
         //if(otDatum.imdbFlag != '') {
@@ -908,7 +900,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, url, type, imdbId, imdbUrl, imdbRating, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, jwUrl, type, imdbId, imdbUrl, imdbRating, forceUpdate: true, selectors});
   }
 
   xhrAbort() {
@@ -917,11 +909,11 @@ class FyGlobal {
   }
 
 
-  //utils used in editing
+  //utils used for watcha
   async getObjFromWpId_(id) {
     const otCache = await GM_getValue(GM_CACHE_KEY);
     const cacheTitles = Object.keys(otCache);
-    const cacheIds = Object.values(otCache).map(el => el.otUrl ? fy.getIdFromValidUrl_(el.otUrl) : null);
+    const cacheIds = Object.values(otCache).map(el => el.wpUrl ? getIdFromValidUrl_(el.wpUrl) : null);
 
     const idIndex = cacheIds.indexOf(id);
     if(idIndex > -1) {
@@ -932,149 +924,7 @@ class FyGlobal {
     else
       return {};
   }
-
-
-  //more common utils
-  async fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
-    fy.isFetching = true;
-
-    const results = [];
-    const promises = urls.map(async (url, i) => {
-      results[i] = await fetchOne_(url, headers, querys[i], constQuery);
-    });
-    await Promise.all(promises);
-
-    fy.isFetching = false;
-    return results;
-
-
-    async function fetchOne_(url, headers, query, constQuery) {
-      //쿼리가 있으면 POST + json
-      return new Promise((resolve, reject) => {
-        if(!url)
-          resolve(null);
-        else {
-          //console.debug('fetching', url);  //dev+++
-
-          //detail object. see https://wiki.greasespot.net/GM.xmlHttpRequest
-          let payload = {
-            method: 'GET',
-            headers: headers,
-            url: url,
-            onload: res => {
-              resolve(res.responseText);
-            },
-            onerror: err => {
-              reject(err);
-            },
-          };
-
-          if(query) {
-            payload.method = 'POST';  //헤더에 json 생략해도 작동하는 거 확인
-            payload.responseType = 'json';
-            payload.onload = res => {
-              resolve(JSON.parse(res.responseText));
-            };
-
-            const params = constQuery;
-            params.query = query;
-            //console.debug('query', query);  //dev+++
-            payload.data = JSON.stringify(params);
-          }
-
-          fy.XHR = GM_xmlhttpRequest(payload);
-        }
-      });
-    }
-  }
-
-
-  //small utils
-  getTypeFromDiv_(selectors, baseEl) {
-    let nestedSelector = selectors.isTVSeries || selectors.types;  //either not and/or
-    if(nestedSelector) {
-      let els;
-      if(nestedSelector.numberToBaseEl) {
-        const div = fy.getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
-        els = [...div.querySelectorAll(nestedSelector.selector)];
-      }
-      else {
-        els = [...baseEl.querySelectorAll(nestedSelector.selector)];
-      }
-
-      if(selectors.isTVSeries) {
-        if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
-          return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
-        else
-          return 'not TV Series';  //not tv series. should not be null
-      }
-      else if(selectors.types) {
-        const key = els[0]?.innerText;
-        return nestedSelector?.mapping[key];
-      }
-    }
-    return null;
-  }
-
-  getTypeString_(typeString) {
-    //wp는 tv 시리즈와 tv 미니 시리즈도 못 구분하니 타입은 패스...
-    /*
-    if(typeString == 'TV Series')
-      return '&titleType=tvSeries';
-    else if(typeString == 'TV Mini Series')
-      return '&titleType=tvMiniSeries';
-    else
-      */
-      return '';
-  }
-
-  getParentsFrom_(div, numberOrRoot) {
-    if(isNaN(numberOrRoot))
-      div = document.documentElement;
-    else
-      for(let i = 0; i < numberOrRoot; i++) {
-        if(!div) {
-          console.warn(`did not reched the number of numberOrRoot: ${i}/${numberOrRoot}!`);
-          break;
-        }
-        div = div.parentNode;
-      }
-
-    return div;
-  }
-
-  getTextFromNode_(el = null) {
-    let result = null;
-
-    if(el)
-      result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
-
-    //console.debug('on getTextFromNode_(), title, el:', result, el);
-    return result;
-  }
-
-  getIdFromValidUrl_(validUrl = null) {
-    return validUrl ? validUrl.split('/').pop().split('?')[0] : null;
-  }
-
-  getImdbUrlFromId_(id, title) {
-    let url = null;
-    if(id && id != 'n/a')
-      url = 'https://www.imdb.com/title/' + id;
-    else
-      url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(title);
-
-    return url;
-  }
-
-  isValidRating_(rating = 'n/a') {
-    return rating != 'n/a' && !isNaN(parseFloat(rating))
-  }
-
 }
-
-
-
 
 
 //first init and run

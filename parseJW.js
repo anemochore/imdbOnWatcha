@@ -1,31 +1,38 @@
 class ParseJW {
   //parsing and scraping funcs
-  parseJwSearchResults_(results, otData, trueData, titles) {
-    results.forEach((r, i) => {
+  async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
+    for(const [i, r] of results.entries()) {
       const result = r?.items;
       let title = titles[i];
 
       if(!title)
-        return;  //continue
+        continue;
       if(!result) {
         if(title) {
           console.warn('search for',title,'on jw failed! no result at all!');
           otData[i].otFlag = '??';
         }
-        return;  //continue
+        continue;
       }
-      console.debug('title, result', title, result);  //dev+++
 
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
       const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
-      const movieString = 'movie', tvString = 'show';
+      const tvString = 'show';  //, movieString = 'movie';
 
       //to update cache
       otData[i].query = title;
       title = fy.getCleanTitle(title);
 
-      const trueUrl = trueData.url;  //edit의 경우(캐시의 값을 쓰면 안 됨)
-      const trueOrgTitle = trueData.orgTitle;  //watcha large-div 같은 경우(캐시의 값을 쓰면 안 됨)
+      let trueJwUrl = trueData.jwUrl;  //edit의 경우(캐시의 값을 쓰면 안 됨)
+      let trueSeason = null;
+      if(trueJwUrl) {
+        //ex: https://www.justwatch.com/kr/TV-프로그램/mujigjeonsaeng-isegyee-gasseumyeon-coeseoneul-dahanda/시즌-1
+        trueSeason = trueJwUrl.split('/').slice(6)[0];  //or null
+        trueJwUrl  = trueJwUrl.split('/').slice(0, 6).join('/');
+      }
+
+      const trueOrgTitle = trueData.orgTitle;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
+      const trueImdbId = trueData.imdbId;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
       const trueType = trueData.type || otData[i].type;
       const trueYear = trueData.year || otData[i].year;
 
@@ -42,40 +49,47 @@ class ParseJW {
       //todo: being improved...
       let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999, tokenCount = 0;
 
-      if(trueUrl && sUrls.indexOf(trueUrl) > -1) {
-        //url을 알고 있다면 끝~
-        idx = sUrls.indexOf(trueUrl);
+      if(trueJwUrl && sUrls.includes(decodeURI(trueJwUrl))) {
+        //jw url을 알고 있다면 끝~
+        console.info('url was manually provided and actually found.', trueJwUrl+trueSeason);
         otData[i].otFlag = '';
-        console.info('url was manually provided.', trueUrl);
+        idx = sUrls.indexOf(decodeURI(trueJwUrl));
+        sUrls[idx] = sUrls[idx] + (trueSeason ? '/' + decodeURI(trueSeason) : '');
+      }
+      else if(trueImdbId && sImdbIds.includes(trueImdbId)) {
+        //imdb id를 알고 있다면 끝~
+        console.info('imdb id was manually provided and actually found.', trueImdbId);
+        otData[i].otFlag = '';
+        idx = sImdbIds.indexOf(trueImdbId);
       }
       else {
         sTitles.forEach((sTitle, j) => {
           if(sTitle) {
             const sOrgTitle = sOrgTitles[j];
+            //console.debug('title, sTitle, sOrgTitle, trueOrgTitle', title, sTitle, sOrgTitle, trueOrgTitle);  //dev+++
             let found = false;
 
             if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
-              if(title == sTitle || sOrgTitle == trueOrgTitle) {
+              if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 found = true;
               }
             }
             else {
-              if(sTitle == title || sOrgTitle == trueOrgTitle) {
+              if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 //TV물이 아니면 제목(원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
                 found = true;
                 if(trueYear) {
-                  //console.debug('sTitle, title, sOrgTitle, trueOrgTitle', sTitle, title, sOrgTitle, trueOrgTitle);
                   if(trueYear != sYears[j])
                     found = false;
                   const curCloseDate = Math.abs(trueYear - sYears[j]);
-                  if(curCloseDate < closeDate && fy.isValidRating_(sRatings[j])) {
+                  if(curCloseDate < closeDate && isValidRating_(sRatings[j])) {
                     closeDate = curCloseDate;
                     possibleIdxWithCloseDate = j;
                   }
                 }
               }
-              else if((trueYear == sYears[j] || trueType == sTypes[j]) && fy.isValidRating_(sRatings[j])) {
+              else if((trueYear == sYears[j] || trueType == sTypes[j]) && isValidRating_(sRatings[j])) {
                 //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
                 if(maybeIdxWithSameDateOrType == -1)
                   maybeIdxWithSameDateOrType = j;
@@ -96,7 +110,7 @@ class ParseJW {
             }
 
             if(found) {
-              if(idx == -1 || !fy.isValidRating_(sRatings[idx])) {
+              if(idx == -1 || !isValidRating_(sRatings[idx])) {
                 idx = j;
                 otData[i].otFlag = '';
               }
@@ -105,7 +119,7 @@ class ParseJW {
           }
         });
 
-        console.debug('exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        //console.debug('exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
         if(exactMatchCount > 1) {
           //검색 결과 많음
@@ -123,51 +137,85 @@ class ParseJW {
         }
         else if(idx == -1) {
           //검색 결과 없음
-          if(possibleIdxWithCloseDate > -1) {
-            idx = possibleIdxWithCloseDate;
-            console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
-            otData[i].otFlag = '?';
+          //원제가 있다면 원제로 재검색
+          if(trueOrgTitle && !reSearching) {
+            toast.log('re-searching (using org. title) from jw again...');
+
+            const URL = `https://apis.justwatch.com/content/titles/en_US/popular`;
+            const qTitles = [trueOrgTitle];
+            const urls = [URL];
+            const otSearchResults = await fetchAll(urls, {}, qTitles, {
+              fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
+              page_size: 10,  //hard limit
+            });
+
+            const localOtData = [{ ...otData[i]}];
+            await fyJW.parseJwSearchResults_(otSearchResults, localOtData, trueData, [trueOrgTitle], true);
+            const searchLength = otSearchResults.filter(el => el).length;
+            if(searchLength == 0) {
+              console.log('jw re-searching result is empty.');
+              reSearching = 'pass';
+            }
+            else if(localOtData[i].imdbFlag == '??') {
+              console.log('jw re-searching failed. :(');
+              reSearching = 'pass';
+            }
+            else {
+              localOtData[i].query = otData[i].query;
+              otData[i] = {...localOtData[i]};
+              console.log('jw re-searching done.');
+              console.debug('jw re-searching result', otData[i]);
+              reSearching = 'done';
+            }
           }
-          else {
-            if(title.length > fuzzyThresholdLength) {
-              //https://github.com/farzher/fuzzysort
-              let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
-              if(first.length > 0) {
-                console.debug('fuzzysort first result for title:', first);
 
-                first = first[0];
-                idx = sTitles.indexOf(first.target);
+          if(reSearching == false || reSearching == 'pass') {
+            if(possibleIdxWithCloseDate > -1) {
+              idx = possibleIdxWithCloseDate;
+              console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
+              otData[i].otFlag = '?';
+            }
+            else {
+              if(title.length > fuzzyThresholdLength) {
+                //https://github.com/farzher/fuzzysort
+                let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
+                if(first.length > 0) {
+                  console.debug('fuzzysort first result for title:', first);
 
-                //console.debug('maybeIdxWithSameDateOrType, etc', maybeIdxWithSameDateOrType, trueYear, sYears[idx]);
-                if(maybeIdxWithSameDateOrType > -1 && Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
-                  //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
-                  //ex: 인비테이션
-                  idx = -1;
-                  console.info('fuzzysort result is discarded:', first.target);
+                  first = first[0];
+                  idx = sTitles.indexOf(first.target);
+
+                  //console.debug('maybeIdxWithSameDateOrType, etc', maybeIdxWithSameDateOrType, trueYear, sYears[idx]);
+                  if(maybeIdxWithSameDateOrType > -1 && Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
+                    //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
+                    //ex: 인비테이션
+                    idx = -1;
+                    console.info('fuzzysort result is discarded:', first.target);
+                  }
+                  else {
+                    console.warn(`no exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
+                    otData[i].otFlag = '?';
+                  }
                 }
                 else {
-                  console.warn(`no exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
-                  otData[i].otFlag = '?';
+                  console.info('fuzzysort epic failed for', title);
+                  //검색 결과가 너무나 무관하면 같은 날짜나 타입 결과가 있더라도 버린다.
+                  maybeIdxWithSameDateOrType = -1;
                 }
               }
-              else {
-                console.info('fuzzysort epic failed for', title);
-                //검색 결과가 너무나 무관하면 같은 날짜나 타입 결과가 있더라도 버린다.
-                maybeIdxWithSameDateOrType = -1;
-              }
-            }
 
-            if(idx == -1) {
-              if(maybeIdxWithSameDateOrType > -1) {
-                idx = maybeIdxWithSameDateOrType;
-                console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the same date or type: ${sTitles[idx]}`);
-                otData[i].otFlag = '?';
-              }
-              else {
-                idx = 0;
-                console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result: ${sTitles[idx]}`);
-                if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
-                else otData[i].otFlag = '??';
+              if(idx == -1) {
+                if(maybeIdxWithSameDateOrType > -1) {
+                  idx = maybeIdxWithSameDateOrType;
+                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the same date or type: ${sTitles[idx]}`);
+                  otData[i].otFlag = '?';
+                }
+                else {
+                  idx = 0;
+                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result: ${sTitles[idx]}`);
+                  if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
+                  else otData[i].otFlag = '??';
+                }
               }
             }
           }
@@ -175,32 +223,34 @@ class ParseJW {
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
-      otData[i].id = sIds[idx];
-      otData[i].otUrl = sUrls[idx];
-      otData[i].type = sTypes[idx];
-      otData[i].year = sYears[idx];
-      otData[i].orgTitle = sOrgTitles[idx];
+      if(reSearching != 'done') {
+        console.debug('found idx', idx);
+        otData[i].jwId = sIds[idx];
+        otData[i].jwUrl = sUrls[idx];
+        otData[i].type = sTypes[idx];
+        otData[i].year = sYears[idx];
+        otData[i].orgTitle = sOrgTitles[idx];
 
-      if(sImdbIds[idx])
-        otData[i].imdbId = sImdbIds[idx];
-      else
-        otData[i].imdbFlag = '??';  //if not imdb id is, not set at all.
+        if(sImdbIds[idx])
+          otData[i].imdbId = sImdbIds[idx];
+        else
+          otData[i].imdbFlag = '??';  //if not imdb id is, not set at all.
 
-      console.log('otData[i].otFlag, etc', otData[i].otFlag, otData[i].imdbRating)
-      if(otData[i].otFlag == '??' && fy.isValidRating_(otData[i].imdbRating)) {
-        //if search failed but present (on kino), use it.
-        console.warn(`jw search failed. so use kino's rating instead`);
-        otData[i].imdbFlag = '??';
+        if(otData[i].otFlag == '??' && isValidRating_(otData[i].imdbRating)) {
+          //if search failed but present (on kino), use it.
+          console.warn(`jw search failed. so use kino's rating instead`);
+          otData[i].imdbFlag = '??';
+        }
+        else {
+          otData[i].imdbRating = sRatings[idx] || '??';
+
+          otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
+          otData[i].imdbRatingFetchedDate = new Date().toISOString();
+
+          if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
+            otData[i].imdbFlag = '';
+        }
       }
-      else {
-        otData[i].imdbRating = sRatings[idx] || '??';
-
-        otData[i].imdbUrl = fy.getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
-        otData[i].imdbRatingFetchedDate = new Date().toISOString();
-
-        if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
-          otData[i].imdbFlag = '';
-      }
-    });
+    }
   }
 }
