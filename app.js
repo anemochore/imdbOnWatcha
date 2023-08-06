@@ -342,7 +342,7 @@ class FyGlobal {
 
       const wpId = getIdFromValidUrl_(document.location.href);
       const title = getTextFromNode_(getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
-      const type = getTypeFromDiv_jwUrl(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
+      const type = getTypeFromDiv_(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
 
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
@@ -422,7 +422,7 @@ class FyGlobal {
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
-    const type = getTypeFromDiv_jwUrl(trueData.selectors, baseEl);
+    const type = getTypeFromDiv_(trueData.selectors, baseEl);
     //console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
     trueData.type = type;
 
@@ -510,7 +510,7 @@ class FyGlobal {
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
       //타입 얻기. 왓챠 보관함이나 웨이브 /my 루트 정도?
-      let type = getTypeFromDiv_jwUrl(trueData.selectors, baseEl);
+      let type = getTypeFromDiv_(trueData.selectors, baseEl);
       if(type) {
         //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입 사용
         if(!otData[i].type || otData[i].otFlag != '')
@@ -834,7 +834,7 @@ class FyGlobal {
     if(!isSinglePage)
       selectors = fy.selectorsForListItems;
 
-    const type = getTypeFromDiv_jwUrl(selectors, baseEl);
+    const type = getTypeFromDiv_(selectors, baseEl);
 
     //search title, etc
     let url, title, otDatum;
