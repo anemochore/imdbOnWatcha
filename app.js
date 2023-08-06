@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.17
+// @version      0.6.18
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -427,7 +427,7 @@ class FyGlobal {
     trueData.type = type;
 
     let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
-    let otFlag, imdbFlag;
+    let otFlag, imdbFlag, forceUpdate = true;
     if(sEl) {
       //already updated (maybe)
       otFlag = sEl.querySelector('.fy-external-site')?.getAttribute('flag');
@@ -439,13 +439,17 @@ class FyGlobal {
         const cache = await fy.getObjFromWpId_(trueData.wpId);
         otFlag = cache.otFlag;
         imdbFlag = cache.imdbFlag;
+
+        if(otFlag == '' && imdbFlag == '') {
+          forceUpdate = false;  //캐시가 건강하다면(수동 수정되었을 수도 있고) 강제 업데이트는 안 함
+        }
       }
     }
 
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
-      toast.log('large div on single-page update triggered...');
-      trueData.forceUpdate = true;
+      toast.log(`large div on single-page update triggered. forceUpdate: ${forceUpdate}`);
+      trueData.forceUpdate = forceUpdate;
       await fy.search([largeDiv], trueData);
     }
     else {
@@ -549,7 +553,7 @@ class FyGlobal {
     }
 
     //kino update
-    if(trueData.orgTitle) {
+    if(trueData.orgTitle && trueData.imdbRating) {
       otData[0].orgTitle = trueData.orgTitle;
       otData[0].imdbRating = trueData.imdbRating;  //if search fails, use kino's rating if present
     }
@@ -665,15 +669,17 @@ class FyGlobal {
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
         let yourDate = new Date(otDatum.imdbRatingFetchedDate);
+        /*
         if(isNaN(yourDate)) {
           otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
           console.debug('fixed invalid fetched-date in cache for ' + otDatum.orgTitle);
         }
         else {
+        */
           const offset = yourDate.getTimezoneOffset();
           yourDate = new Date(yourDate.getTime() - (offset*60*1000));
           label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
-        }
+        //}
       }
 
       let rating = 'n/a', ratingCss = 'na';

@@ -1,7 +1,6 @@
 class ParseWP {
   //parsing and scraping funcs
   async parseWpScrapeResults_(results, otData, needToGetSeason1 = false) {
-    console.log('otData[0]', otData[0])
     let toReSearch = [], localResults = results.slice();
 
     const END_COUNT = 33;  //The Simpsons (as of 2022-4-29)
