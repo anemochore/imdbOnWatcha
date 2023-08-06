@@ -325,8 +325,9 @@
     //    jw, imdb: fixed not working when no rating present
     // ver 0.6.12 @ 2023-7-29
     //    wavve: supports /supermultisection
-    // ver 0.6.16 @ 2023-8-7
+    // ver 0.6.17 @ 2023-8-7
     //    kino: if searching failed and imdb rating already present on page, use the present rating
     //    cache: changed some key names for...
     //    watcha: improved search (additional searching) when org. title is available
     //    internal: clean-up
+    //    internal: fix stupid typo
