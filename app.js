@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.12
+// @version      0.6.13
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -372,8 +372,9 @@ class FyGlobal {
 
       const orgTitle = fy.getTextFromNode_(largeDiv.querySelector(selectors.orgTitle)).replace(/ ·$/, '');
       const year = parseInt(fy.getTextFromNode_(largeDiv.querySelector(selectors.year)));
+      const imdbRating = fy.getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year});
+      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, imdbRating});
     },
 
     'www.netflix.com': (largeDiv) => {
@@ -553,6 +554,9 @@ class FyGlobal {
     //kino update
     if(trueData.orgTitle) {
       otData[0].orgTitle = trueData.orgTitle;
+    }
+    if(trueData.orgTitle) {
+      otData[0].imdbRating = trueData.imdbRating;  //if search fails, use kino's rating if present
     }
 
     //찾을 제목에 대해 내부 캐시 적용.
@@ -856,6 +860,10 @@ class FyGlobal {
     const targetEl = baseEl.querySelector(selectors.targetEl) || baseEl;
     //console.debug('selectors.targetEl, baseEl, targetEl', selectors.targetEl, baseEl, targetEl);
 
+    //for kino
+    selectors = fy.selectorsForSinglePage;
+    const imdbRating = fy.getTextFromNode_(baseEl.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
+
     //get input
     let imdbId, imdbUrl;
     if(onSite == 'ot') {
@@ -900,7 +908,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, url, type, imdbId, imdbUrl, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, url, type, imdbId, imdbUrl, imdbRating, forceUpdate: true, selectors});
   }
 
   xhrAbort() {

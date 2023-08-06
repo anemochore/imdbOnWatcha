@@ -179,18 +179,28 @@ class ParseJW {
       otData[i].otUrl = sUrls[idx];
       otData[i].type = sTypes[idx];
       otData[i].year = sYears[idx];
-      otData[i].imdbRating = sRatings[idx] || '??';
+      otData[i].orgTitle = sOrgTitles[idx];
+
       if(sImdbIds[idx])
         otData[i].imdbId = sImdbIds[idx];
       else
-        otData[i].imdbFlag = '??';  //if not imdb id is not set at all.
-      otData[i].orgTitle = sOrgTitles[idx];
+        otData[i].imdbFlag = '??';  //if not imdb id is, not set at all.
 
-      otData[i].imdbUrl = fy.getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
-      otData[i].imdbRatingFetchedDate = new Date().toISOString();
+      console.log('otData[i].otFlag, etc', otData[i].otFlag, otData[i].imdbRating)
+      if(otData[i].otFlag == '??' && fy.isValidRating_(otData[i].imdbRating)) {
+        //if search failed but present (on kino), use it.
+        console.warn(`jw search failed. so use kino's rating instead`);
+        otData[i].imdbFlag = '??';
+      }
+      else {
+        otData[i].imdbRating = sRatings[idx] || '??';
 
-      if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
-        otData[i].imdbFlag = '';
+        otData[i].imdbUrl = fy.getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
+        otData[i].imdbRatingFetchedDate = new Date().toISOString();
+
+        if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
+          otData[i].imdbFlag = '';
+      }
     });
   }
 }

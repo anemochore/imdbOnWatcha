@@ -325,3 +325,5 @@
     //    jw, imdb: fixed not working when no rating present
     // ver 0.6.12 @ 2023-7-29
     //    wavve: supports /supermultisection
+    // ver 0.6.13 @ 2023-8-6
+    //    kino: if searching failed and imdb rating already present on page, use the present rating
