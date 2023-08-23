@@ -125,12 +125,11 @@ function getTypeFromDiv_(selectors, baseEl) {
     let els;
     if(nestedSelector.numberToBaseEl) {
       const div = getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
-      els = [...div.querySelectorAll(nestedSelector.selector)];
+      els = [...querySelectorAllFiFo_(div, nestedSelector.selector)];
     }
     else {
-      els = [...baseEl.querySelectorAll(nestedSelector.selector)];
+      els = [...querySelectorAllFiFo_(baseEl, nestedSelector.selector)];
     }
-
     if(selectors.isTVSeries) {
       if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
         return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
@@ -138,11 +137,12 @@ function getTypeFromDiv_(selectors, baseEl) {
         return 'not TV Series';  //not tv series. should not be null
     }
     else if(selectors.types) {
-      const key = els[0]?.innerText;
+      const key = els[0]?.innerText
+      .replace(/ ·.+$/, '');  //for watcha /search page
       return nestedSelector?.mapping[key];
     }
   }
-  return null;
+  //return null;
 }
 
 function getParentsFrom_(div, numberOrRoot) {
@@ -192,6 +192,25 @@ function isValidRating_(rating = 'n/a') {
   return rating != 'n/a' && !isNaN(parseFloat(rating))
 }
 
+function querySelectorFiFo_(baseEl, selectors) {
+  let result;
+  for(const selector of selectors.split(', ')) {
+    result = baseEl.querySelector(selector);
+    if(result) break;
+  }
+
+  return result;
+}
+
+function querySelectorAllFiFo_(baseEl, selectors) {
+  let results = [];
+  for(const selector of selectors.split(', ')) {
+    results = baseEl.querySelectorAll(selector);
+    if(results.length > 0) break;
+  }
+
+  return results;
+}
 
 //others' small utils
 function dateDiffInDays(a, b) {

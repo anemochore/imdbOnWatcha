@@ -7,6 +7,12 @@ div.watcha_com {
   z-index: 999;
 }
 
+li[fy-item]>div.watcha_com {
+  margin-left: 64px;
+  margin-top: -60px;
+  font-size: 80%;
+}
+
 div.www_netflix_com {
   position: absolute;
   z-index: 999;
