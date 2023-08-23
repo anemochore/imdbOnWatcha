@@ -69,7 +69,7 @@ class ImdbRun {
             toast.log('updated the whole imdb data on cache (id was not set or flag is ??) for '+orgTitle+' ('+trueYear+').');
 
             cache.imdbId = imdbId;
-            cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
+            cache.imdbUrl = getImdbUrlFromId_(imdbId, 'www.imdb.com');
             cache.year = trueYear;
           }
           else {
@@ -90,7 +90,7 @@ class ImdbRun {
           toast.log('updated the imdb data on cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
 
           cache.imdbId = imdbId;
-          cache.imdbUrl = fy.getUrlFromId_(imdbId, 'www.imdb.com');
+          cache.imdbUrl = getImdbUrlFromId_(imdbId, 'www.imdb.com');
           cache.year = trueYear;
         }
         else if(imdbRating == 'n/a') {

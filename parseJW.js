@@ -15,8 +15,11 @@ class ParseJW {
         continue;
       }
 
+      //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
       const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
+      const fuzzyThresholdRating = 4.1;  //discard result with less rating than this
+
       const tvString = 'show';  //, movieString = 'movie';
 
       //to update cache
@@ -46,6 +49,9 @@ class ParseJW {
       let sImdbIds = result.map(el => el.external_ids?.filter(el => el.provider == 'imdb')[0]?.external_id);  //this too??? idk.
       let sOrgTitles = result.map(el => el.original_title);
 
+      //for title fix
+      const sourceWords = [...JW_TITLE_FIX_DICT.keys()], targetWords = [...JW_TITLE_FIX_DICT.values()];
+
       //todo: being improved...
       let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999, tokenCount = 0;
 
@@ -65,8 +71,20 @@ class ParseJW {
       else {
         sTitles.forEach((sTitle, j) => {
           if(sTitle) {
+            //title fix
+            let fixedOrgTitle = sTitle;
+            sourceWords.forEach((sourceWord, j) => {
+              if((typeof sourceWord == 'string' && sTitle.includes(sourceWord)) || 
+                (typeof sourceWord == 'object' && sTitle.match(sourceWord)))
+                fixedOrgTitle = sTitle.replace(sourceWord, targetWords[j]);
+            });
+            if(fixedOrgTitle != sTitle) {
+              console.info(`${sTitle} is fixed to ${fixedOrgTitle} via fixesJW.js`);
+              sTitles[j] = fixedOrgTitle;
+              sTitle = fixedOrgTitle;
+            }
+
             const sOrgTitle = sOrgTitles[j];
-            //console.debug('title, sTitle, sOrgTitle, trueOrgTitle', title, sTitle, sOrgTitle, trueOrgTitle);  //dev+++
             let found = false;
 
             if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
@@ -76,8 +94,10 @@ class ParseJW {
               }
             }
             else {
-              if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
-                //TV물이 아니면 제목(원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
+              if(title == sTitle || 
+                title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
+                title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
+                //TV물이 아니면 제목(or 원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
                 found = true;
                 if(trueYear) {
                   if(trueYear != sYears[j])
@@ -119,7 +139,6 @@ class ParseJW {
           }
         });
 
-        //console.debug('exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
         if(exactMatchCount > 1) {
           //검색 결과 많음
@@ -130,12 +149,13 @@ class ParseJW {
             otData[i].otFlag = '';
           }
           else {
-            //연도를 알 수 없으면 첫 번째 거(리뷰 있는 거)
+            //연도를 알 수 없으면 첫 번째 거(rating 있는 거)
             console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result with rating present: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
             otData[i].otFlag = '?';
           }
         }
         else if(idx == -1) {
+          console.debug('idx is -1. exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
           //검색 결과 없음
           //원제가 있다면 원제로 재검색
           if(trueOrgTitle && !reSearching) {
@@ -185,34 +205,47 @@ class ParseJW {
                   first = first[0];
                   idx = sTitles.indexOf(first.target);
 
-                  //console.debug('maybeIdxWithSameDateOrType, etc', maybeIdxWithSameDateOrType, trueYear, sYears[idx]);
-                  if(maybeIdxWithSameDateOrType > -1 && Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
-                    //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
-                    //ex: 인비테이션
-                    idx = -1;
-                    console.info('fuzzysort result is discarded:', first.target);
+                  console.debug('after fuzzysort. sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]:', sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]);
+
+                  if(maybeIdxWithSameDateOrType > -1 && maybeIdxWithSameDateOrType != idx) {
+                    //console.debug('maybeIdxWithSameDateOrType is > -1. sTitles[maybeIdxWithSameDateOrType], sOrgTitles[maybeIdxWithSameDateOrType]:', sTitles[maybeIdxWithSameDateOrType], sOrgTitles[maybeIdxWithSameDateOrType], sTitles[maybeIdxWithSameDateOrType] == sOrgTitles[maybeIdxWithSameDateOrType]);
+                    if(Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
+                      //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
+                      //ex: 인비테이션
+                      idx = -1;
+                      console.info('fuzzysort result is discarded since year is too different:', first.target);
+                    }
+                    else if(sTitles[maybeIdxWithSameDateOrType] == sOrgTitles[maybeIdxWithSameDateOrType] && sRatings[idx] < fuzzyThresholdRating) {
+                      //다른 실제 연도 일치 결과가 한국어 제목이 없는데 퍼지 매칭 결과 평점이 너무 구려도 버린다.
+                      //ex: 인터스텔라(jw에 한국어 제목이 영어 제목임-_-)
+                      idx = -1;
+                      console.info('fuzzysort result is discarded since its rating is so poor and no korean title is present:', first.target);
+                    }
+                    else {
+                      console.info('fuzzysort result is taken:', first.target);
+                    }
                   }
                   else {
-                    console.warn(`no exact match. so taking ${first.target} with fuzzysort score ${first.score} for ${titleForWarning}`);
+                    console.warn(`no exact match. so taking ${first.target} (${sYears[idx]}) with fuzzysort score ${first.score} for ${titleForWarning}`);
                     otData[i].otFlag = '?';
                   }
                 }
                 else {
                   console.info('fuzzysort epic failed for', title);
-                  //검색 결과가 너무나 무관하면 같은 날짜나 타입 결과가 있더라도 버린다.
-                  maybeIdxWithSameDateOrType = -1;
+                  ////검색 결과가 너무나 무관하면 같은 날짜나 타입 결과가 있더라도 버린다.
+                  //maybeIdxWithSameDateOrType = -1;
                 }
               }
 
               if(idx == -1) {
-                if(maybeIdxWithSameDateOrType > -1) {
+                if(maybeIdxWithSameDateOrType > -1 && sRatings[maybeIdxWithSameDateOrType] >= fuzzyThresholdRating) {
                   idx = maybeIdxWithSameDateOrType;
-                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the same date or type: ${sTitles[idx]}`);
+                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with not-poor rating present and with the same date or type: ${sTitles[idx]}`);
                   otData[i].otFlag = '?';
                 }
                 else {
                   idx = 0;
-                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result: ${sTitles[idx]}`);
+                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first (the most popular) result: ${sTitles[idx]}`);
                   if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
                   else otData[i].otFlag = '??';
                 }

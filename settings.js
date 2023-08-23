@@ -7,19 +7,21 @@ const SETTINGS = {};
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people'],
   rootSelector: 'main',
-  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div:not(:has(>figure))`,  //list item
+  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div:not(:has(>figure)), `  //list item
+  + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search
   selectorOnSinglePage: `header>div>section:not([${FY_UNIQ_STRING}])>div>h1`,  //single-page
   //large-div is removed at 2022 1Q
 
   //numberToBaseEl: 2,  //when edit, this number + 1 is used
 
   selectorsForListItems: {
-    id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page
-    title: 'div[aria-hidden]>p',
-    targetEl: 'a[class]>div',  //targetEl is for edit(). it should be 'the last element'.
+    //id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page  //not used anymore (now using jw)
+    title: 'div[aria-hidden]>p, a>div>div:first-of-type',  //the latter is for /search page
+    year: 'a>div>div+div>div+div',  //for /search page only
+    targetEl: 'a[class]>div, a>div>div+div',  //targetEl is for edit(). it should be 'the last element'. the latter is for /search page
     types: {  //either use types or isTVSeries
-      selector: 'div+p+p',
-      mapping: {'영화': 'Movie', 'TV 프로그램': 'Tv Series'},  //미니 시리즈는 어쩔...
+      selector: 'div+p+p, a>div>div+div>div+div',  //the latter is for /search page
+      mapping: {'영화': 'Movie', 'TV 프로그램': 'TV Series'},  //미니 시리즈는 어쩔...
     },
   },
 

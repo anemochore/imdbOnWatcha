@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.18
+// @version      0.6.24
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -18,7 +18,7 @@
 // @require      https://anemochore.github.io/imdbOnWatcha/imdbRun.js
 // @require      https://anemochore.github.io/imdbOnWatcha/utils.js
 // @require      https://anemochore.github.io/imdbOnWatcha/settings.js
-// @require      https://anemochore.github.io/imdbOnWatcha/fixes.js
+// @require      https://anemochore.github.io/imdbOnWatcha/fixesJW.js
 // @require      https://cdn.jsdelivr.net/npm/fuzzysort@2.0.4/fuzzysort.min.js
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
@@ -49,6 +49,22 @@ class FyGlobal {
   async run() {
     fy.site = document.location.host;
 
+    //for this.edit(), etc
+    unsafeWindow.GM_getValue = GM_getValue;
+    unsafeWindow.GM_setValue = GM_setValue;
+
+      //imdb 접속 시 캐시 업데이트
+    if(fy.site == 'www.imdb.com') {
+      fyImdbRun.imdbRun();
+      return;
+    }
+
+    if(!SETTINGS[fy.site])
+      return;
+
+    toast.log('fy script started.');
+
+    //set locale
     fy.locale = navigator.language.replace('-', '_');
     [fy.lang, fy.country] = fy.locale.split('_');
     if(!fy.country) {
@@ -64,24 +80,7 @@ class FyGlobal {
           fy.country = 'US';
       }
     }
-    if(fy.locale == fy.lang)
-      fy.locale = fy.locale + '_' + fy.country;
-
-
-    //for this.edit(), etc
-    unsafeWindow.GM_getValue = GM_getValue;
-    unsafeWindow.GM_setValue = GM_setValue;
-
-      //imdb 접속 시 캐시 업데이트
-    if(fy.site == 'www.imdb.com') {
-      fyImdbRun.imdbRun();
-      return;
-    }
-
-    if(!SETTINGS[fy.site])
-      return;
-
-    toast.log('fy script started.');
+    if(fy.locale == fy.lang) fy.locale = fy.locale + '_' + fy.country;
 
     //load setting
     for(const [k, v] of Object.entries(SETTINGS[fy.site]))
@@ -153,16 +152,6 @@ class FyGlobal {
     window.addEventListener('popstate', () => {
       window.dispatchEvent(new Event('locationchange'))
     });
-
-    //check api keys
-    /*
-    if(!RAPID_API_KEY || RAPID_API_KEY == DEFAULT_MSG) {
-      await GM_setValue('RAPID_API_KEY', DEFAULT_MSG);
-      alert("set RAPID_API_KEY in Tampermonkey's setting first.");
-      toast.log();
-      return;
-    }
-    */
 
     //css 로딩
     const css = GM_getResourceText('CSS');
@@ -343,6 +332,7 @@ class FyGlobal {
       const wpId = getIdFromValidUrl_(document.location.href);
       const title = getTextFromNode_(getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
       const type = getTypeFromDiv_(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
+      // console.log("🚀 ~ file: app.js:346 ~ 'watcha.com': ~ type:", type)
 
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
@@ -422,9 +412,8 @@ class FyGlobal {
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
-    const type = getTypeFromDiv_(trueData.selectors, baseEl);
-    //console.debug('trueData.selectors, baseEl', trueData.selectors, baseEl)
-    trueData.type = type;
+    if(!trueData.type)  //watcha는 이미 가져온 상태라 패스
+      trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);
 
     let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
     let otFlag, imdbFlag, forceUpdate = true;
@@ -491,30 +480,40 @@ class FyGlobal {
 
     fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
 
-    //get titles
+    //get titles, etc
     itemDivs.forEach((item, i) => {
       const baseEl = getParentsFrom_(item, fy.numberToBaseEl);
 
       let title = trueData.title;
       if(!title && baseEl)
-        title = getTextFromNode_(baseEl.querySelector(trueData.selectors.title));
+        title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
       if(!title) {
         console.warn('no title found on', item);
         return;
       }
-
       if(title.includes(':') && title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
         title = title.replace(/ \(에피소드 [0-9]+\)$/, '');
         console.info('(에피소드 x) was stripped.', title);
       }
-
       allTitles[i] = title;
 
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
-      //타입 얻기. 왓챠 보관함이나 웨이브 /my 루트 정도?
+      //year 구할 수 있으면 구한다(일단은 왓챠 /search)
+      if(!trueData.year && trueData.selectors.year) {
+        let year = querySelectorFiFo_(baseEl, trueData.selectors.year);
+        if(year) {
+          year = year.innerText
+          .replace(/^.+ · /, '');  //for watcha /search page
+          if(!isNaN(parseInt(year))) 
+            otData[i].year = year;
+        }
+      }
+
+      //타입 얻기. 왓챠 보관함과 /search, 웨이브 /my 루트 정도?
       let type = getTypeFromDiv_(trueData.selectors, baseEl);
+      // console.log("🚀 ~ file: app.js:521 ~ itemDivs.forEach ~ type:", type)
       if(type) {
         //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입 사용
         if(!otData[i].type || otData[i].otFlag != '')
@@ -640,8 +639,14 @@ class FyGlobal {
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
         numberToParent = selectors.numberToBaseEl || numberToParent;
 
-      const baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
-      let div = baseEl.querySelector('div.'+FY_UNIQ_STRING) || baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
+      let baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
+      let divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
+      if(divs?.length > 1 && baseEl.tagName == 'UL') {  //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
+        baseEl = getParentsFrom_(fyItemToUpdate, numberToParent - 1);
+        divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
+      }
+
+      let div = divs ? divs[0] : baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
       //console.debug('baseEl, div on update', baseEl, div)
 
       if(!div) {
@@ -669,17 +674,10 @@ class FyGlobal {
       let label = 'n/a';
       if(otDatum.imdbRatingFetchedDate) {
         let yourDate = new Date(otDatum.imdbRatingFetchedDate);
-        /*
-        if(isNaN(yourDate)) {
-          otDatum.imdbRatingFetchedDate = 'n/a';  //fix invalid cache
-          console.debug('fixed invalid fetched-date in cache for ' + otDatum.orgTitle);
-        }
-        else {
-        */
-          const offset = yourDate.getTimezoneOffset();
-          yourDate = new Date(yourDate.getTime() - (offset*60*1000));
-          label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
-        //}
+
+        const offset = yourDate.getTimezoneOffset();
+        yourDate = new Date(yourDate.getTime() - (offset*60*1000));
+        label = yourDate.toISOString().split('T')[0];  //Date to yyyy-mm-dd
       }
 
       let rating = 'n/a', ratingCss = 'na';
@@ -818,44 +816,43 @@ class FyGlobal {
   async edit(event, onSite) {
     //event.preventDefault();  //not working
     const el = event.target;
-
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
     let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
-    const baseEl = getParentsFrom_(el, numberToParent);
-    console.debug('baseEl, div on update', baseEl, el);
+    let baseEl = getParentsFrom_(el, numberToParent);
+    //console.debug('baseEl, div on edit', baseEl, el);
 
     //determine single-page
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
-
-    //console.debug('el, baseEl:', el, baseEl);
     let isSinglePage = false;
     if((rule.determinePathnameBy && document.location.pathname.startsWith(rule.determinePathnameBy)) ||
       (rule?.determineSinglePageBy == true) ||
       (!rule.determinePathnameBy && baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
       isSinglePage = true;
-    //console.debug('isSinglePage:', isSinglePage);
 
     let selectors = rule;
-    if(!isSinglePage)
-      selectors = fy.selectorsForListItems;
+    if(!isSinglePage) selectors = fy.selectorsForListItems;
 
-    const type = getTypeFromDiv_(selectors, baseEl);
+    //search target el (fyItem. the last element)
+    let divs = baseEl.querySelectorAll(selectors.targetEl);
+    if(divs?.length > 1 && baseEl.tagName == 'UL') {  //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
+      baseEl = getParentsFrom_(el, numberToParent - 1);
+      divs = baseEl.querySelectorAll(selectors.targetEl);
+      console.debug('modified: baseEl, div on edit', baseEl, el);
+    }
+    const targetEl = divs ? divs[0] : baseEl;
 
     //search title, etc
+    const type = getTypeFromDiv_(selectors, baseEl);
+    // console.log("🚀 ~ file: app.js:851 ~ edit ~ type:", type)
     let url, title, otDatum;
 
     //캐시에 있다면 사용.
-    const titleEl = baseEl.querySelector(selectors.title);
+    const titleEl = querySelectorFiFo_(baseEl, selectors.title);
     title = getTextFromNode_(titleEl);
     //console.debug('title, type, otDatum on edit():', title, type, otDatum);
     if(!otDatum)
       otDatum = otCache[title] || {};
-
-    //search target el (fyItem. the last element)
-    //console.debug('selectors.targetEl, baseEl', selectors.targetEl, baseEl);
-    const targetEl = baseEl.querySelector(selectors.targetEl) || baseEl;
-    //console.debug('selectors.targetEl, baseEl, targetEl', selectors.targetEl, baseEl, targetEl);
 
     //for kino
     selectors = fy.selectorsForSinglePage;

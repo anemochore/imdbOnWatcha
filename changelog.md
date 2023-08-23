@@ -332,3 +332,10 @@
     //    internal: clean-up
     //    internal: fixed stupid typo
     //    watcha: fixed a bug of v0.6.13
+    // ver 0.6.24 @ 2023-8-24
+    //    watcha: support /search page again (search and edit)
+    //    watcha: improved list-searching on /search (I hope)
+    //    imdb: fix a stopping bug of v0.6.16
+    //    fixes.js: replace with fixesJW.js for some minor improvement on minor weird case -_-
+    //    jw: modified minor logic
+    //    internal: clean-up again
