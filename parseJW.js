@@ -1,6 +1,7 @@
 class ParseJW {
   //parsing and scraping funcs
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
+    console.debug("🚀 ~ file: parseJW.js:4 ~ ParseJW ~ results:", results)
     for(const [i, r] of results.entries()) {
       const result = r?.items;
       let title = titles[i];
@@ -87,17 +88,19 @@ class ParseJW {
             const sOrgTitle = sOrgTitles[j];
             let found = false;
 
+            // console.log("🚀 ~ file: parseJW.js:104 ~ ParseJW ~ title.replace ~ trueYear:", j, sTitle, sYears[j], sRatings[j])
             if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
               if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 found = true;
               }
             }
-            else {
+
+            if(!found) {
               if(title == sTitle || 
                 title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
                 title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
-                //TV물이 아니면 제목(or 원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
+                //TV물이 아니거나 못 찾았으면, 제목(or 원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
                 found = true;
                 if(trueYear) {
                   if(trueYear != sYears[j])
@@ -109,12 +112,13 @@ class ParseJW {
                   }
                 }
               }
-              else if((trueYear == sYears[j] || trueType == sTypes[j]) && isValidRating_(sRatings[j])) {
+              else if(trueYear == sYears[j] && isValidRating_(sRatings[j])) {
                 //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
                 if(maybeIdxWithSameDateOrType == -1)
                   maybeIdxWithSameDateOrType = j;
               }
             }
+            // console.log("🚀 ~ file: parseJW.js:104 ~ ParseJW ~ title.replace ~ trueYear:", j, sTitle, sYears[j], sRatings[j], maybeIdxWithSameDateOrType)
 
             if(!found && trueType != 'TV Series' && possibleIdxWithCloseDate == -1) {
               if(title.length > fuzzyThresholdLength) {  //manual fuzzy matching (tv 시리즈는 X)
@@ -170,6 +174,7 @@ class ParseJW {
             });
 
             const localOtData = [{ ...otData[i]}];
+            // console.log("🚀 ~ file: parseJW.js:175 ~ ParseJW ~ trueData:", trueData)
             await fyJW.parseJwSearchResults_(otSearchResults, localOtData, trueData, [trueOrgTitle], true);
             const searchLength = otSearchResults.filter(el => el).length;
             if(searchLength == 0) {
