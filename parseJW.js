@@ -1,9 +1,9 @@
 class ParseJW {
   //parsing and scraping funcs
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
-    console.debug("🚀 ~ file: parseJW.js:4 ~ ParseJW ~ results:", results)
     for(const [i, r] of results.entries()) {
       const result = r?.items;
+      console.debug("🚀 ~ file: parseJW.js:6 ~ ParseJW ~ result:", result)
       let title = titles[i];
 
       if(!title)
@@ -19,7 +19,9 @@ class ParseJW {
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
       const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
-      const fuzzyThresholdRating = 4.1;  //discard result with less rating than this
+      const fuzzyThresholdRating = 4.1;  //discard result with rating less than this
+
+      const YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH = 2;  //accept re-search result with year-diffence less than this
 
       const tvString = 'show';  //, movieString = 'movie';
 
@@ -87,8 +89,6 @@ class ParseJW {
 
             const sOrgTitle = sOrgTitles[j];
             let found = false;
-
-            // console.log("🚀 ~ file: parseJW.js:104 ~ ParseJW ~ title.replace ~ trueYear:", j, sTitle, sYears[j], sRatings[j])
             if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
               if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
@@ -102,9 +102,8 @@ class ParseJW {
                 title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 //TV물이 아니거나 못 찾았으면, 제목(or 원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
                 found = true;
-                if(trueYear) {
-                  if(trueYear != sYears[j])
-                    found = false;
+                if(trueYear && trueYear != sYears[j]) {
+                  found = false;
                   const curCloseDate = Math.abs(trueYear - sYears[j]);
                   if(curCloseDate < closeDate && isValidRating_(sRatings[j])) {
                     closeDate = curCloseDate;
@@ -118,17 +117,19 @@ class ParseJW {
                   maybeIdxWithSameDateOrType = j;
               }
             }
-            // console.log("🚀 ~ file: parseJW.js:104 ~ ParseJW ~ title.replace ~ trueYear:", j, sTitle, sYears[j], sRatings[j], maybeIdxWithSameDateOrType)
 
-            if(!found && trueType != 'TV Series' && possibleIdxWithCloseDate == -1) {
-              if(title.length > fuzzyThresholdLength) {  //manual fuzzy matching (tv 시리즈는 X)
-                if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
-                  found = true;
-                  console.info(`spaces were ignored for ${title} and ${sTitle}`);
-                }
-                if(sTitle.replaceAll(':', '') == title.replaceAll(':', '')) {
-                  found = true;
-                  console.info(`colons were ignored for ${title} and ${sTitle}`);
+            if(!found && trueType != 'TV Series') {
+              if(possibleIdxWithCloseDate == -1) {
+                //날짜 비슷하면 manual fuzzy matching (tv 시리즈는 X)
+                if(title.length > fuzzyThresholdLength) {
+                  if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
+                    found = true;
+                    console.info(`spaces were ignored for ${title} and ${sTitle}`);
+                  }
+                  if(sTitle.replaceAll(':', '') == title.replaceAll(':', '')) {
+                    found = true;
+                    console.info(`colons were ignored for ${title} and ${sTitle}`);
+                  }
                 }
               }
             }
@@ -161,8 +162,17 @@ class ParseJW {
         else if(idx == -1) {
           console.debug('idx is -1. exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
           //검색 결과 없음
-          //원제가 있다면 원제로 재검색
-          if(trueOrgTitle && !reSearching) {
+
+          if(reSearching) {
+            //원제로 재검색 중인데 원제가 같고 날짜가 아주 비슷하면 그냥 걔 선택
+            if(Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
+              idx = possibleIdxWithCloseDate;
+              console.warn(`${title} (${trueYear}) is not found, but the same title (${sYears[idx]}) with rating is found. so taking it.`);
+              otData[i].otFlag = '?';
+            }
+          }
+          else if(trueOrgTitle && !reSearching) {
+            //원제가 있다면 원제로 재검색
             toast.log('re-searching (using org. title) from jw again...');
 
             const URL = `https://apis.justwatch.com/content/titles/en_US/popular`;
@@ -174,7 +184,6 @@ class ParseJW {
             });
 
             const localOtData = [{ ...otData[i]}];
-            // console.log("🚀 ~ file: parseJW.js:175 ~ ParseJW ~ trueData:", trueData)
             await fyJW.parseJwSearchResults_(otSearchResults, localOtData, trueData, [trueOrgTitle], true);
             const searchLength = otSearchResults.filter(el => el).length;
             if(searchLength == 0) {
@@ -213,7 +222,6 @@ class ParseJW {
                   console.debug('after fuzzysort. sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]:', sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]);
 
                   if(maybeIdxWithSameDateOrType > -1 && maybeIdxWithSameDateOrType != idx) {
-                    //console.debug('maybeIdxWithSameDateOrType is > -1. sTitles[maybeIdxWithSameDateOrType], sOrgTitles[maybeIdxWithSameDateOrType]:', sTitles[maybeIdxWithSameDateOrType], sOrgTitles[maybeIdxWithSameDateOrType], sTitles[maybeIdxWithSameDateOrType] == sOrgTitles[maybeIdxWithSameDateOrType]);
                     if(Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
                       //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
                       //ex: 인비테이션

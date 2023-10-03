@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.25
+// @version      0.6.27
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -92,11 +92,17 @@ class FyGlobal {
     this.largeDivUpdate = this.largeDivUpdates[fy.site];
 
     //numberToBaseEl 자동으로 지정
-    if(!fy.numberToBaseEl) {
-      let tSelector = fy.selector.split(',')[0]  //selector가 여러 개일 때까지는 지원하지 않음.
-      .split(FY_UNIQ_STRING).pop();
-      fy.numberToBaseEl = tSelector.match(/[^(]>/g)?.length || 1;  //fy-item 이후 > 개수
-      console.debug('numberToBaseEl was auto calculated based on selector:', fy.numberToBaseEl);
+    if(isNaN(fy.numberToBaseEl)) {
+      if(fy.selector) {
+        let tSelector = fy.selector.split(',')[0]  //selector가 여러 개일 때까지는 지원하지 않음.
+        .split(FY_UNIQ_STRING).pop();
+        fy.numberToBaseEl = tSelector.match(/[^(]>/g)?.length || 1;  //fy-item 이후 > 개수
+        console.debug('numberToBaseEl was auto calculated based on selector:', fy.numberToBaseEl);
+      }
+      else {
+        fy.numberToBaseEl = 1;
+        console.debug('numberToBaseEl was not specified. set to default:', fy.numberToBaseEl);
+      }
     }
 
     //global vars & flags
@@ -463,12 +469,13 @@ class FyGlobal {
   };
 
   preUpdateDivses = {
+    /*
     'm.kinolights.com': itemDivs => {
       const baseEl = getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
       const el = baseEl.querySelector(fy.selectorsForSinglePage.targetEl);
-      el.setAttribute(FY_UNIQ_STRING, '');
-      el.classList.add(FY_UNIQ_STRING);  //this is not wokring!
+      el.setAttribute(FY_UNIQ_STRING, '');  //not working
     },
+    */
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
@@ -585,25 +592,25 @@ class FyGlobal {
       }
     }
 
-    fy.searchWrapUp_(itemDivs, otData, trueData);
+    await fy.searchWrapUp_(itemDivs, otData, trueData);
   }
 
-  searchWrapUp_(itemDivs, otData, trueData) {
+  async searchWrapUp_(itemDivs, otData, trueData) {
     //내부 캐시 사용했다면 적용
     fy.getInternalCache_(otData);
 
     //change flow: update divs
-    fy.updateDivs(itemDivs, otData, trueData.selectors);
+    await fy.updateDivs(itemDivs, otData, trueData.selectors);
   }
 
-  updateDivs(itemDivs, otData, selectors = {}) {
-    itemDivs.forEach((item, i) => {
-      updateDiv_(item, otData[i], itemDivs.length, selectors);
-    });
+  async updateDivs(itemDivs, otData, selectors = {}) {
+    for(const [i, item] of itemDivs.entries()) {
+      await updateDiv_(item, otData[i], itemDivs.length, selectors);
+    }
     toast.log(itemDivs.length + ' divs updated!');
 
     //캐시 반영
-    setGMCache_(GM_CACHE_KEY, otData);
+    await setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
     toast.log();
@@ -634,21 +641,27 @@ class FyGlobal {
         console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
     }
 
-    function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
+    async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
       let numberToParent = fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
         numberToParent = selectors.numberToBaseEl || numberToParent;
 
       let baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
       let divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
-      if(divs?.length > 1 && baseEl.tagName == 'UL') {  //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
+
+      /*
+      if(!divs && selectors.async) {
+        divs = await elementReady('div.'+FY_UNIQ_STRING);
+      }
+      */
+
+      //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
+      if(divs?.length > 1 && baseEl.tagName == 'UL') {
         baseEl = getParentsFrom_(fyItemToUpdate, numberToParent - 1);
         divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
       }
 
-      let div = divs ? divs[0] : baseEl.querySelector('div['+FY_UNIQ_STRING+']');  //the latter is for kino
-      //console.debug('baseEl, div on update', baseEl, div)
-
+      let div = divs ? divs[0] : null;
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
         return;

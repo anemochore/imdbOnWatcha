@@ -341,3 +341,6 @@
     //    internal: clean-up again
     // ver 0.6.25 @ 2023-9-2
     //    jw: modified minor logic
+    // ver 0.6.27 @ 2023-10-3
+    //    jw: modified minor logic
+    //    kino: fixed selectors, with internal clean-up

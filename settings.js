@@ -49,8 +49,7 @@ SETTINGS['m.kinolights.com'] = {
   selectorOnSinglePage: 'div.movie-title-wrap',  //'selector' is not used for kino
   preventMultipleUrlChanges: true,  //hack for kino
 
-  numberToBaseEl: 'html',
-
+  numberToBaseEl: 0,
   selectorsForSinglePage: {
     determineSinglePageBy: true,  //force single-page
     title: 'h3.title-kr',
