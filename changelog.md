@@ -344,3 +344,6 @@
     // ver 0.6.27 @ 2023-10-3
     //    jw: modified minor logic
     //    kino: fixed selectors, with internal clean-up
+    // ver 0.6.28 @ 2023-10-6
+    //    internal: changed minor log text
+    //    TODO: add disneyplus large-div!!! (delayed)

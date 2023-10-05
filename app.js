@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.27
+// @version      0.6.28
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -233,7 +233,7 @@ class FyGlobal {
           }
         });
         if(isExcludingPath) {
-          toast.log('on excluding page');
+          toast.log('on excluding page, curLocation');
           result = true;
         }
       }
@@ -248,7 +248,7 @@ class FyGlobal {
           }
         });
         if(!isIncludingPath) {
-          toast.log('not in including page');
+          toast.log('not in including page:', curLocation);
           result = true;
         }
       }
@@ -765,7 +765,7 @@ class FyGlobal {
         return value;
       }
       else {
-        console.debug(`cache for ${value} will be used: ${cache.orgTitle} (${cache.year})`);
+        console.debug(`cache for ${value} will be used. org-title: ${cache.orgTitle} (${cache.year})`);
         return null;
       }
     }
