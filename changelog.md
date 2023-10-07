@@ -347,3 +347,7 @@
     // ver 0.6.28 @ 2023-10-6
     //    internal: changed minor log text
     //    TODO: add disneyplus large-div!!! (delayed)
+    // ver 0.6.31 @ 2023-10-8
+    //    kino: fixed dom throw
+    //    kino: fixed edit not working
+    //    jw, imdb: modified minor logic

@@ -46,8 +46,9 @@ class ImdbRun {
     }
 
     if(idx > -1) {
+      console.debug('found idx:', idx);
       const orgTitle = orgTitles[idx];
-      let cache = otCache[keys[idx]];
+      let cache = otCache[keys[idx]], isCacheUpdateNeeded = false;
 
       if(cache.imdbFlag != '') {
         if(isValidRating_(cache.imdbRating) && !isValidRating_(imdbRating)) {
@@ -58,23 +59,23 @@ class ImdbRun {
           cache.imdbUrl = getImdbUrlFromId_(null, orgTitle);
         }
         else if(Math.abs(parseInt(cache.year) - trueYear) > 1) {
-          toast.log('year on imdb is ' + trueYear + ', which quite differs from ' + cache.year + '. so deleting the cache which is probably wrong!');
+          toast.log('year on imdb is ' + trueYear + ', which differs more than 1 year from ' + cache.year + '. so deleting the cache which is probably wrong!');
 
           cache.imdbId = 'n/a';  //다시 업데이트하지 못하게 막음
           cache.imdbRating = 'n/a';
           cache.imdbUrl = getImdbUrlFromId_(null, orgTitle);
         }
         else {
+          isCacheUpdateNeeded = true;
           if(cache.imdbUrl.startsWith('https://www.imdb.com/find?') || cache.imdbFlag == '??') {
             toast.log('updated the whole imdb data on cache (id was not set or flag is ??) for '+orgTitle+' ('+trueYear+').');
 
             cache.imdbId = imdbId;
             cache.imdbUrl = getImdbUrlFromId_(imdbId, 'www.imdb.com');
-            cache.year = trueYear;
           }
           else {
-            if(cache.imdbRating != imdbRating) {
-              toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+cache.year+').');
+            if(imdbRating != cache.imdbRating) {
+              toast.log(`imdb rating differs from the cache, so updating the cache rating for ${orgTitle || trueOrgTitle} (${cache.year}).`);
               cache.imdbRating = imdbRating;
             }
             else {
@@ -86,12 +87,12 @@ class ImdbRun {
         cache.imdbFlag = '';
       }
       else if(imdbRating != cache.imdbRating) {
+        isCacheUpdateNeeded = true;
         if(cache.imdbRating == 'n/a') {
           toast.log('updated the imdb data on cache (flag was not set) for '+orgTitle+' ('+trueYear+').');
 
           cache.imdbId = imdbId;
           cache.imdbUrl = getImdbUrlFromId_(imdbId, 'www.imdb.com');
-          cache.year = trueYear;
         }
         else if(imdbRating == 'n/a') {
           toast.log('imdb rating is really not present for '+orgTitle+' ('+trueYear+')!');
@@ -101,15 +102,24 @@ class ImdbRun {
         }
         cache.imdbRating = imdbRating;
       }
-      else if(parseInt(cache.year) != trueYear && Math.abs(parseInt(cache.year) - trueYear) <= YEAR_DIFFERENCE_THRESHOLD) {
-        toast.log('rating is the same, but the year on imdb is ' + trueYear + ', which slightly differs from ' + cache.year + ' on cache. other cache data looks healthy, so updating the year only.');
-
-        cache.year = trueYear;
-      }
       else {
-        toast.log('imdb flag is not set and imdb rating is the same as cache, so no update.');
+        toast.log('imdb flag is not set and imdb rating is the same as cache, so no rating update.');
       }
 
+      if(isCacheUpdateNeeded) {
+        if(cache.orgTitle != trueOrgTitle) {
+          console.log('updated orgTitle');
+          cache.orgTitle = trueOrgTitle;
+        }
+        if(cache.year != trueYear) {
+          console.log('updated year');
+          cache.year = trueYear;
+        }
+        if(cache.type != trueType) {
+          console.log('updated type');
+          cache.type = trueType;
+        }
+      }
 
       //wrap-up
       cache.imdbRatingFetchedDate = new Date().toISOString();
@@ -123,4 +133,5 @@ class ImdbRun {
 
     toast.log();
   }
+
 }

@@ -174,12 +174,12 @@ function getIdFromValidUrl_(validUrl = null) {
   return validUrl ? validUrl.split('/').pop().split('?')[0] : null;
 }
 
-function getImdbUrlFromId_(id, title) {
+function getImdbUrlFromId_(id, orgTitle = null) {
   let url = null;
   if(id && id != 'n/a')
     url = 'https://www.imdb.com/title/' + id;
-  else
-    url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(title);
+  else if(orgTitle)
+    url = 'https://www.imdb.com/find?s=tt&q=' + encodeURIComponent(orgTitle);
 
   return url;
 }

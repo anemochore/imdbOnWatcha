@@ -42,6 +42,12 @@ class ParseJW {
       const trueType = trueData.type || otData[i].type;
       const trueYear = trueData.year || otData[i].year;
 
+      let cacheTrueImdbId = null;
+      if(!trueData.imdbId && otData[i].imdbId && otData[i].imdbRating && otData[i].imdbVisitedDate) {
+        //직접 imdb 방문한 게 캐시에 있다면, 검색이 실패할 경우 그걸 쓴다.
+        cacheTrueImdbId = otData[i].imdbId;
+      }
+
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
       let sIds = result.map(el => el.id);
       let sUrls = result.map(el => `https://www.justwatch.com${el.full_path}`);
@@ -65,11 +71,24 @@ class ParseJW {
         idx = sUrls.indexOf(decodeURI(trueJwUrl));
         sUrls[idx] = sUrls[idx] + (trueSeason ? '/' + decodeURI(trueSeason) : '');
       }
-      else if(trueImdbId && sImdbIds.includes(trueImdbId)) {
-        //imdb id를 알고 있다면 끝~
-        console.info('imdb id was manually provided and actually found.', trueImdbId);
-        otData[i].otFlag = '';
-        idx = sImdbIds.indexOf(trueImdbId);
+      else if(trueImdbId) {
+        //imdb id를 알고 있다면
+        if(sImdbIds.includes(trueImdbId)) {
+          console.info('imdb id was manually provided and actually found:', trueImdbId);
+          otData[i].otFlag = '';
+          idx = sImdbIds.indexOf(trueImdbId);
+        }
+        else {
+          console.warn(`imdb id ${trueImdbId} was manually provided, but not found in jw. so jw info is n/a and plz visit imdb page to get rating. :(`);
+          otData[i] = {};
+          otData[i].query = title;
+          otData[i].otFlag = '??';
+          otData[i].imdbId = trueImdbId;
+          if(trueOrgTitle) otData[i].orgTitle = trueOrgTitle;
+          if(trueYear)     otData[i].year = trueYear;
+          otData[i].imdbUrl = getImdbUrlFromId_(trueImdbId);
+          reSearching = 'no need';
+        }
       }
       else {
         sTitles.forEach((sTitle, j) => {
@@ -171,6 +190,11 @@ class ParseJW {
               otData[i].otFlag = '?';
             }
           }
+          else if(cacheTrueImdbId) {
+            //검색이 실패했지만, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
+            console.log(`search failed. keep the cache data with imdb id present (${cacheTrueImdbId}).`);
+            reSearching = 'no need';
+          }
           else if(trueOrgTitle && !reSearching) {
             //원제가 있다면 원제로 재검색
             toast.log('re-searching (using org. title) from jw again...');
@@ -269,7 +293,7 @@ class ParseJW {
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
-      if(reSearching != 'done') {
+      if(reSearching != 'done' && reSearching != 'no need') {
         console.debug('found idx', idx);
         otData[i].jwId = sIds[idx];
         otData[i].jwUrl = sUrls[idx];

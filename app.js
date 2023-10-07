@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.28
+// @version      0.6.31
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -460,10 +460,12 @@ class FyGlobal {
       //console.debug('preupdate: item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl, baseEl.getAttribute(FY_UNIQ_STRING));
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
         baseEl.setAttribute(FY_UNIQ_STRING, '');
-        const infoEl = document.createElement('div');
-        infoEl.classList.add(FY_UNIQ_STRING);
-        infoEl.classList.add(fy.site.replace(/\./g, '_'));
-        baseEl.insertBefore(infoEl, baseEl.firstChild);
+        if(!fy.noAppendDiv) {
+          const infoEl = document.createElement('div');
+          infoEl.classList.add(FY_UNIQ_STRING);
+          infoEl.classList.add(fy.site.replace(/\./g, '_'));
+          baseEl.insertBefore(infoEl, baseEl.firstChild);
+        }
       }
     });
   };
@@ -521,8 +523,8 @@ class FyGlobal {
       //타입 얻기. 왓챠 보관함과 /search, 웨이브 /my 루트 정도?
       let type = getTypeFromDiv_(trueData.selectors, baseEl);
       // console.log("🚀 ~ file: app.js:521 ~ itemDivs.forEach ~ type:", type)
-      if(type) {
-        //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입 사용
+      if(type && !type.startsWith('not ')) {
+        //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
         if(!otData[i].type || otData[i].otFlag != '')
           otData[i].type = type;
       }
@@ -560,8 +562,9 @@ class FyGlobal {
 
     //kino update
     if(trueData.orgTitle && trueData.imdbRating) {
-      otData[0].orgTitle = trueData.orgTitle;
-      otData[0].imdbRating = trueData.imdbRating;  //if search fails, use kino's rating if present
+      //첫 검색이 실패했을 때 목록 데이터가 있다면 쓴다(and 조건이라 키노만 해당할 듯).
+      if(!otData[0].orgTitle)   otData[0].orgTitle = trueData.orgTitle;
+      if(!otData[0].imdbRating) otData[0].imdbRating = trueData.imdbRating;
     }
 
     //찾을 제목에 대해 내부 캐시 적용.
@@ -662,6 +665,11 @@ class FyGlobal {
       }
 
       let div = divs ? divs[0] : null;
+      if(!div) {
+        if(totalNumber > 1) div = baseEl.querySelector(fy.selectorsForListItems?.targetEl);
+        else                div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
+      }
+
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
         return;
@@ -853,23 +861,21 @@ class FyGlobal {
       divs = baseEl.querySelectorAll(selectors.targetEl);
       console.debug('modified: baseEl, div on edit', baseEl, el);
     }
-    const targetEl = divs ? divs[0] : baseEl;
+
+    let targetEl = divs ? divs[0] : baseEl;
+    if(!targetEl) {
+      targetEl = baseEl.querySelector(selectors.targetEl);
+      console.debug('targetEl was not found :( instead taking', targetEl);
+    }
 
     //search title, etc
     const type = getTypeFromDiv_(selectors, baseEl);
-    // console.log("🚀 ~ file: app.js:851 ~ edit ~ type:", type)
     let url, title, otDatum;
 
     //캐시에 있다면 사용.
     const titleEl = querySelectorFiFo_(baseEl, selectors.title);
     title = getTextFromNode_(titleEl);
-    //console.debug('title, type, otDatum on edit():', title, type, otDatum);
-    if(!otDatum)
-      otDatum = otCache[title] || {};
-
-    //for kino
-    selectors = fy.selectorsForSinglePage;
-    const imdbRating = getTextFromNode_(baseEl.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
+    if(!otDatum) otDatum = otCache[title] || {};
 
     //get input
     let imdbId, imdbUrl, jwUrl;
@@ -916,7 +922,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, jwUrl, type, imdbId, imdbUrl, imdbRating, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, jwUrl, type, imdbId, imdbUrl, forceUpdate: true, selectors});
   }
 
   xhrAbort() {
