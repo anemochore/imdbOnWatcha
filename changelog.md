@@ -350,4 +350,6 @@
     // ver 0.6.31 @ 2023-10-8
     //    kino: fixed dom throw
     //    kino: fixed edit not working
-    //    jw, imdb: modified minor logic
+    //    jw, imdb: modified minor logic (support for mini series)
+    // ver 0.6.32 @ 2023-10-9
+    //    jw: fixed minor logic (regarding tv series)

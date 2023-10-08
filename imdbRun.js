@@ -103,20 +103,21 @@ class ImdbRun {
         cache.imdbRating = imdbRating;
       }
       else {
+        isCacheUpdateNeeded = true;
         toast.log('imdb flag is not set and imdb rating is the same as cache, so no rating update.');
       }
 
       if(isCacheUpdateNeeded) {
         if(cache.orgTitle != trueOrgTitle) {
-          console.log('updated orgTitle');
+          console.log(`updated orgTitle: ${cache.orgTitle} -> ${trueOrgTitle}`);
           cache.orgTitle = trueOrgTitle;
         }
         if(cache.year != trueYear) {
-          console.log('updated year');
+          console.log(`updated year: ${cache.year} -> ${trueYear}`);
           cache.year = trueYear;
         }
         if(cache.type != trueType) {
-          console.log('updated type');
+          console.log(`updated type: ${cache.type} -> ${trueType}`);
           cache.type = trueType;
         }
       }

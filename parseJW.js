@@ -23,7 +23,7 @@ class ParseJW {
 
       const YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH = 2;  //accept re-search result with year-diffence less than this
 
-      const tvString = 'show';  //, movieString = 'movie';
+      const tvString = 'show';  //, movieString = 'movie';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
 
       //to update cache
       otData[i].query = title;
@@ -107,14 +107,16 @@ class ParseJW {
             }
 
             const sOrgTitle = sOrgTitles[j];
+            //console.debug('trueType, sTypes[j], title, sTitle, trueOrgTitle, sOrgTitle:', trueType, sTypes[j], '/', title, sTitle, '/', trueOrgTitle, sOrgTitle);
             let found = false;
-            if((!trueType || (trueType == 'TV Series' && sTypes[j] == 'TV Series')) && !title.startsWith('극장판 ')) {
+            if(!trueType || (trueType.endsWith('Series') && sTypes[j] == 'TV Series' && !title.startsWith('극장판 '))) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
               if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 found = true;
               }
             }
 
+            //console.debug('found:', found);
             if(!found) {
               if(title == sTitle || 
                 title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
@@ -137,7 +139,7 @@ class ParseJW {
               }
             }
 
-            if(!found && trueType != 'TV Series') {
+            if(!found && !trueType.endsWith('Series')) {
               if(possibleIdxWithCloseDate == -1) {
                 //날짜 비슷하면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
@@ -163,10 +165,14 @@ class ParseJW {
           }
         });
 
+        console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
-        if(exactMatchCount > 1) {
-          //검색 결과 많음
-          if(possibleIdxWithCloseDate > -1) {
+        if(exactMatchCount > 1) {  //검색 결과 많음
+          if(idx > -1) {
+            console.debug(`mild warning: ${exactMatchCount} multiple exact title matches for ${title} found on jw.`);
+            otData[i].otFlag = '';
+          }
+          else if(possibleIdxWithCloseDate > -1) {
             //true year가 있으면 연도 가까운 걸 선택
             idx = possibleIdxWithCloseDate;
             console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
@@ -178,10 +184,7 @@ class ParseJW {
             otData[i].otFlag = '?';
           }
         }
-        else if(idx == -1) {
-          console.debug('idx is -1. exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
-          //검색 결과 없음
-
+        else if(idx == -1) {  //검색 결과 없음
           if(reSearching) {
             //원제로 재검색 중인데 원제가 같고 날짜가 아주 비슷하면 그냥 걔 선택
             if(Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
@@ -192,7 +195,7 @@ class ParseJW {
           }
           else if(cacheTrueImdbId) {
             //검색이 실패했지만, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
-            console.log(`search failed. keep the cache data with imdb id present (${cacheTrueImdbId}).`);
+            console.log(`search failed. keep the healthy cache data with imdb id present (${cacheTrueImdbId}).`);
             reSearching = 'no need';
           }
           else if(trueOrgTitle && !reSearching) {
