@@ -77,8 +77,8 @@ async function fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
   return results;
 
 
-  async function fetchOne_(url, headers, query, constQuery) {
-    //쿼리가 있으면 POST + json
+  async function fetchOne_(url, headers, query) {
+    //query가 있으면 graphQL. headers는 무시함.
     return new Promise((resolve, reject) => {
       if(!url)
         resolve(null);
@@ -99,15 +99,61 @@ async function fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
         };
 
         if(query) {
-          payload.method = 'POST';  //헤더에 json 생략해도 작동하는 거 확인
+          payload.method = 'POST';  //헤더에 json 생략해도 될 듯??
+          payload.headers = {"Content-Type": "application/json"};
           payload.responseType = 'json';
           payload.onload = res => {
-            resolve(JSON.parse(res.responseText));
+            resolve(res.response);
           };
 
-          const params = constQuery;
-          params.query = query;
-          //console.debug('query', query);  //dev+++
+          //imdbVotes is included, but not used.
+          const params = {
+            "operationName": "GetSuggestedTitles",
+            "variables": {
+              "country": fy.country,
+              "language": fy.lang,
+              "first": 10,
+              "filter": {
+                "searchQuery": query
+              }
+            },
+            "query": `query GetSuggestedTitles($country: Country!, $language: Language!, $first: Int!, $filter: TitleFilter) {
+  popularTitles(country: $country, first: $first, filter: $filter) {
+    edges {
+      node {
+        ...SuggestedTitle
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment SuggestedTitle on MovieOrShow {
+  id
+  objectType
+  objectId
+  content(country: $country, language: $language) {
+    fullPath
+    title
+    originalReleaseYear
+    originalTitle
+    scoring {
+      imdbScore
+      imdbVotes
+      __typename
+    }
+    externalIds {
+      imdbId
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+`
+          };
           payload.data = JSON.stringify(params);
         }
 

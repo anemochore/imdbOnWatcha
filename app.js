@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.6.32
+// @version      0.7.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -577,13 +577,10 @@ class FyGlobal {
       //업데이트
       toast.log(`getting infos from jw... length: ${searchLength}`);
 
-      const URL = `https://apis.justwatch.com/content/titles/${fy.locale}/popular`;
+      const URL = `https://apis.justwatch.com/graphql`;
       const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
       const urls = qTitles.map(title => title ? URL: null)
-      const otSearchResults = await fetchAll(urls, {}, qTitles, {
-        fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
-        page_size: 10,  //hard limit
-      });
+      const otSearchResults = await fetchAll(urls, {}, qTitles);
 
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
       searchLength = otSearchResults.filter(el => el).length;

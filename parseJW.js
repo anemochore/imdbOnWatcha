@@ -2,8 +2,7 @@ class ParseJW {
   //parsing and scraping funcs
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
     for(const [i, r] of results.entries()) {
-      const result = r?.items;
-      console.debug("🚀 ~ file: parseJW.js:6 ~ ParseJW ~ result:", result)
+      const result = r?.data?.popularTitles?.edges.map(el => el.node);
       let title = titles[i];
 
       if(!title)
@@ -23,7 +22,7 @@ class ParseJW {
 
       const YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH = 2;  //accept re-search result with year-diffence less than this
 
-      const tvString = 'show';  //, movieString = 'movie';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
+      const tvString = 'SHOW';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
 
       //to update cache
       otData[i].query = title;
@@ -48,15 +47,17 @@ class ParseJW {
         cacheTrueImdbId = otData[i].imdbId;
       }
 
-      //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
-      let sIds = result.map(el => el.id);
-      let sUrls = result.map(el => `https://www.justwatch.com${el.full_path}`);
-      let sTitles = result.map(el => el.title);
-      let sTypes = result.map(el => el.object_type == tvString ? 'TV Series' : 'Movie');
-      let sYears = result.map(el => el.original_release_year);
-      let sRatings = result.map(el => el.scoring?.filter(el => el.provider_type == 'imdb:score')[0]?.value);  //scoring may not present
-      let sImdbIds = result.map(el => el.external_ids?.filter(el => el.provider == 'imdb')[0]?.external_id);  //this too??? idk.
-      let sOrgTitles = result.map(el => el.original_title);
+      //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
+      let sIds = result.map(el => el.objectId);  //not id.
+      let sUrls = result.map(el => `https://www.justwatch.com${el.content.fullPath}`);
+      let sTypes = result.map(el => el.objectType == tvString ? 'TV Series' : 'Movie');
+
+      let sTitles =    result.map(el => el.content.title);
+      let sYears =     result.map(el => el.content.originalRleaseYear);
+      let sOrgTitles = result.map(el => el.content.originalTitle);
+
+      let sRatings = result.map(el => el.content?.scoring?.imdbScore);  //scoring may not present
+      let sImdbIds = result.map(el => el.content?.externalIds?.imdbId);  //this too??? idk.
 
       //for title fix
       const sourceWords = [...JW_TITLE_FIX_DICT.keys()], targetWords = [...JW_TITLE_FIX_DICT.values()];
@@ -139,7 +140,7 @@ class ParseJW {
               }
             }
 
-            if(!found && !trueType.endsWith('Series')) {
+            if(!found && trueType && !trueType.endsWith('Series')) {
               if(possibleIdxWithCloseDate == -1) {
                 //날짜 비슷하면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
@@ -295,7 +296,7 @@ class ParseJW {
         }
       }
 
-      //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
+      //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
       if(reSearching != 'done' && reSearching != 'no need') {
         console.debug('found idx', idx);
         otData[i].jwId = sIds[idx];

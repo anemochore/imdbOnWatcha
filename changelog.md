@@ -353,3 +353,6 @@
     //    jw, imdb: modified minor logic (support for mini series)
     // ver 0.6.32 @ 2023-10-9
     //    jw: fixed minor logic (regarding tv series)
+    // ver 0.7.0 @ 2023-10-13
+    //    jw: fixed throw of wrong type determination
+    //    jw: changed api to graphQL (due to their recent breaking change)
