@@ -356,3 +356,6 @@
     // ver 0.7.0 @ 2023-10-13
     //    jw: fixed throw of wrong type determination
     //    jw: changed api to graphQL (due to their recent breaking change)
+    // ver 0.7.1 @ 2023-10-14
+    //    jw: fixed minor logic (tv series logic, re-searching logic)
+    //    internal: small clean-up (of v0.7.0)

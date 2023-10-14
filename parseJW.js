@@ -3,6 +3,7 @@ class ParseJW {
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
     for(const [i, r] of results.entries()) {
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
+      console.debug("🚀 ~ file: parseJW.js:6 ~ ParseJW ~ result:", result)
       let title = titles[i];
 
       if(!title)
@@ -110,7 +111,7 @@ class ParseJW {
             const sOrgTitle = sOrgTitles[j];
             //console.debug('trueType, sTypes[j], title, sTitle, trueOrgTitle, sOrgTitle:', trueType, sTypes[j], '/', title, sTitle, '/', trueOrgTitle, sOrgTitle);
             let found = false;
-            if(!trueType || (trueType.endsWith('Series') && sTypes[j] == 'TV Series' && !title.startsWith('극장판 '))) {
+            if(!trueType || (!trueType.startsWith('not') && trueType.endsWith('Series') && sTypes[j] == 'TV Series' && !title.startsWith('극장판 '))) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
               if(title == sTitle || title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 found = true;
@@ -140,7 +141,7 @@ class ParseJW {
               }
             }
 
-            if(!found && trueType && !trueType.endsWith('Series')) {
+            if(!found && trueType && !(!trueType.startsWith('not') && trueType.endsWith('Series'))) {
               if(possibleIdxWithCloseDate == -1) {
                 //날짜 비슷하면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
@@ -201,19 +202,15 @@ class ParseJW {
           }
           else if(trueOrgTitle && !reSearching) {
             //원제가 있다면 원제로 재검색
-            toast.log('re-searching (using org. title) from jw again...');
+            toast.log(`re-searching using org. title (${trueOrgTitle}) from jw again...`);
 
-            const URL = `https://apis.justwatch.com/content/titles/en_US/popular`;
             const qTitles = [trueOrgTitle];
-            const urls = [URL];
-            const otSearchResults = await fetchAll(urls, {}, qTitles, {
-              fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'],
-              page_size: 10,  //hard limit
-            });
+            const urls = [OT_URL];
+            const otReSearchResults = await fetchAll(urls, {}, qTitles, {country: 'US', lang: 'en'});
 
-            const localOtData = [{ ...otData[i]}];
-            await fyJW.parseJwSearchResults_(otSearchResults, localOtData, trueData, [trueOrgTitle], true);
-            const searchLength = otSearchResults.filter(el => el).length;
+            const localOtData = [{...otData[i]}];
+            await fyJW.parseJwSearchResults_(otReSearchResults, localOtData, trueData, qTitles, true);
+            const searchLength = otReSearchResults.filter(el => el).length;
             if(searchLength == 0) {
               console.log('jw re-searching result is empty.');
               reSearching = 'pass';
@@ -314,6 +311,7 @@ class ParseJW {
           //if search failed but present (on kino), use it.
           console.warn(`jw search failed. so use kino's rating instead`);
           otData[i].imdbFlag = '??';
+          otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle);
         }
         else {
           otData[i].imdbRating = sRatings[idx] || '??';

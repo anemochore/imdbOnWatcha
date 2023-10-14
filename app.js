@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.0
+// @version      0.7.1
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -43,6 +43,8 @@ const GM_CACHE_KEY = 'OT_CACHE_WITH_IMDB_RATINGS';
 const UPDATE_INTERVAL_DAYS_ORG_TITLES = 30;  //in days
 const UPDATE_INTERVAL_DAYS_IMDB_VISITED = 7;  //in days
 const YEAR_DIFFERENCE_THRESHOLD = 5;  //if year difference is larger than this const, discard it.
+
+const OT_URL = `https://apis.justwatch.com/graphql`;
 
 class FyGlobal {
 
@@ -577,9 +579,8 @@ class FyGlobal {
       //업데이트
       toast.log(`getting infos from jw... length: ${searchLength}`);
 
-      const URL = `https://apis.justwatch.com/graphql`;
       const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
-      const urls = qTitles.map(title => title ? URL: null)
+      const urls = qTitles.map(title => title ? OT_URL: null)
       const otSearchResults = await fetchAll(urls, {}, qTitles);
 
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);

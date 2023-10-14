@@ -64,12 +64,12 @@ function elementReady(selector, baseEl, countEmpty = true) {
   });
 }
 
-async function fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
+async function fetchAll(urls, headers = {}, querys = [], locale = {country: fy.country, lang: fy.lang}) {
   fy.isFetching = true;
 
   const results = [];
   const promises = urls.map(async (url, i) => {
-    results[i] = await fetchOne_(url, headers, querys[i], constQuery);
+    results[i] = await fetchOne_(url, headers, querys[i], locale);
   });
   await Promise.all(promises);
 
@@ -77,7 +77,7 @@ async function fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
   return results;
 
 
-  async function fetchOne_(url, headers, query) {
+  async function fetchOne_(url, headers, query, locale) {
     //query가 있으면 graphQL. headers는 무시함.
     return new Promise((resolve, reject) => {
       if(!url)
@@ -110,8 +110,8 @@ async function fetchAll(urls, headers = {}, querys = [], constQuery = {}) {
           const params = {
             "operationName": "GetSuggestedTitles",
             "variables": {
-              "country": fy.country,
-              "language": fy.lang,
+              "country": locale.country,
+              "language": locale.lang,
               "first": 10,
               "filter": {
                 "searchQuery": query
