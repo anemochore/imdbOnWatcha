@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1
+// @version      0.7.3
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -879,21 +879,25 @@ class FyGlobal {
     let imdbId, imdbUrl, jwUrl;
     if(onSite == 'ot') {
       url = prompt("Enter proper JustWatch url: ", otDatum.jwUrl);
-      if(!url)
+      if(!url) {
+        console.debug('no input.');
         return;
+      }
       else if(!url.startsWith('https://www.justwatch.com/')) {
         alert('Not a valid jw url!');
         return;
       }
       url = url.trim().replace(/\/\?.*$/, '').replace(/\/$/, '');
 
-      if(url == otDatum.jwUrl) {
+      if(url == otDatum.jwUrl || decodeURIComponent(url) == otDatum.jwUrl) {
         if(otDatum.otFlag != '') {
           toast.log('JW flag was reset (JW url is confirmed).');
           otDatum.otFlag = '';
         }
-        else
+        else {
+          console.debug('input was the same as the cache.');
           return;
+        }
       }
       jwUrl = url;
     }

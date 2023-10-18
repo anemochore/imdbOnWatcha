@@ -29,23 +29,53 @@ class ParseJW {
       otData[i].query = title;
       title = fy.getCleanTitle(title);
 
-      let trueJwUrl = trueData.jwUrl;  //edit의 경우(캐시의 값을 쓰면 안 됨)
-      let trueSeason = null;
+      //url에 시즌을 명시했다면 해당 시즌 데이터를 쓰...고 싶지만 시즌별 원제는 제공하지 않고 평점도 모두 동일해서 포기.
+      /*
+      let trueJwUrl = trueData.jwUrl;
+      let sSeasonses, trueSeason, trueSeasonNumber;  //all undefined
       if(trueJwUrl) {
         //ex: https://www.justwatch.com/kr/TV-프로그램/mujigjeonsaeng-isegyee-gasseumyeon-coeseoneul-dahanda/시즌-1
-        trueSeason = trueJwUrl.split('/').slice(6)[0];  //or null
-        trueJwUrl  = trueJwUrl.split('/').slice(0, 6).join('/');
+        trueSeason = trueJwUrl.split('/').slice(6)[0];  //or undefined
+        if(trueSeason) {
+          console.debug('url with season number provided:', trueSeason)
+
+          //result = [ {타이틀1}, {타이틀2}, {타이틀3}, ...]
+          //sSeasonses = [ [타이틀1의 시즌들], [타이틀2의 시즌들], ...]
+          //tempSeasonses = [ {시즌 번호가 일치하는 타이틀1의 시즌x}, {시즌 번호가 일치하는 타이틀2의 시즌y}, ...]
+
+          trueSeasonNumber = parseInt(trueSeason.split('-').pop());
+          sSeasonses = result.map(el => el?.seasons);
+          const tempSeasonses = sSeasonses.map(seasons => seasons.filter(el => el.content.seasonNumber == trueSeasonNumber)[0]);
+          if(tempSeasonses.filter(el => el).length == 0) {
+            console.warn(`...but the season ${trueSeasonNumber} is not found! so ignore it.`);
+            trueJwUrl = trueJwUrl.replace('/' + trueSeason, '')
+            trueSeason = null;
+          }
+          else {
+            result = tempSeasonses.slice();
+          }
+        }
+      }
+      */
+
+      //discard season url
+      let trueJwUrl = trueData.jwUrl;
+      if(trueJwUrl) {
+        const trueSeason = trueJwUrl.split('/').slice(6)[0];  //or undefined
+        if(trueSeason) trueJwUrl = trueJwUrl.replace('/' + trueSeason, '')
       }
 
+      //edit의 경우(캐시의 값을 쓰면 안 됨)
       const trueOrgTitle = trueData.orgTitle;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
       const trueImdbId = trueData.imdbId;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
       const trueType = trueData.type || otData[i].type;
       const trueYear = trueData.year || otData[i].year;
 
-      let cacheTrueImdbId = null;
-      if(!trueData.imdbId && otData[i].imdbId && otData[i].imdbRating && otData[i].imdbVisitedDate) {
+      let cacheTrueImdbId = null, orgOtFlag;
+      if(!trueData.imdbId && otData[i]?.imdbId != 'n/a' && otData[i].type && otData[i].year && otData[i].imdbRating && otData[i].imdbVisitedDate) {
         //직접 imdb 방문한 게 캐시에 있다면, 검색이 실패할 경우 그걸 쓴다.
         cacheTrueImdbId = otData[i].imdbId;
+        orgOtFlag = otData[i].otFlag;
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
@@ -54,7 +84,7 @@ class ParseJW {
       let sTypes = result.map(el => el.objectType == tvString ? 'TV Series' : 'Movie');
 
       let sTitles =    result.map(el => el.content.title);
-      let sYears =     result.map(el => el.content.originalRleaseYear);
+      let sYears =     result.map(el => el.content.originalReleaseYear);
       let sOrgTitles = result.map(el => el.content.originalTitle);
 
       let sRatings = result.map(el => el.content?.scoring?.imdbScore);  //scoring may not present
@@ -66,15 +96,27 @@ class ParseJW {
       //todo: being improved...
       let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999, tokenCount = 0;
 
-      if(trueJwUrl && sUrls.includes(decodeURI(trueJwUrl))) {
-        //jw url을 알고 있다면 끝~
-        console.info('url was manually provided and actually found.', trueJwUrl+trueSeason);
-        otData[i].otFlag = '';
+      if(trueJwUrl) {
+        //jw url을 알고 있다면 간단~
         idx = sUrls.indexOf(decodeURI(trueJwUrl));
-        sUrls[idx] = sUrls[idx] + (trueSeason ? '/' + decodeURI(trueSeason) : '');
+        if(idx > -1) {
+          otData[i].otFlag = '';
+          if(cacheTrueImdbId && !trueType.startsWith('not') && trueType.endsWith('Series') && cacheTrueImdbId != sImdbIds[idx]) {
+            //tv 물의 경우 jw 데이터가 직접 imdb 방문해서 얻은 캐시 데이터랑 다르다면 무시한다!!! ex: 쓰르라미 울 적에
+            console.log(`jw imdb id (${sImdbIds[idx]}) is different than cache imdb data from manual visit (${cacheTrueImdbId}), so keep the cache imdb data!`);
+
+            otData[i].jwId = sIds[idx];
+            otData[i].jwUrl = sUrls[idx];
+            reSearching = 'no need';  //no update other data
+          }
+          else {
+            console.log('url was manually provided and actually found:', decodeURI(trueJwUrl));
+          }
+        }
+        //todo: else... what to do now???
       }
       else if(trueImdbId) {
-        //imdb id를 알고 있다면
+        //아니면 imdb id를 알고 있다면
         if(sImdbIds.includes(trueImdbId)) {
           console.info('imdb id was manually provided and actually found:', trueImdbId);
           otData[i].otFlag = '';
@@ -86,8 +128,8 @@ class ParseJW {
           otData[i].query = title;
           otData[i].otFlag = '??';
           otData[i].imdbId = trueImdbId;
-          if(trueOrgTitle) otData[i].orgTitle = trueOrgTitle;
-          if(trueYear)     otData[i].year = trueYear;
+          //if(trueOrgTitle) otData[i].orgTitle = trueOrgTitle;
+          //if(trueYear)     otData[i].year = trueYear;
           otData[i].imdbUrl = getImdbUrlFromId_(trueImdbId);
           reSearching = 'no need';
         }
@@ -169,7 +211,14 @@ class ParseJW {
 
         console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
-        if(exactMatchCount > 1) {  //검색 결과 많음
+
+        if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == -1)) {
+          //검색이 완벽하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
+          console.log(`jw search is not perfect. keep the imdb data (from manual visit): ${cacheTrueImdbId}`);
+          otData[i].otFlag = orgOtFlag;  //probably '??'
+          reSearching = 'no need';
+        }
+        else if(exactMatchCount > 1) {  //검색 결과 많음
           if(idx > -1) {
             console.debug(`mild warning: ${exactMatchCount} multiple exact title matches for ${title} found on jw.`);
             otData[i].otFlag = '';
@@ -194,11 +243,6 @@ class ParseJW {
               console.warn(`${title} (${trueYear}) is not found, but the same title (${sYears[idx]}) with rating is found. so taking it.`);
               otData[i].otFlag = '?';
             }
-          }
-          else if(cacheTrueImdbId) {
-            //검색이 실패했지만, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
-            console.log(`search failed. keep the healthy cache data with imdb id present (${cacheTrueImdbId}).`);
-            reSearching = 'no need';
           }
           else if(trueOrgTitle && !reSearching) {
             //원제가 있다면 원제로 재검색
@@ -294,7 +338,7 @@ class ParseJW {
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
-      if(reSearching != 'done' && reSearching != 'no need') {
+      if(reSearching != 'done' && reSearching != 'no need') {  //'no need' also means no update.
         console.debug('found idx', idx);
         otData[i].jwId = sIds[idx];
         otData[i].jwUrl = sUrls[idx];
@@ -302,10 +346,8 @@ class ParseJW {
         otData[i].year = sYears[idx];
         otData[i].orgTitle = sOrgTitles[idx];
 
-        if(sImdbIds[idx])
-          otData[i].imdbId = sImdbIds[idx];
-        else
-          otData[i].imdbFlag = '??';  //if not imdb id is, not set at all.
+        if(sImdbIds[idx]) otData[i].imdbId = sImdbIds[idx];
+        else              otData[i].imdbFlag = '??';  //if imdb id is not present, not set imdbId.
 
         if(otData[i].otFlag == '??' && isValidRating_(otData[i].imdbRating)) {
           //if search failed but present (on kino), use it.

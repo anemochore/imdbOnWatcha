@@ -359,3 +359,6 @@
     // ver 0.7.1 @ 2023-10-14
     //    jw: fixed minor logic (tv series logic, re-searching logic)
     //    internal: small clean-up (of v0.7.0)
+    // ver 0.7.3 @ 2023-10-18
+    //    jw: fixed logic of not prefering manual visit of imdb (of v0.6.31)
+    //    jw: dirty fix for the case of 'Higurashi no naku koro ni'

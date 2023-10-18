@@ -98,6 +98,7 @@ async function fetchAll(urls, headers = {}, querys = [], locale = {country: fy.c
           },
         };
 
+        //시즌 정보를 가져와도 원제 필드는 없고, 평점 역시 시즌별로 다르지 않고 모두 동일하게 나오므로 시즌별 쿼리는 포기.
         if(query) {
           payload.method = 'POST';  //헤더에 json 생략해도 될 듯??
           payload.headers = {"Content-Type": "application/json"};
