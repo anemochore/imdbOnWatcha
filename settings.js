@@ -9,26 +9,24 @@ SETTINGS['watcha.com'] = {
   rootSelector: 'main',
   selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/browse/tag"]):not([href^="/people/"])>div:not(:has(>figure)), `  //list item
   + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search
-  selectorOnSinglePage: `header>div>section:not([${FY_UNIQ_STRING}])>div>h1`,  //single-page
-  //large-div is removed at 2022 1Q
 
-  //numberToBaseEl: 2,  //when edit, this number + 1 is used
+  //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
 
   selectorsForListItems: {
+    selectorOnSinglePage: `header>div>section:not([${FY_UNIQ_STRING}])>div h1`,  //for single-page
     //id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page  //not used anymore (now using jw)
     title: 'div[aria-hidden]>p, a>div>div:first-of-type',  //the latter is for /search page
     year: 'a>div>div+div>div+div',  //for /search page only
-    targetEl: 'a[class]>div, a>div>div+div',  //targetEl is for edit(). it should be 'the last element'. the latter is for /search page
     types: {  //either use types or isTVSeries
       selector: 'div+p+p, a>div>div+div>div+div',  //the latter is for /search page
       mapping: {'영화': 'Movie', 'TV 프로그램': 'TV Series'},  //미니 시리즈는 어쩔...
     },
   },
 
+  //singlePageWithoutListItems: false,  //default is true since 23-10-29
+
   //more selectors are hard-coded. below are mainly for edit() on single-page
   selectorsForSinglePage: {
-    determinePathnameBy: '/contents/',  //exceptionally, this is for updating large_div
-    //determineSinglePageBy: 'section>div',  //use either determineSinglePageBy or determineSinglePageBy
     title: 'h1',
     isTVSeries: {
       numberToBaseEl: 1,
@@ -80,11 +78,13 @@ SETTINGS['www.netflix.com'] = {
 
   largeDivSamePathName: true,  //hack for netflix
 
+  singlePageWithoutListItems: true,  //todo (23-10-29)
+
   //numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
     title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
-    targetEl: 'div[id]>div.ptrack-content',  //'the last element'
+    targetEl: 'div[id]>div.ptrack-content',  //'the last element'  //todo: this should be removed(23-10-29)
   },
 
   //large-div works like a single-page. don't use both.
@@ -113,15 +113,14 @@ SETTINGS['www.wavve.com'] = {
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.landscape, `                 //my/ upper
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.portrait`,                   //my/ lower
   //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
-  numberToBaseElWhenUpdating: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
-  numberToBaseElWhenEditing: 2,
+  //numberToBaseElWhenUpdating: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
+  //numberToBaseElWhenEditing: 2,
 
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
 
   selectorsForListItems: {
     title: 'strong.con-tit, span.title1, span.alt-text',  //this should be the child of 'the last element'.
-    targetEl: 'a.con-text-wrap, div.portrait',  //'the last element'
   },
 
   //large-div works like a single-page. don't use both.
@@ -129,7 +128,7 @@ SETTINGS['www.wavve.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
+    //determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div. ignored when singlePageWithoutListItems is true
     title: 'h1>em',
     isTVSeries: {
       numberToBaseEl: 2,
@@ -150,11 +149,11 @@ SETTINGS['www.disneyplus.com'] = {
 
   //'the last element'(fyItem) selection.
   selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
-  numberToBaseElWhenUpdating: 2,
+  //numberToBaseElWhenUpdating: 2,
 
   selectorsForListItems: {
     title: 'div[aria-label]',  //this should be the child of 'the last element'.
-    targetEl: 'a[data-gv2elementkey]',  //targetEl is for edit(). when targetEl is omitted, baseEl will be used.
+    //targetEl: 'a[data-gv2elementkey]',  //targetEl is for edit(). when targetEl is omitted, baseEl will be used.
   },
 
   //below are WIP

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.3
+// @version      0.7.5
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -262,7 +262,7 @@ class FyGlobal {
   defaultHandler = async (m, o) => {
     fy.observer.disconnect();
 
-    if(fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+    if(!fy.singlePageWithoutListItems && fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
       const largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
       if(largeDiv) {
         //if already updated, no more update when scrolling, etc
@@ -473,13 +473,6 @@ class FyGlobal {
   };
 
   preUpdateDivses = {
-    /*
-    'm.kinolights.com': itemDivs => {
-      const baseEl = getParentsFrom_(itemDivs[0], fy.numberToBaseEl);
-      const el = baseEl.querySelector(fy.selectorsForSinglePage.targetEl);
-      el.setAttribute(FY_UNIQ_STRING, '');  //not working
-    },
-    */
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
@@ -493,7 +486,8 @@ class FyGlobal {
 
     //get titles, etc
     itemDivs.forEach((item, i) => {
-      const baseEl = getParentsFrom_(item, fy.numberToBaseEl);
+      const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
+      //const baseEl = getParentsFrom_(item, fy.numberToBaseEl);
 
       let title = trueData.title;
       if(!title && baseEl)
@@ -522,9 +516,8 @@ class FyGlobal {
         }
       }
 
-      //타입 얻기. 왓챠 보관함과 /search, 웨이브 /my 루트 정도?
+      //타입 얻기. 왓챠 보관함과 /search
       let type = getTypeFromDiv_(trueData.selectors, baseEl);
-      // console.log("🚀 ~ file: app.js:521 ~ itemDivs.forEach ~ type:", type)
       if(type && !type.startsWith('not ')) {
         //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
         if(!otData[i].type || otData[i].otFlag != '')
@@ -643,12 +636,17 @@ class FyGlobal {
     }
 
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
+      const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
+      const div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+
+      /*
       let numberToParent = fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
       if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
         numberToParent = selectors.numberToBaseEl || numberToParent;
 
       let baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
       let divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
+      */
 
       /*
       if(!divs && selectors.async) {
@@ -656,12 +654,15 @@ class FyGlobal {
       }
       */
 
+      /*
       //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
       if(divs?.length > 1 && baseEl.tagName == 'UL') {
         baseEl = getParentsFrom_(fyItemToUpdate, numberToParent - 1);
         divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
       }
+      */
 
+      /*
       let div = divs ? divs[0] : null;
       if(!div) {
         if(totalNumber > 1) div = baseEl.querySelector(fy.selectorsForListItems?.targetEl);
@@ -675,18 +676,17 @@ class FyGlobal {
       else if(otDatum.otFlag == '???') {
         return;
       }
+      */
 
       let flag = otDatum.otFlag || '';
       let year = otDatum.year || '';
       let targetInnerHtml = '';
 
-      if(otDatum.jwUrl)
-        targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank">`;
+      if(otDatum.jwUrl) targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank">`;
 
       targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
 
-      if(otDatum.jwUrl)
-        targetInnerHtml += `</a>`;
+      if(otDatum.jwUrl) targetInnerHtml += `</a>`;
 
       targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(event, 'ot')" class="fy-edit">edit</a> `;
 
@@ -717,13 +717,11 @@ class FyGlobal {
       }
 
       flag = otDatum.imdbFlag || '';
-      if(otDatum.imdbUrl)
-        targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
+      if(otDatum.imdbUrl) targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
 
       targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
 
-      if(otDatum.imdbUrl)
-        targetInnerHtml += `</a>`;
+      if(otDatum.imdbUrl) targetInnerHtml += `</a>`;
 
       targetInnerHtml += `<a href="javascript:void(0);" onClick="fy.edit(event, 'imdb')" class="fy-edit">edit</a> `;
 
@@ -837,9 +835,13 @@ class FyGlobal {
     const el = event.target;
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
+    const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
+    const selectors = fy.selectorsForListItems;
+    const targetEl = baseEl;
+    console.debug('baseEl (targetEl) on edit', baseEl);
+    /*
     let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
     let baseEl = getParentsFrom_(el, numberToParent);
-    //console.debug('baseEl, div on edit', baseEl, el);
 
     //determine single-page
     const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
@@ -865,6 +867,7 @@ class FyGlobal {
       targetEl = baseEl.querySelector(selectors.targetEl);
       console.debug('targetEl was not found :( instead taking', targetEl);
     }
+    */
 
     //search title, etc
     const type = getTypeFromDiv_(selectors, baseEl);

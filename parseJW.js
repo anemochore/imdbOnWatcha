@@ -2,17 +2,15 @@ class ParseJW {
   //parsing and scraping funcs
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
     for(const [i, r] of results.entries()) {
-      const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      console.debug("🚀 ~ file: parseJW.js:6 ~ ParseJW ~ result:", result)
       let title = titles[i];
+      if(!title) continue;
 
-      if(!title)
-        continue;
-      if(!result) {
-        if(title) {
-          console.warn('search for',title,'on jw failed! no result at all!');
-          otData[i].otFlag = '??';
-        }
+      const result = r?.data?.popularTitles?.edges.map(el => el.node);
+      console.debug(`result for ${title}:`, result);
+      if(!result || result.length == 0) {
+        console.warn('search for',title,'on jw failed! no result at all!');
+        otData[i].otFlag = '??';
+
         continue;
       }
 
@@ -185,13 +183,13 @@ class ParseJW {
 
             if(!found && trueType && !(!trueType.startsWith('not') && trueType.endsWith('Series'))) {
               if(possibleIdxWithCloseDate == -1) {
-                //날짜 비슷하면 manual fuzzy matching (tv 시리즈는 X)
+                //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
                   if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
                     found = true;
                     console.info(`spaces were ignored for ${title} and ${sTitle}`);
                   }
-                  if(sTitle.replaceAll(':', '') == title.replaceAll(':', '')) {
+                  else if(sTitle.replaceAll(':', '') == title.replaceAll(':', '')) {
                     found = true;
                     console.info(`colons were ignored for ${title} and ${sTitle}`);
                   }
@@ -210,7 +208,7 @@ class ParseJW {
         });
 
         console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
-        const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: "${trueType}")`;
+        const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == -1)) {
           //검색이 완벽하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
