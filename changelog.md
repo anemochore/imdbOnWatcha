@@ -365,3 +365,5 @@
     // ver 0.7.5 @ 2023-10-29
     //    jw: fixed logic when result is none
     //    app & setting: preparing to refactor not to use numberToBaseEl, targetEl, determinePathnameBy, etc.
+    // ver 0.7.6 @ 2023-10-30
+    //    kino: fixed not working (of v0.7.5)

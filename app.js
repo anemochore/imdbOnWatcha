@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.5
+// @version      0.7.6
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -340,8 +340,6 @@ class FyGlobal {
       const wpId = getIdFromValidUrl_(document.location.href);
       const title = getTextFromNode_(getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
       const type = getTypeFromDiv_(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
-      // console.log("🚀 ~ file: app.js:346 ~ 'watcha.com': ~ type:", type)
-
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
       toast.log(`scraping wp for org. title, etc for ${title} (${wpId})...`);
@@ -637,7 +635,10 @@ class FyGlobal {
 
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
-      const div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+      let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+
+      //hack for kino
+      if(fy.noAppendDiv) div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
 
       /*
       let numberToParent = fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
@@ -668,15 +669,16 @@ class FyGlobal {
         if(totalNumber > 1) div = baseEl.querySelector(fy.selectorsForListItems?.targetEl);
         else                div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
       }
+      */
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
+        console.debug('baseEl', baseEl);
         return;
       }
       else if(otDatum.otFlag == '???') {
         return;
       }
-      */
 
       let flag = otDatum.otFlag || '';
       let year = otDatum.year || '';
@@ -836,9 +838,12 @@ class FyGlobal {
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
     const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
-    const selectors = fy.selectorsForListItems;
-    const targetEl = baseEl;
-    console.debug('baseEl (targetEl) on edit', baseEl);
+    const selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //latter is for kino only
+
+    let targetEl = baseEl;
+    //hack for kino
+    //if(fy.noAppendDiv) targetEl = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
+    console.debug('baseEl, targetEl on edit', baseEl, targetEl);
     /*
     let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
     let baseEl = getParentsFrom_(el, numberToParent);
