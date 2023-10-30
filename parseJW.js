@@ -7,12 +7,6 @@ class ParseJW {
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
       console.debug(`result for ${title}:`, result);
-      if(!result || result.length == 0) {
-        console.warn('search for',title,'on jw failed! no result at all!');
-        otData[i].otFlag = '??';
-
-        continue;
-      }
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -23,45 +17,16 @@ class ParseJW {
 
       const tvString = 'SHOW';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
 
-      //to update cache
-      otData[i].query = title;
-      title = fy.getCleanTitle(title);
-
-      //url에 시즌을 명시했다면 해당 시즌 데이터를 쓰...고 싶지만 시즌별 원제는 제공하지 않고 평점도 모두 동일해서 포기.
-      /*
-      let trueJwUrl = trueData.jwUrl;
-      let sSeasonses, trueSeason, trueSeasonNumber;  //all undefined
-      if(trueJwUrl) {
-        //ex: https://www.justwatch.com/kr/TV-프로그램/mujigjeonsaeng-isegyee-gasseumyeon-coeseoneul-dahanda/시즌-1
-        trueSeason = trueJwUrl.split('/').slice(6)[0];  //or undefined
-        if(trueSeason) {
-          console.debug('url with season number provided:', trueSeason)
-
-          //result = [ {타이틀1}, {타이틀2}, {타이틀3}, ...]
-          //sSeasonses = [ [타이틀1의 시즌들], [타이틀2의 시즌들], ...]
-          //tempSeasonses = [ {시즌 번호가 일치하는 타이틀1의 시즌x}, {시즌 번호가 일치하는 타이틀2의 시즌y}, ...]
-
-          trueSeasonNumber = parseInt(trueSeason.split('-').pop());
-          sSeasonses = result.map(el => el?.seasons);
-          const tempSeasonses = sSeasonses.map(seasons => seasons.filter(el => el.content.seasonNumber == trueSeasonNumber)[0]);
-          if(tempSeasonses.filter(el => el).length == 0) {
-            console.warn(`...but the season ${trueSeasonNumber} is not found! so ignore it.`);
-            trueJwUrl = trueJwUrl.replace('/' + trueSeason, '')
-            trueSeason = null;
-          }
-          else {
-            result = tempSeasonses.slice();
-          }
-        }
-      }
-      */
-
       //discard season url
       let trueJwUrl = trueData.jwUrl;
       if(trueJwUrl) {
         const trueSeason = trueJwUrl.split('/').slice(6)[0];  //or undefined
         if(trueSeason) trueJwUrl = trueJwUrl.replace('/' + trueSeason, '')
       }
+
+      //to update cache
+      otData[i].query = title;
+      title = fy.getCleanTitle(title);
 
       //edit의 경우(캐시의 값을 쓰면 안 됨)
       const trueOrgTitle = trueData.orgTitle;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
@@ -74,6 +39,12 @@ class ParseJW {
         //직접 imdb 방문한 게 캐시에 있다면, 검색이 실패할 경우 그걸 쓴다.
         cacheTrueImdbId = otData[i].imdbId;
         orgOtFlag = otData[i].otFlag;
+      }
+
+      //검색 결과 없다면
+      if(!result || result.length == 0) {
+        console.warn('search for',title,'on jw failed! no result at all!');
+        otData[i].otFlag = '??';
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
@@ -355,7 +326,7 @@ class ParseJW {
         if(sImdbIds[idx]) otData[i].imdbId = sImdbIds[idx];
         else              otData[i].imdbFlag = '??';  //if imdb id is not present, not set imdbId.
 
-        if(otData[i].otFlag == '??' && isValidRating_(otData[i].imdbRating)) {
+        if(otData[i].otFlag == '??' && isValidRating_(otData[i].imdbRating) && trueOrgTitle) {
           //if search failed but present (on kino), use it.
           console.warn(`jw search failed. so use kino's rating instead`);
           otData[i].imdbFlag = '??';
