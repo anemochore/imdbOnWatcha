@@ -367,3 +367,5 @@
     //    app & setting: preparing to refactor not to use numberToBaseEl, targetEl, determinePathnameBy, etc.
     // ver 0.7.6 @ 2023-10-30
     //    kino: fixed not working (of v0.7.5)
+    // ver 0.7.7 @ 2023-10-31
+    //    jw: improved minor logic (for edge case)

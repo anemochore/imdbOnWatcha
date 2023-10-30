@@ -193,6 +193,14 @@ class ParseJW {
                     found = true;
                     console.info(`colons were ignored for ${title} and ${sTitle}`);
                   }
+                  else if(title.includes(':') && sTitle.includes(':')) {
+                    const subTitle = title.split(':').pop().trim();
+                    const subSTitle = sTitle.split(':').pop().trim();
+                    if(subTitle.replace(/^The /, '') == subSTitle) {
+                      found = true;
+                      console.info(`'The' in the sub-title were ignored for ${title}`);
+                    }
+                  }
                 }
               }
             }
@@ -242,7 +250,7 @@ class ParseJW {
               otData[i].otFlag = '?';
             }
           }
-          else if(trueOrgTitle && !reSearching) {
+          else if(trueOrgTitle) {
             //원제가 있다면 원제로 재검색
             toast.log(`re-searching using org. title (${trueOrgTitle}) from jw again...`);
 
@@ -255,11 +263,11 @@ class ParseJW {
             const searchLength = otReSearchResults.filter(el => el).length;
             if(searchLength == 0) {
               console.log('jw re-searching result is empty.');
-              reSearching = 'pass';
+              reSearching = 'failed';
             }
             else if(localOtData[i].imdbFlag == '??') {
               console.log('jw re-searching failed. :(');
-              reSearching = 'pass';
+              reSearching = 'failed';
             }
             else {
               localOtData[i].query = otData[i].query;
@@ -270,7 +278,7 @@ class ParseJW {
             }
           }
 
-          if(reSearching == false || reSearching == 'pass') {
+          if(!reSearching || reSearching == 'failed') {
             if(possibleIdxWithCloseDate > -1) {
               idx = possibleIdxWithCloseDate;
               console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
@@ -337,7 +345,7 @@ class ParseJW {
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
       if(reSearching != 'done' && reSearching != 'no need') {  //'no need' also means no update.
-        console.debug('found idx', idx);
+        console.debug(`reSearching: ${reSearching}, found idx: ${idx}`);
         otData[i].jwId = sIds[idx];
         otData[i].jwUrl = sUrls[idx];
         otData[i].type = sTypes[idx];
