@@ -370,3 +370,5 @@
     // ver 0.7.8 @ 2023-10-31
     //    jw: improved minor logic (for edge case)
     //    jw: fixed logic when result is none
+    // ver 0.7.9 @ 2023-11-2
+    //    jw, imdb: improved minor logic (for edge case of which imdbId and rating is null)

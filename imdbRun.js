@@ -108,18 +108,11 @@ class ImdbRun {
       }
 
       if(isCacheUpdateNeeded) {
-        if(cache.orgTitle != trueOrgTitle) {
-          console.log(`updated orgTitle: ${cache.orgTitle} -> ${trueOrgTitle}`);
-          cache.orgTitle = trueOrgTitle;
-        }
-        if(cache.year != trueYear) {
-          console.log(`updated year: ${cache.year} -> ${trueYear}`);
-          cache.year = trueYear;
-        }
-        if(cache.type != trueType) {
-          console.log(`updated type: ${cache.type} -> ${trueType}`);
-          cache.type = trueType;
-        }
+        replaceCacheValueIfNeeded_('imdbId', imdbId);
+        replaceCacheValueIfNeeded_('imdbUrl', getImdbUrlFromId_(imdbId));
+        replaceCacheValueIfNeeded_('orgTitle', trueOrgTitle);
+        replaceCacheValueIfNeeded_('year', trueYear);
+        replaceCacheValueIfNeeded_('type', trueType);
       }
 
       //wrap-up
@@ -127,6 +120,14 @@ class ImdbRun {
       cache.imdbVisitedDate = new Date().toISOString();
       otCache[keys[idx]] = cache;
       await GM_setValue(GM_CACHE_KEY, otCache);
+
+      function replaceCacheValueIfNeeded_(sourceKey, targetValue) {
+        if(cache[sourceKey] != targetValue) {
+          console.log(`updated ${sourceKey}: ${cache[sourceKey]} -> ${targetValue}`);
+          cache[sourceKey] = targetValue;
+        }
+      }
+
     }
     else {
       toast.log('this title is not yet stored on the cache.');

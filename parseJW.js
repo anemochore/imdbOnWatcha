@@ -63,7 +63,7 @@ class ParseJW {
       const sourceWords = [...JW_TITLE_FIX_DICT.keys()], targetWords = [...JW_TITLE_FIX_DICT.values()];
 
       //todo: being improved...
-      let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999, tokenCount = 0;
+      let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999;
 
       if(trueJwUrl) {
         //jw url을 알고 있다면 간단~
@@ -92,10 +92,10 @@ class ParseJW {
           idx = sImdbIds.indexOf(trueImdbId);
         }
         else {
-          console.warn(`imdb id ${trueImdbId} was manually provided, but not found in jw. so jw info is n/a and plz visit imdb page to get rating. :(`);
-          otData[i] = {};
-          otData[i].query = title;
-          otData[i].otFlag = '??';
+          toast.log(`imdb id ${trueImdbId} was manually provided, but info is not found in jw. plz visit imdb page to get rating. :(`);
+
+          idx = -1;
+          otData[i].imdbRating = 'visit';
           otData[i].imdbId = trueImdbId;
           //if(trueOrgTitle) otData[i].orgTitle = trueOrgTitle;
           //if(trueYear)     otData[i].year = trueYear;
@@ -324,16 +324,16 @@ class ParseJW {
         otData[i].orgTitle = sOrgTitles[idx];
 
         if(sImdbIds[idx]) otData[i].imdbId = sImdbIds[idx];
-        else              otData[i].imdbFlag = '??';  //if imdb id is not present, not set imdbId.
+        else if(!otData[i].imdbId) otData[i].imdbFlag = '??';  //if imdb id is not present, not set imdbId.
 
-        if(otData[i].otFlag == '??' && isValidRating_(otData[i].imdbRating) && trueOrgTitle) {
+        if((otData[i].otFlag == '??' || !isValidRating_(sRatings[idx])) && isValidRating_(otData[i].imdbRating) && trueOrgTitle) {
           //if search failed but present (on kino), use it.
-          console.warn(`jw search failed. so use kino's rating instead`);
-          otData[i].imdbFlag = '??';
-          otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle);
+          toast.log(`jw search failed. so use kino or cache's rating instead`);
+          if(!otData[i].imdbVisitedDate) otData[i].imdbFlag = '??';
+          if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle);
         }
         else {
-          otData[i].imdbRating = sRatings[idx] || '??';
+          if(idx > -1) otData[i].imdbRating = sRatings[idx] || '??';
 
           otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
           otData[i].imdbRatingFetchedDate = new Date().toISOString();

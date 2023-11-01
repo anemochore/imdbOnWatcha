@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.8
+// @version      0.7.9
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -705,6 +705,9 @@ class FyGlobal {
       if(otDatum.imdbRating == '??') {
         rating = '??';  //possibly not yet updated
         otDatum.imdbFlag = '';  //???? -> ??
+      }
+      else if(otDatum.imdbRating == 'visit') {
+        rating = 'visit';
       }
       else if(isValidRating_(otDatum.imdbRating)) {
         rating = parseFloat(otDatum.imdbRating);
