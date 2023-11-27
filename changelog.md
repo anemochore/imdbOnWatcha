@@ -372,3 +372,5 @@
     //    jw: fixed logic when result is none
     // ver 0.7.9 @ 2023-11-2
     //    jw, imdb: improved minor logic (for edge case of which imdbId and rating is null)
+    // ver 0.7.10 @ 2023-11-28
+    //    settings: fixed watcha selectors and changed urls
