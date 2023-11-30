@@ -374,3 +374,5 @@
     //    jw, imdb: improved minor logic (for edge case of which imdbId and rating is null)
     // ver 0.7.10 @ 2023-11-28
     //    settings: fixed watcha selectors and changed urls
+    // ver 0.7.11 @ 2023-12-1
+    //    settings: changed kino selector according to dom change

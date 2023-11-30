@@ -52,7 +52,7 @@ SETTINGS['m.kinolights.com'] = {
   numberToBaseElWhenEditing: 'html',
   selectorsForSinglePage: {
     determineSinglePageBy: true,  //force single-page
-    title: 'h3.title-kr',
+    title: 'h2.title-kr',
     isTVSeries: {
       selector: 'span.tv-label',
       contains: 'TV',
