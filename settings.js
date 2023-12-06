@@ -5,7 +5,7 @@ const SETTINGS = {};
 //see the comments in detail on neflix
 
 SETTINGS['watcha.com'] = {
-  includingPaths: ['/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
+  includingPaths: ['/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
   selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/tag?"]):not([href^="/people/"])>div:not(:has(>figure)), `  //list item
   + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search

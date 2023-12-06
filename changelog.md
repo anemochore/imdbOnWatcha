@@ -376,3 +376,5 @@
     //    settings: fixed watcha selectors and changed urls
     // ver 0.7.11 @ 2023-12-1
     //    settings: changed kino selector according to dom change
+    // ver 0.7.12 @ 2023-12-6
+    //    settings: fixed watcha main url (bug of v0.7.10)
