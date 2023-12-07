@@ -122,7 +122,7 @@ SETTINGS['www.wavve.com'] = {
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
-    //determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div. ignored when singlePageWithoutListItems is true
+    determinePathnameBy: '/player/',
     title: 'h1>em',
     isTVSeries: {
       numberToBaseEl: 2,

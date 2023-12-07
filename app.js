@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.15
+// @version      0.7.16
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -260,7 +260,8 @@ class FyGlobal {
     fy.observer.disconnect();
 
     if(document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
-      let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage), largeDivTargetEl;
+      let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage)
+      || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
       if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {
         //if already updated, no more update when scrolling, etc
         console.info('large-div already updated.');
@@ -275,7 +276,7 @@ class FyGlobal {
 
         fy.isUpdatingLargeDiv = true;
         largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
-        largeDivTargetEl = largeDiv;
+        let largeDivTargetEl = largeDiv;
         if(fy.selectorsForSinglePage.targetEl) {
           largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
         }
