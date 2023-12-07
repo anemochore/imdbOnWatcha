@@ -7,7 +7,7 @@ const SETTINGS = {};
 SETTINGS['watcha.com'] = {
   includingPaths: ['/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
-  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class]:not([href^="/tag?"]):not([href^="/people/"])>div:not(:has(>figure)), `  //list item
+  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
   + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search
 
   //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
