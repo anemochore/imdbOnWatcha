@@ -378,5 +378,7 @@
     //    settings: changed kino selector according to dom change
     // ver 0.7.12 @ 2023-12-6
     //    settings: fixed watcha main url (bug of v0.7.10)
-    // ver 0.7.13 @ 2023-12-8
+    // ver 0.7.15 @ 2023-12-8
     //    settings: improved watcha selectors
+    //    watcha: support both large-div and list items
+    //    settings, css: improved and refactored (now only for watcha)

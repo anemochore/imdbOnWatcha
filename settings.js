@@ -13,8 +13,6 @@ SETTINGS['watcha.com'] = {
   //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
 
   selectorsForListItems: {
-    selectorOnSinglePage: `header>div>section:not([${FY_UNIQ_STRING}])>div h1`,  //for single-page
-    //id: 'a[href^="/contents/"], a[href^="/watch/"]',  //the latter is for /watchings page  //not used anymore (now using jw)
     title: 'div[aria-hidden]>p, a>div>div:first-of-type',  //the latter is for /search page
     year: 'a>div>div+div>div+div',  //for /search page only
     types: {  //either use types or isTVSeries
@@ -26,14 +24,15 @@ SETTINGS['watcha.com'] = {
   //singlePageWithoutListItems: false,  //default is true since 23-10-29
 
   //more selectors are hard-coded. below are mainly for edit() on single-page
+  selectorOnSinglePage: `section:not([${FY_UNIQ_STRING}])>div>div>h1`,  //for single-page
   selectorsForSinglePage: {
+    determinePathnameBy: '/contents/',
     title: 'h1',
     isTVSeries: {
       numberToBaseEl: 1,
       selector: 'h1+p>span',
       contains: /시즌 \d+개/,
     },
-    targetEl: 'section>div>h1',  //this should not be omitted. used in edit()
     numberToBaseEl: 2,  //this is not used when edit()
     //if id is not provided, use document url instead
     //id: 'a[href^="/watch/"]',  //this is not used when edit
@@ -84,14 +83,13 @@ SETTINGS['www.netflix.com'] = {
 
   selectorsForListItems: {
     title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
-    targetEl: 'div[id]>div.ptrack-content',  //'the last element'  //todo: this should be removed(23-10-29)
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnLargeDiv: `div.previewModal--container:not([${FY_UNIQ_STRING}])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper`,
+  selectorOnSinglePage: `div.previewModal--container:not([${FY_UNIQ_STRING}])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper`,
 
   //more selectors are hard-coded. below are mainly for edit()
-  selectorsForLargeDiv: {
+  selectorForSinglePage: {
     determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h3>strong',
     year: 'div.videoMetadata--second-line>div.year',
@@ -99,7 +97,6 @@ SETTINGS['www.netflix.com'] = {
       selector: 'div.videoMetadata--second-line>span.duration',
       contains: /(시즌 \d+개|에피소드 \d+개)/,
     },
-    targetEl: 'div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper',
   },
 };
 
@@ -112,9 +109,6 @@ SETTINGS['www.wavve.com'] = {
   selector: `div.wrap>ul>li>div.portrait:not([${FY_UNIQ_STRING}])>a.con-text-wrap, `  //my/like_movie
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.landscape, `                 //my/ upper
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.portrait`,                   //my/ lower
-  //numberToBaseEl: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
-  //numberToBaseElWhenUpdating: 1,  //in this case, 'the base element' is the 1st parent of 'the last element'.
-  //numberToBaseElWhenEditing: 2,
 
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.13
+// @version      0.7.15
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -61,8 +61,7 @@ class FyGlobal {
       return;
     }
 
-    if(!SETTINGS[fy.site])
-      return;
+    if(!SETTINGS[fy.site]) return;
 
     toast.log('fy script started.');
 
@@ -110,6 +109,7 @@ class FyGlobal {
     //global vars & flags
     this.prevLocation = document.location;
     this.isFetching = false;
+    this.isUpdatingLargeDiv = false;
     this.indexCaches = [];
     this.keyCaches = [];
 
@@ -118,6 +118,7 @@ class FyGlobal {
     if(!tempCache) {
       await GM_setValue(GM_CACHE_KEY, {});
     }
+    /*
     else {
       //dirty fix
       let count = 0;
@@ -132,6 +133,7 @@ class FyGlobal {
         toast.log('cache fixed (string year to number year): ' + count);
       }
     }
+    */
 
     //to get the previous url. https://stackoverflow.com/a/52809105
     //this is not working on wavve.com
@@ -204,19 +206,14 @@ class FyGlobal {
     toast.log();
 
     const isExit = determineExit_();
-    if(isExit || fy.isFetching)
-      return;
+    if(isExit || fy.isFetching) return;
 
     //entry point
     let selector = fy.selector || '';
-    if(fy.selectorOnLargeDiv)
-      selector += ', ' + fy.selectorOnLargeDiv;
-    if(fy.selectorOnSinglePage)
-      selector += ', ' + fy.selectorOnSinglePage;
+    if(fy.selectorOnSinglePage) selector += ', ' + fy.selectorOnSinglePage;
     selector = selector.replace(/^, /, '');
 
-    if(fy.preventMultipleUrlChanges)
-      fy.isFetching = true;  //hack for kino
+    if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino
 
     toast.log('waiting for page loading (or changing)...');
     await elementReady(selector, fy.root);
@@ -262,27 +259,33 @@ class FyGlobal {
   defaultHandler = async (m, o) => {
     fy.observer.disconnect();
 
-    if(!fy.singlePageWithoutListItems && fy.selectorsForSinglePage.determinePathnameBy && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
-      const largeDiv = fy.root.querySelector('['+FY_UNIQ_STRING+']');
-      if(largeDiv) {
+    if(document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+      let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage), largeDivTargetEl;
+      if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {
         //if already updated, no more update when scrolling, etc
         console.info('large-div already updated.');
-        toast.log();
-        fy.observer.observe(fy.root, fy.observerOption);
-        return;
+        if(fy.singlePageWithoutListItems) {
+          toast.log();
+          fy.observer.observe(fy.root, fy.observerOption);
+          return;
+        }
       }
+      else if(!fy.isUpdatingLargeDiv) {
+        console.info('(possibly) waiting for large-div...');
 
-      let largeDivTargetEl = fy.root.querySelector(fy.selectorsForSinglePage.targetEl);
-      if(!largeDivTargetEl) {
-        console.info('waiting for large-div...');
-        largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
+        fy.isUpdatingLargeDiv = true;
+        largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
+        largeDivTargetEl = largeDiv;
+        if(fy.selectorsForSinglePage.targetEl) {
+          largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
+        }
+        await fy.largeDivUpdate(largeDivTargetEl);
+        fy.observer.disconnect();  //observer was connected during largeDivUpdate()
       }
+      //else is not happening
+    }
 
-      await fy.largeDivUpdate(largeDivTargetEl);
-    }
-    else {
-      fy.handlerWrapUp(fy.selectorsForListItems);
-    }
+    fy.handlerWrapUp(fy.selectorsForListItems);
   };
 
   handlers = {
@@ -300,15 +303,15 @@ class FyGlobal {
 
       if(location.search.includes('?jbv=') || location.pathname.startsWith('/title/')) {
         //large-div or single-page
-        let largeDiv = fy.root.querySelector(fy.selectorOnLargeDiv);
+        let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage);
         if(!largeDiv)
-          largeDiv = await elementReady(fy.selectorOnLargeDiv, fy.root);
+          largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
 
         //wait for lazy loading
-        await elementReady(fy.selectorsForLargeDiv.year, fy.root);
+        await elementReady(fy.selectorForSinglePage.year, fy.root);
 
         //업데이트를 안 했을 때만 업데이트
-        const selectors = fy.selectorsForLargeDiv;
+        const selectors = fy.selectorForSinglePage;
         const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
         await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
         await fy.largeDivUpdate(largeDiv);
@@ -354,7 +357,7 @@ class FyGlobal {
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
       //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
+      await fy.largeDivUpdateWrapUp(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
     },
 
     'm.kinolights.com': (largeDiv) => {
@@ -370,7 +373,7 @@ class FyGlobal {
 
     'www.netflix.com': (largeDiv) => {
       //on large div (=single content) page
-      const selectors = fy.selectorsForLargeDiv;
+      const selectors = fy.selectorForSinglePage;
       const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
 
       const year = parseInt(getTextFromNode_(baseEl.querySelector(selectors.year)));
@@ -394,12 +397,10 @@ class FyGlobal {
       const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
       document.querySelector('table.detail-info-table>tr>th+td')?.innerText.split(',').pop().split('~')[0].trim();  //large-div
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, year});
+      await fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, year});
     },
 
     'www.disneyplus.com': (largeDiv) => {
-      //const selectors = fy.selectorsForLargeDiv;
-
       //제목, 타입 등 여기서 처리하는 게 더 편해서...
       const title = document.head.querySelector('title').textContent.replace(' | 디즈니+', '');
       const metaSelector = 'script[type="application/ld+json"]';
@@ -421,7 +422,7 @@ class FyGlobal {
     if(!trueData.type)  //watcha는 이미 가져온 상태라 패스
       trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);
 
-    let sEl = baseEl.querySelector('.'+FY_UNIQ_STRING);
+    let sEl = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
     let otFlag, imdbFlag, forceUpdate = true;
     if(sEl) {
       //already updated (maybe)
@@ -605,9 +606,9 @@ class FyGlobal {
     await setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
+    if(fy.isUpdatingLargeDiv && itemDivs.length == 1) fy.isUpdatingLargeDiv = false;
     toast.log();
-    if(!fy.preventMultipleUrlChanges)
-      fy.observer.observe(fy.root, fy.observerOption);
+    if(!fy.preventMultipleUrlChanges) fy.observer.observe(fy.root, fy.observerOption);
 
     //end of flow
 
@@ -847,35 +848,6 @@ class FyGlobal {
     //hack for kino
     //if(fy.noAppendDiv) targetEl = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
     console.debug('baseEl, targetEl on edit', baseEl, targetEl);
-    /*
-    let numberToParent = fy.numberToBaseElWhenEditing || fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
-    let baseEl = getParentsFrom_(el, numberToParent);
-
-    //determine single-page
-    const rule = fy.selectorsForSinglePage || fy.selectorsForLargeDiv;  //either not and/or
-    let isSinglePage = false;
-    if((rule.determinePathnameBy && document.location.pathname.startsWith(rule.determinePathnameBy)) ||
-      (rule?.determineSinglePageBy == true) ||
-      (!rule.determinePathnameBy && baseEl.querySelector(rule?.determineSinglePageBy) == el.parentNode))
-      isSinglePage = true;
-
-    let selectors = rule;
-    if(!isSinglePage) selectors = fy.selectorsForListItems;
-
-    //search target el (fyItem. the last element)
-    let divs = baseEl.querySelectorAll(selectors.targetEl);
-    if(divs?.length > 1 && baseEl.tagName == 'UL') {  //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
-      baseEl = getParentsFrom_(el, numberToParent - 1);
-      divs = baseEl.querySelectorAll(selectors.targetEl);
-      console.debug('modified: baseEl, div on edit', baseEl, el);
-    }
-
-    let targetEl = divs ? divs[0] : baseEl;
-    if(!targetEl) {
-      targetEl = baseEl.querySelector(selectors.targetEl);
-      console.debug('targetEl was not found :( instead taking', targetEl);
-    }
-    */
 
     //search title, etc
     const type = getTypeFromDiv_(selectors, baseEl);
