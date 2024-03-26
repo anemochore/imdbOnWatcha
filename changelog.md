@@ -383,3 +383,5 @@
     //    watcha: support both large-div and list items
     //    settings, css: improved and refactored (mostly for watcha)
     //    wavve: support both large-div and list items
+    // ver 0.7.17 @ 2024-3-26
+    //    disneyplus: fixed changed urls

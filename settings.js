@@ -138,7 +138,7 @@ SETTINGS['www.disneyplus.com'] = {
   preventMultipleUrlChanges: true,  //hack 
 
   //no '/ko-kr/search' page
-  includingPaths: ['/ko-kr/watchlist', '/ko-kr/character', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
+  includingPaths: ['/ko-kr/browse/watchlist', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
