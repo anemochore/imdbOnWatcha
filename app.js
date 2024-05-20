@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.19
+// @version      0.7.20
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -259,7 +259,7 @@ class FyGlobal {
   defaultHandler = async (m, o) => {
     fy.observer.disconnect();
 
-    if(document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+    if(fy.selectorsForSinglePage && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
       let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage)
       || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
       if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {

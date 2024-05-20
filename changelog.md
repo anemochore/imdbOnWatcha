@@ -385,6 +385,7 @@
     //    wavve: support both large-div and list items
     // ver 0.7.17 @ 2024-3-26
     //    disneyplus: fixed changed urls
-    // ver 0.7.19 @ 2024-5-21
+    // ver 0.7.20 @ 2024-5-21
     //    disneyplus: fixed changed urls
     //    disneyplus: supports large-div partially
+    //    disneyplus: fixed not worling on main page
