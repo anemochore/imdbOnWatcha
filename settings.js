@@ -110,6 +110,10 @@ SETTINGS['www.wavve.com'] = {
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.landscape, `                 //my/ upper
   + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.portrait`,                   //my/ lower
 
+  elementReadyOption: {
+    notCountEmpty: true,
+  },
+
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
 
@@ -135,36 +139,28 @@ SETTINGS['www.wavve.com'] = {
 
 
 SETTINGS['www.disneyplus.com'] = {
-  preventMultipleUrlChanges: true,  //hack 
+  //preventMultipleUrlChanges: true,  //hack 
 
   //no '/ko-kr/search' page
-  includingPaths: ['/ko-kr/browse/watchlist', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
+  includingPaths: ['/ko-kr/browse', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
-  //numberToBaseElWhenUpdating: 2,
+  //selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
+  selector: `div[data-testid="set-shelf-item"]:not([${FY_UNIQ_STRING}])>a[aria-label], `  //home
+  + `div[id]>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label], `  //browse lower
+  + `section[id="explore-ui-main-content-container"]:not([${FY_UNIQ_STRING}])>div>div>img[alt], `  //browse upper
+  + `div:not([id="episodes"])>div>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label]`,  //watchlist
+  numberToBaseElWhenUpdating: 0,
+
+  elementReadyOption: {
+    checkIfAllChildrenAreAdded: true,
+  },
 
   selectorsForListItems: {
-    title: 'div[aria-label]',  //this should be the child of 'the last element'.
-    //targetEl: 'a[data-gv2elementkey]',  //targetEl is for edit(). when targetEl is omitted, baseEl will be used.
+    ignoreStrings: [' STAR Original', ' Disney+ Original'],
+    title: 'a[aria-label], img[alt]',  //this should be the child of 'the last element' or itself!.
   },
 
-  //below are WIP
-  //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: `section.vod-player:not([${FY_UNIQ_STRING}])`,  //wip
-
-  //more selectors are hard-coded. below are mainly for edit()
-  selectorsForSinglePage: {
-    determinePathnameBy: '/player/',  //exceptionally, this is for updating large_div
-    determineSinglePageBy: 'div.video-wrap',  //if edit link is the child of this el, it is single-page
-    title: 'h1>span',
-    isTVSeries: {
-      numberToBaseEl: 1,
-      selector: 'div.player-nav>ul>li',
-      contains: '에피소드',
-    },
-    targetEl: 'section.vod-player',
-  },
-  
+  //large-div is not implemented :( 
 };

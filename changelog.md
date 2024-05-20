@@ -346,7 +346,7 @@
     //    kino: fixed selectors, with internal clean-up
     // ver 0.6.28 @ 2023-10-6
     //    internal: changed minor log text
-    //    TODO: add disneyplus large-div!!! (delayed)
+    //    ~~TODO: add disneyplus large-div!!! (delayed)~~
     // ver 0.6.31 @ 2023-10-8
     //    kino: fixed dom throw
     //    kino: fixed edit not working
@@ -385,3 +385,6 @@
     //    wavve: support both large-div and list items
     // ver 0.7.17 @ 2024-3-26
     //    disneyplus: fixed changed urls
+    // ver 0.7.19 @ 2024-5-21
+    //    disneyplus: fixed changed urls
+    //    disneyplus: supports large-div partially

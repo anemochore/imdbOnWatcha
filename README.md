@@ -22,7 +22,7 @@
 ## 지원 사이트
 1. watcha.com
 2. www.netflix.com
-3. www.disneyplus.com/ko-kr/ list pages
+3. www.disneyplus.com/ko-kr/
 4. www.waave.com: /player & /my pages (still updating)
 5. m.kinolights.com/title pages
 6. www.imdb.com/title/ pages
@@ -32,6 +32,7 @@
 2. 저스트워치 검색 시 정확히 일치하는 제목이 없을 때는 [fuzzysort](https://github.com/farzher/fuzzysort)로 일치도가 가장 높은 제목을 고른다. MIT 라이선스다.
 
 ## todo
+0. support for tving
 1. support for waave (maybe done)
 2. support for disney+ (partially done)
 3. support for seezn (closed now)

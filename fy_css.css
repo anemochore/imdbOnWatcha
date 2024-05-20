@@ -31,6 +31,8 @@ div.www_wavve_com>a {
 div.www_disneyplus_com {
   position: absolute;
   z-index: 999;
+  margin-left: 10px;
+  margin-top: 10px;
 }
 
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {

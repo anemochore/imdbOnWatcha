@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.17
+// @version      0.7.19
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -286,7 +286,7 @@ class FyGlobal {
       //else is not happening
     }
 
-    fy.handlerWrapUp(fy.selectorsForListItems);
+    await fy.handlerWrapUp(fy.selectorsForListItems);
   };
 
   handlers = {
@@ -318,12 +318,12 @@ class FyGlobal {
         await fy.largeDivUpdate(largeDiv);
       }
       else {
-        fy.handlerWrapUp(fy.selectorsForListItems);
+        await fy.handlerWrapUp(fy.selectorsForListItems);
       }
     },
   };
 
-  handlerWrapUp = (selectors) => {
+  handlerWrapUp = async (selectors) => {
     const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
     const itemNum = itemDivs.length;
     if(itemNum > 0) {
@@ -388,11 +388,10 @@ class FyGlobal {
 
       //이미 업데이트된 상태에서 url이 바뀌었다면 fy-item을 제거
       const fyItem = document.querySelector('.'+FY_UNIQ_STRING);
-      if(fyItem)
-        fyItem.parentNode.removeChild(fyItem);
+      if(fyItem) fyItem.parentNode.removeChild(fyItem);
 
       //lazy loading이 극심해서 제목을 여기서 처리-_-
-      const titleEl = await elementReady(selectors.title, largeDiv, false);
+      const titleEl = await elementReady(selectors.title, largeDiv); //, {notCountEmpty: true});
       const title = getTextFromNode_(titleEl);
 
       const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
@@ -482,7 +481,7 @@ class FyGlobal {
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
-    fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
+    fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl);
 
     //get titles, etc
     itemDivs.forEach((item, i) => {
@@ -638,6 +637,7 @@ class FyGlobal {
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
       let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+      if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, numberToParent);
 
       //hack for kino
       if(fy.noAppendDiv) div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);

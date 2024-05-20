@@ -39,28 +39,42 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function elementReady(selector, baseEl, countEmpty = true) {
+function elementReady(selector, baseEl = document.documentElement, options = fy.elementReadyOption || {}) {
   return new Promise((resolve, reject) => {
-    if (!baseEl)
-      baseEl = document.documentElement;
-
     let els = [...baseEl.querySelectorAll(selector)];
-    if(els.length > 0)
-      resolve(els[els.length-1]);
+    if(els.length > 0 && !options.waitFirst) {
+      if(options.returnAll) resolve(els);
+      else resolve(els[els.length-1]);
+    }
 
-    new MutationObserver(async (m, o) => {
+    console.debug('this.prevElNumber, els.length', this.prevElNumber, els.length);
+    this.prevElNumber = els.length;
+
+    new MutationObserver(async (mutationRecords, observer) => {
       let els = [...baseEl.querySelectorAll(selector)];
-      if (els.length > 0) {
-        if (countEmpty || els.pop().childNodes.length > 0) {
-          o.disconnect();
-          resolve(els[els.length - 1]);
+      if(options.notCountEmpty || els.length > 0) {
+        if(!options.checkIfAllChildrenAreAdded) {
+          //console.debug('resolved for checkIfAllChildrenAreAdded false', els);
+          observer.disconnect();
+          if(options.returnAll) resolve(els);
+          else resolve(els[els.length-1]);
+        }
+        else if(els.length >= this.prevElNumber) {
+          this.prevElNumber = els.length;
+          await sleep(1000);  //dirty hack
+          if([...baseEl.querySelectorAll(selector)].length == this.prevElNumber) {
+            //console.debug('resolved for checkIfAllChildrenAreAdded true', els);
+            observer.disconnect();
+            if(options.returnAll) resolve(els);
+            else resolve(els[els.length-1]);
+          }
         }
       }
     })
-      .observe(baseEl, {
-        childList: true,
-        subtree: true
-      });
+    .observe(baseEl, {
+      childList: true,
+      subtree: true
+    });
   });
 }
 
@@ -210,8 +224,15 @@ function getParentsFrom_(div, numberOrRoot) {
 function getTextFromNode_(el = null) {
   let result = null;
 
-  if(el)
-    result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
+  if(el) result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
+  //console.debug(`el & result`, el, result);
+  if(fy.selectorsForListItems.ignoreStrings) {
+    let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
+    if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) 
+      ignoreStrings = [ignoreStrings];
+    for(const ignoreString of ignoreStrings)
+      result = result?.replace(ignoreString, '');
+  }
 
   return result;
 }
@@ -241,9 +262,15 @@ function isValidRating_(rating = 'n/a') {
 
 function querySelectorFiFo_(baseEl, selectors) {
   let result;
-  for(const selector of selectors.split(', ')) {
-    result = baseEl.querySelector(selector);
-    if(result) break;
+  if(selectors == 'self') {
+    result = baseEl;
+    //console.debug(`special selector 'self' used for`, baseEl);
+  }
+  else {
+    for(const selector of selectors.split(', ')) {
+      result = baseEl.querySelector(selector);
+      if(result) break;
+    }
   }
 
   return result;
