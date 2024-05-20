@@ -224,7 +224,20 @@ function getParentsFrom_(div, numberOrRoot) {
 function getTextFromNode_(el = null) {
   let result = null;
 
-  if(el) result = el.innerText || el?.alt || el?.getAttribute('aria-label') || el.querySelector('img')?.alt;
+  if(el) {
+    //get self node's text only
+    let child = el.firstChild, texts = [];
+    while (child) {
+        if (child.nodeType == 3) {
+            texts.push(child.data);
+        }
+        child = child.nextSibling;
+    }
+    result = texts.join("");
+
+    if(!result)
+      result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
+  }
   //console.debug(`el & result`, el, result);
   if(fy.selectorsForListItems.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
@@ -262,15 +275,9 @@ function isValidRating_(rating = 'n/a') {
 
 function querySelectorFiFo_(baseEl, selectors) {
   let result;
-  if(selectors == 'self') {
-    result = baseEl;
-    //console.debug(`special selector 'self' used for`, baseEl);
-  }
-  else {
-    for(const selector of selectors.split(', ')) {
-      result = baseEl.querySelector(selector);
-      if(result) break;
-    }
+  for(const selector of selectors.split(', ')) {
+    result = baseEl.querySelector(selector);
+    if(result) break;
   }
 
   return result;

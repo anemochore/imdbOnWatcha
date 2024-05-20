@@ -299,7 +299,7 @@ class ParseJW {
               if(idx == -1) {
                 if(maybeIdxWithSameDateOrType > -1 && sRatings[maybeIdxWithSameDateOrType] >= fuzzyThresholdRating) {
                   idx = maybeIdxWithSameDateOrType;
-                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with not-poor rating present and with the same date or type: ${sTitles[idx]}`);
+                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with not-poor rating present and with the same date or type: ${sTitles[idx]} (${sYears[idx]})`);
                   otData[i].otFlag = '?';
                 }
                 else {

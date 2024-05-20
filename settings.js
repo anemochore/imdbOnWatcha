@@ -5,7 +5,7 @@ const SETTINGS = {};
 //see the comments in detail on neflix
 
 SETTINGS['watcha.com'] = {
-  includingPaths: ['/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
+  includingPaths: ['/', '/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
   selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
   + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search
@@ -147,9 +147,10 @@ SETTINGS['www.disneyplus.com'] = {
 
   //'the last element'(fyItem) selection.
   //selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
-  selector: `div[data-testid="set-shelf-item"]:not([${FY_UNIQ_STRING}])>a[aria-label], `  //home
-  + `div[id]>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label], `  //browse lower
-  + `section[id="explore-ui-main-content-container"]:not([${FY_UNIQ_STRING}])>div>div>img[alt], `  //browse upper
+  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FY_UNIQ_STRING}])>a[aria-label], `      //home list
+  //+ `div[id^="hero-carousel"]>div[data-testid][aria-hidden="false"]:not([${FY_UNIQ_STRING}])>a[aria-label], ` //home upper
+  + `div[id]>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label], `               //browse lower
+  + `section[id="explore-ui-main-content-container"]:not([${FY_UNIQ_STRING}])>div>div>img[alt], ` //browse upper
   + `div:not([id="episodes"])>div>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label]`,  //watchlist
   numberToBaseElWhenUpdating: 0,
 
@@ -158,9 +159,9 @@ SETTINGS['www.disneyplus.com'] = {
   },
 
   selectorsForListItems: {
-    ignoreStrings: [' STAR Original', ' Disney+ Original'],
+    ignoreStrings: [' STAR Original', ' Disney+ Original', '이 콘텐츠에 대한 정보를 보려면 선택하세요.'],
     title: 'a[aria-label], img[alt]',  //this should be the child of 'the last element' or itself!.
   },
 
-  //large-div is not implemented :( 
+  //large-div is not implemented. no need for now. 
 };
