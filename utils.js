@@ -239,7 +239,7 @@ function getTextFromNode_(el = null) {
       result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
   }
   //console.debug(`el & result`, el, result);
-  if(fy.selectorsForListItems.ignoreStrings) {
+  if(fy.selectorsForListItems?.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
     if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) 
       ignoreStrings = [ignoreStrings];

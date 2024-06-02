@@ -390,3 +390,5 @@
     //    disneyplus: supports large-div partially
     //    disneyplus: fixed not working on main page
     //    disneyplus: tried to support carousel in vain...
+    // ver 0.7.22 @ 2024-6-2
+    //    kino: fixed not working (bug of v0.7.20)
