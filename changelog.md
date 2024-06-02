@@ -390,5 +390,8 @@
     //    disneyplus: supports large-div partially
     //    disneyplus: fixed not working on main page
     //    disneyplus: tried to support carousel in vain...
-    // ver 0.7.22 @ 2024-6-2
-    //    kino: fixed not working (bug of v0.7.20)
+    // ver 0.7.23 @ 2024-6-2
+    //    kino: fixed not working bug and title parsing (bug of v0.7.20)
+    //    app & jw: fixed and improved search logic
+    // ver 0.8.0 @ 2024-6-2
+    //    tving: support now

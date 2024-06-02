@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.7.22
+// @version      0.8.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -11,6 +11,7 @@
 // @match        https://m.kinolights.com/*
 // @match        https://www.wavve.com/*
 // @match        https://www.disneyplus.com/ko-kr/*
+// @match        https://www.tving.com/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
@@ -562,6 +563,7 @@ class FyGlobal {
     }
 
     //찾을 제목에 대해 내부 캐시 적용.
+    titles = titles.map(t => getCleanTitle(t));
     let searchLength = fy.setInternalCache_(titles, otData);
 
     if(searchLength == 0) {
@@ -571,7 +573,7 @@ class FyGlobal {
       //업데이트
       toast.log(`getting infos from jw... length: ${searchLength}`);
 
-      const qTitles = titles.map(title => title ? fy.getCleanTitle(title) : null);
+      const qTitles = titles.map(title => title ? title : null);
       const urls = qTitles.map(title => title ? OT_URL: null)
       const otSearchResults = await fetchAll(urls, {}, qTitles);
 
@@ -817,22 +819,6 @@ class FyGlobal {
         otData[i].query = fy.keyCaches[i];
       }
     });
-  }
-
-  //common(?) publics
-  getCleanTitle(title) {
-    const seasonString = 
-    title.match(/ 시즌( |)[0-9]+( |$)/) || 
-    title.match(/ [0-9]+기( |$)/) || 
-    title.match(/ Season( |)[0-9]+( |$)/);  //todo: 일본어에서 1기는??
-    if(seasonString)
-      return title.replace(seasonString[0], '');
-    else
-      return title;
-  }
-
-  getCleanTokens(title) {
-    return title.replace(/[:-]/g, '').split(' ').filter(el => el);
   }
 
 

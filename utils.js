@@ -43,11 +43,12 @@ function elementReady(selector, baseEl = document.documentElement, options = fy.
   return new Promise((resolve, reject) => {
     let els = [...baseEl.querySelectorAll(selector)];
     if(els.length > 0 && !options.waitFirst) {
+      //console.debug('resolved at first call', els);
       if(options.returnAll) resolve(els);
       else resolve(els[els.length-1]);
     }
 
-    console.debug('this.prevElNumber, els.length', this.prevElNumber, els.length);
+    //console.debug('this.prevElNumber, els.length', this.prevElNumber, els.length);
     this.prevElNumber = els.length;
 
     new MutationObserver(async (mutationRecords, observer) => {
@@ -247,7 +248,7 @@ function getTextFromNode_(el = null) {
       result = result?.replace(ignoreString, '');
   }
 
-  return result;
+  return result?.trim();
 }
 
 function getIdFromValidUrl_(validUrl = null) {
@@ -268,6 +269,25 @@ function getImdbUrlFromId_(id, orgTitle = null) {
 function getWpUrlFromId_(wpId) {
   return 'https://pedia.watcha.com/ko-KR/contents/' + wpId;
 }
+
+//common(?) publics
+function getCleanTitle(title) {
+  if(title) {
+    title = title.replace(/^\[자막\] ?/, '').replace(/^\[더빙\] ?/, '');
+
+    const seasonString = 
+    title.match(/ 시즌( |)[0-9]+( |$)/) || 
+    title.match(/ [0-9]+기( |$)/) || 
+    title.match(/ Season( |)[0-9]+( |$)/);  //todo: 일본어에서 1기는??
+    if(seasonString) title = title.replace(seasonString[0], '');
+  }
+  return title;
+}
+
+function getCleanTokens(title) {
+  return title.replace(/[:-]/g, '').split(' ').filter(el => el);
+}
+
 
 function isValidRating_(rating = 'n/a') {
   return rating != 'n/a' && !isNaN(parseFloat(rating))

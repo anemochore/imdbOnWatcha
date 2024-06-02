@@ -1,4 +1,5 @@
 const FY_UNIQ_STRING = 'fy-item';
+let FU = FY_UNIQ_STRING;
 
 const SETTINGS = {};
 
@@ -7,8 +8,8 @@ const SETTINGS = {};
 SETTINGS['watcha.com'] = {
   includingPaths: ['/', '/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
-  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FY_UNIQ_STRING}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
-  + `section>ul>li:not([${FY_UNIQ_STRING}])>a[href^="/contents/"]>div`,  //search
+  selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FU}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
+  + `section>ul>li:not([${FU}])>a[href^="/contents/"]>div`,  //search
 
   //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
 
@@ -24,7 +25,7 @@ SETTINGS['watcha.com'] = {
   //singlePageWithoutListItems: false,  //default is true since 23-10-29
 
   //more selectors are hard-coded. below are mainly for edit() on single-page
-  selectorOnSinglePage: `section:not([${FY_UNIQ_STRING}])>div>div>h1`,  //for single-page
+  selectorOnSinglePage: `section:not([${FU}])>div>div>h1`,  //for single-page
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',
     title: 'h1',
@@ -68,12 +69,12 @@ SETTINGS['www.netflix.com'] = {
   rootSelector: 'body',
 
   //'the last element'(fyItem) selection.
-  selector: `div.title-card-container:not([${FY_UNIQ_STRING}])>div[id]>div.ptrack-content`,
+  selector: `div.title-card-container:not([${FU}])>div[id]>div.ptrack-content`,
   //In above case,
-  //div.title... will be set FY_UNIQ_STRING, so it should be 'the base element' and 
+  //div.title... will be set FU, so it should be 'the base element' and 
   //div.ptrack... will be 'the last element'.
   //After updating, 'the base element' will have 'the info element'(.fy-item) child.
-  //Where to put FY_UNIQ_STRING? It depends on clickability and aesthetics.
+  //Where to put FU? It depends on clickability and aesthetics.
 
   largeDivSamePathName: true,  //hack for netflix
 
@@ -86,7 +87,7 @@ SETTINGS['www.netflix.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: `div.previewModal--container:not([${FY_UNIQ_STRING}])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper`,
+  selectorOnSinglePage: `div.previewModal--container:not([${FU}])>div.previewModal--player_container>div.videoMerchPlayer--boxart-wrapper`,
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorForSinglePage: {
@@ -106,9 +107,9 @@ SETTINGS['www.wavve.com'] = {
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
-  selector: `div.wrap>ul>li>div.portrait:not([${FY_UNIQ_STRING}])>a.con-text-wrap, `  //my/like_movie
-  + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.landscape, `                 //my/ upper
-  + `div.swiper-wrapper>div:not([${FY_UNIQ_STRING}])>div.portrait`,                   //my/ lower
+  selector: `div.wrap>ul>li>div.portrait:not([${FU}])>a.con-text-wrap, `  //my/like_movie
+  + `div.swiper-wrapper>div:not([${FU}])>div.landscape, `                 //my/ upper
+  + `div.swiper-wrapper>div:not([${FU}])>div.portrait`,                   //my/ lower
 
   elementReadyOption: {
     notCountEmpty: true,
@@ -122,7 +123,7 @@ SETTINGS['www.wavve.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: `section.player-contents>div.video-wrap:not([${FY_UNIQ_STRING}])`,
+  selectorOnSinglePage: `section.player-contents>div.video-wrap:not([${FU}])`,
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
@@ -133,7 +134,7 @@ SETTINGS['www.wavve.com'] = {
       selector: 'div.player-nav>ul>li',
       contains: '에피소드',
     },
-    targetEl: `section.player-contents>div.video-wrap>div:not(.${FY_UNIQ_STRING})`,  //class of last div varies.
+    targetEl: `section.player-contents>div.video-wrap>div:not(.${FU})`,  //class of last div varies.
   },
 };
 
@@ -146,12 +147,12 @@ SETTINGS['www.disneyplus.com'] = {
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  //selector: `div.gv2-asset:not([${FY_UNIQ_STRING}])>a[data-gv2elementkey]>div.image-container`,
-  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FY_UNIQ_STRING}])>a[aria-label], `      //home list
-  //+ `div[id^="hero-carousel"]>div[data-testid][aria-hidden="false"]:not([${FY_UNIQ_STRING}])>a[aria-label], ` //home upper
-  + `div[id]>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label], `               //browse lower
-  + `section[id="explore-ui-main-content-container"]:not([${FY_UNIQ_STRING}])>div>div>img[alt], ` //browse upper
-  + `div:not([id="episodes"])>div>section>div[data-testid]:not([${FY_UNIQ_STRING}])>div>a[aria-label]`,  //watchlist
+  //selector: `div.gv2-asset:not([${FU}])>a[data-gv2elementkey]>div.image-container`,
+  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label], `      //home list
+  //+ `div[id^="hero-carousel"]>div[data-testid][aria-hidden="false"]:not([${FU}])>a[aria-label], ` //home upper
+  + `div[id]>section>div[data-testid]:not([${FU}])>div>a[aria-label], `               //browse lower
+  + `section[id="explore-ui-main-content-container"]:not([${FU}])>div>div>img[alt], ` //browse upper
+  + `div:not([id="episodes"])>div>section>div[data-testid]:not([${FU}])>div>a[aria-label]`,  //watchlist
   numberToBaseElWhenUpdating: 0,
 
   elementReadyOption: {
@@ -165,3 +166,18 @@ SETTINGS['www.disneyplus.com'] = {
 
   //large-div is not implemented. no need for now. 
 };
+
+
+SETTINGS['www.tving.com'] = {
+  includingPaths: ['/', '/contents', '/movie', '/series', '/paramount'],
+  rootSelector: 'main',  //required
+
+  selector: `section>article>article>div:not([${FU}])>div:has(h2), `  //contents main
+  + `div.swiper-wrapper>div.swiper-slide:not([${FU}])>a:has(dt), `     //contents lower
+  + `div.swiper-wrapper>div.swiper-slide>div:not([${FU}])>a[class]+a:has(p.atom-text-wrapper), ` //movie, etc main
+  + `div.swiper-wrapper>div.swiper-slide:not([${FU}])>a:only-child:has(p.atom-text-wrapper):not(:has(div.special-button-item-wrapper)):not(:has(div.live-ranking-item-wrapper)):not(:has(div.content-item-wrapper)):not([href^="/contents/E"])`, //movie, etc lower
+
+  selectorsForListItems: {
+    title: 'dt, p.atom-text-wrapper, p.item__title, img[alt]',  //prefer text
+  },
+}

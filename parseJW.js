@@ -26,7 +26,6 @@ class ParseJW {
 
       //to update cache
       otData[i].query = title;
-      title = fy.getCleanTitle(title);
 
       //edit의 경우(캐시의 값을 쓰면 안 됨)
       const trueOrgTitle = trueData.orgTitle;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
@@ -152,7 +151,8 @@ class ParseJW {
               }
             }
 
-            if(!found && trueType && !(!trueType.startsWith('not') && trueType.endsWith('Series'))) {
+            //console.debug(`manual fuzzy: found: ${found}`);
+            if(!found && (!trueType || (trueType && !trueType.endsWith('Series')))) {
               if(possibleIdxWithCloseDate == -1) {
                 //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
@@ -160,9 +160,9 @@ class ParseJW {
                     found = true;
                     console.info(`spaces were ignored for ${title} and ${sTitle}`);
                   }
-                  else if(sTitle.replaceAll(':', '') == title.replaceAll(':', '')) {
+                  else if(sTitle.replace(/ ?: ?/, '') == title.replace(/ ?: ?/, '')) {
                     found = true;
-                    console.info(`colons were ignored for ${title} and ${sTitle}`);
+                    console.info(`a colon was ignored for ${title} and ${sTitle}`);
                   }
                   else if(title.includes(':') && sTitle.includes(':')) {
                     const subTitle = title.split(':').pop().trim();
