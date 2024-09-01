@@ -189,7 +189,7 @@ class ParseJW {
         console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
-        if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == -1)) {
+        if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
           //검색이 완벽하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
           console.log(`jw search is not perfect. keep the imdb data (from manual visit): ${cacheTrueImdbId}`);
           otData[i].otFlag = orgOtFlag;  //probably '??'

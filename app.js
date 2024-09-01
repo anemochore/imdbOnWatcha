@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.8.0
+// @version      0.8.2
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -487,11 +487,10 @@ class FyGlobal {
     //get titles, etc
     itemDivs.forEach((item, i) => {
       const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
-      //const baseEl = getParentsFrom_(item, fy.numberToBaseEl);
 
       let title = trueData.title;
-      if(!title && baseEl)
-        title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
+      if(!title && baseEl) title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
+
       if(!title) {
         console.warn('no title found on', item);
         return;
@@ -829,7 +828,7 @@ class FyGlobal {
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
 
     const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
-    const selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //latter is for kino only
+    let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //latter is for kino only
 
     let targetEl = baseEl;
     //hack for kino
@@ -837,12 +836,23 @@ class FyGlobal {
     console.debug('baseEl, targetEl on edit', baseEl, targetEl);
 
     //search title, etc
-    const type = getTypeFromDiv_(selectors, baseEl);
+    let type = getTypeFromDiv_(selectors, baseEl);
     let url, title, otDatum;
 
-    //캐시에 있다면 사용.
-    const titleEl = querySelectorFiFo_(baseEl, selectors.title);
+    let titleEl = querySelectorFiFo_(baseEl, selectors.title);
     title = getTextFromNode_(titleEl);
+    if(type && title) console.debug('type, title on edit', type, title);
+
+    if(!title && fy.selectorsForSinglePage) {
+      selectors = fy.selectorsForSinglePage;
+      type = getTypeFromDiv_(selectors, baseEl);
+      titleEl = querySelectorFiFo_(baseEl, selectors.title);
+      title = getTextFromNode_(titleEl);
+      if(type && title) console.debug('type, title on edit (large div)', type, title);
+      else console.debug('type or title not found on edit!');
+    }
+
+    //캐시에 있다면 사용.
     if(!otDatum) otDatum = otCache[title] || {};
 
     //get input

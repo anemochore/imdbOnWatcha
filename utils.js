@@ -53,7 +53,7 @@ function elementReady(selector, baseEl = document.documentElement, options = fy.
 
     new MutationObserver(async (mutationRecords, observer) => {
       let els = [...baseEl.querySelectorAll(selector)];
-      if(options.notCountEmpty || els.length > 0) {
+      if(els.length > 0) {
         if(!options.checkIfAllChildrenAreAdded) {
           //console.debug('resolved for checkIfAllChildrenAreAdded false', els);
           observer.disconnect();
@@ -236,10 +236,8 @@ function getTextFromNode_(el = null) {
     }
     result = texts.join("");
 
-    if(!result)
-      result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
+    if(!result) result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
   }
-  //console.debug(`el & result`, el, result);
   if(fy.selectorsForListItems?.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
     if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) 

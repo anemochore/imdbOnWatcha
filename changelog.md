@@ -395,3 +395,6 @@
     //    app & jw: fixed and improved search logic
     // ver 0.8.0 @ 2024-6-2
     //    tving: support now
+    // ver 0.8.2 @ 2024-9-1
+    //    wavve: fixed edit on large-div
+    //    jw: fixed logic of manually entered imdb url

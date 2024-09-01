@@ -111,9 +111,11 @@ SETTINGS['www.wavve.com'] = {
   + `div.swiper-wrapper>div:not([${FU}])>div.landscape, `                 //my/ upper
   + `div.swiper-wrapper>div:not([${FU}])>div.portrait`,                   //my/ lower
 
+  /*
   elementReadyOption: {
     notCountEmpty: true,
   },
+  */
 
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
