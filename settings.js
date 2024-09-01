@@ -9,7 +9,8 @@ SETTINGS['watcha.com'] = {
   includingPaths: ['/', '/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
   selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FU}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
-  + `section>ul>li:not([${FU}])>a[href^="/contents/"]>div`,  //search
+  + `section>ul>li:not([${FU}])>a[href^="/contents/"]>div, `  //search
+  + `section ul>li>article:not([${FU}])>a[href^="/contents/"]>div`,   //list item on single-page
 
   //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
 
@@ -22,10 +23,10 @@ SETTINGS['watcha.com'] = {
     },
   },
 
-  //singlePageWithoutListItems: false,  //default is true since 23-10-29
+  //singlePageWithoutListItems: false,  //no need since 23-10-29
 
   //more selectors are hard-coded. below are mainly for edit() on single-page
-  selectorOnSinglePage: `section:not([${FU}])>div>div>h1`,  //for single-page
+  selectorOnSinglePage: `section:not([${FU}])>div>div h1`,  //for single-page
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',
     title: 'h1',
