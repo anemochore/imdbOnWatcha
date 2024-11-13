@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.8.3
+// @version      0.8.4
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -306,8 +306,7 @@ class FyGlobal {
       if(location.search.includes('?jbv=') || location.pathname.startsWith('/title/')) {
         //large-div or single-page
         let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage);
-        if(!largeDiv)
-          largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
+        if(!largeDiv) largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
 
         //wait for lazy loading
         await elementReady(fy.selectorForSinglePage.year, fy.root);
@@ -317,6 +316,13 @@ class FyGlobal {
         const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
         await elementReady(selectors.title, baseEl);  //title이 img라 늦게 로딩됨
         await fy.largeDivUpdate(largeDiv);
+
+        //함께 시청된 콘텐츠
+        if(selectors.additionalSelector) {
+          toast.log('waiting for additional titles...');
+          await elementReady(selectors.additionalSelector.selector);
+          await fy.handlerWrapUp(selectors.additionalSelector, true);
+        }
       }
       else {
         await fy.handlerWrapUp(fy.selectorsForListItems);
@@ -324,12 +330,15 @@ class FyGlobal {
     },
   };
 
-  handlerWrapUp = async (selectors) => {
-    const itemDivs = [...fy.root.querySelectorAll(fy.selector)];
+  handlerWrapUp = async (selectorObj, noGlobalSelect) => {
+    let selector = fy.selector;
+    if(noGlobalSelect) selector = selectorObj.selector;
+
+    const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
-    console.debug('itemNum', itemNum);
+    //console.debug('itemNum', itemNum);
     if(itemNum > 0) {
-      fy.search(itemDivs, {selectors});
+      fy.search(itemDivs, {selectors: selectorObj});
     }
     else {
       //nothing to do
@@ -447,6 +456,7 @@ class FyGlobal {
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       toast.log(`large div on single-page update triggered. forceUpdate: ${forceUpdate}`);
+      //console.debug('large div', largeDiv);
       trueData.forceUpdate = forceUpdate;
       await fy.search([largeDiv], trueData);
     }
@@ -490,10 +500,11 @@ class FyGlobal {
       const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
 
       let title = trueData.title;
+      //console.debug('baseEl, q', baseEl, trueData.selectors.title);
       if(!title && baseEl) title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
 
       if(!title) {
-        console.warn('no title found on', item);
+        console.warn('no title found on', item, 'query:', trueData.selectors.title);
         return;
       }
       if(title.includes(':') && title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
@@ -824,17 +835,17 @@ class FyGlobal {
 
   ////other publics
   async edit(event, onSite) {
-    //event.preventDefault();  //not working
-    const el = event.target;
-    const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
+    event.stopPropagation();
 
+    const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
+    const el = event.target;
     const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
-    let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //latter is for kino only
+    let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //the last is for kino only
 
     let targetEl = baseEl;
     //hack for kino
     //if(fy.noAppendDiv) targetEl = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
-    console.debug('baseEl, targetEl on edit', baseEl, targetEl);
+    //console.debug('baseEl, targetEl on edit', baseEl, targetEl);
 
     //search title, etc
     let type = getTypeFromDiv_(selectors, baseEl);

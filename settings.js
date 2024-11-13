@@ -79,12 +79,11 @@ SETTINGS['www.netflix.com'] = {
 
   largeDivSamePathName: true,  //hack for netflix
 
-  singlePageWithoutListItems: true,  //todo (23-10-29)
-
   //numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
-    title: 'a[href^="/watch/"]:not([class*="playLink"])',  //this should be the child of 'the last element'.
+    //this should be the child of 'the last element'. the latter is for edit() of additional titles on large-div.
+    title: 'a[href^="/watch/"]:not([class*="playLink"]), img[alt]',
   },
 
   //large-div works like a single-page. don't use both.
@@ -98,6 +97,11 @@ SETTINGS['www.netflix.com'] = {
     isTVSeries: {
       selector: 'div.videoMetadata--second-line>span.duration',
       contains: /(시즌 \d+개|에피소드 \d+개)/,
+    },
+    additionalSelector: {
+      selector: `.moreLikeThis--container>.titleCard--container:not([${FU}])>div>div.ptrack-content`,
+      title: 'img[alt]',
+      year: 'div.year',
     },
   },
 };

@@ -399,3 +399,5 @@
     //    wavve: fixed edit on large-div
     //    jw: fixed logic of manually entered imdb url
     //    watcha: fixed selectors (not perfect)
+    // ver 0.8.4 @ 2024-11-13
+    //    netflix: supports titles below on large-div
