@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.8.5
+// @version      0.9.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -12,6 +12,7 @@
 // @match        https://www.wavve.com/*
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.tving.com/*
+// @match        http://uflix.co.kr/uws/web/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
@@ -119,22 +120,6 @@ class FyGlobal {
     if(!tempCache) {
       await GM_setValue(GM_CACHE_KEY, {});
     }
-    /*
-    else {
-      //dirty fix
-      let count = 0;
-      for(const [k, v] of Object.entries(tempCache)) {
-        if(typeof v.year == 'string') {
-          tempCache[k].year = parseInt(v.year) || 'n/a';
-          count++;
-        }
-      }
-      if(count > 0) {
-        await GM_setValue(GM_CACHE_KEY, tempCache);
-        toast.log('cache fixed (string year to number year): ' + count);
-      }
-    }
-    */
 
     //to get the previous url. https://stackoverflow.com/a/52809105
     //this is not working on wavve.com
@@ -181,7 +166,7 @@ class FyGlobal {
     fy.observer.disconnect();
     console.debug('observer disconncted on entry()!');
 
-    fy.root = document.querySelector(fy.rootSelector);
+    fy.root = document.querySelector(fy.rootSelector) || document.documentElement;
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
@@ -336,7 +321,7 @@ class FyGlobal {
 
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
-    //console.debug('itemNum', itemNum);
+    console.debug('itemNum', itemNum);
     if(itemNum > 0) {
       fy.search(itemDivs, {selectors: selectorObj});
     }
@@ -466,24 +451,43 @@ class FyGlobal {
     }
   };
 
-  defaultBaseElementProc = (itemDivs, numberToBaseEl) => {
-    itemDivs.forEach((item, i) => {
+  defaultBaseElementProc = (itemDivs, numberToBaseEl, remove = false) => {
+    itemDivs.forEach(item => {
       const baseEl = getParentsFrom_(item, numberToBaseEl);
 
       //console.debug('preupdate: item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl, baseEl.getAttribute(FY_UNIQ_STRING));
-      if(baseEl.getAttribute(FY_UNIQ_STRING) == null) {
-        baseEl.setAttribute(FY_UNIQ_STRING, '');
-        if(!fy.noAppendDiv) {
-          const infoEl = document.createElement('div');
-          infoEl.classList.add(FY_UNIQ_STRING);
-          infoEl.classList.add(fy.site.replace(/\./g, '_'));
-          baseEl.insertBefore(infoEl, baseEl.firstChild);
+      if(baseEl.getAttribute(FY_UNIQ_STRING) == null || remove) {
+        if(remove) {
+          baseEl.querySelector('.' + FY_UNIQ_STRING).style.visibility = 'hidden';
+        }
+        else {
+          baseEl.setAttribute(FY_UNIQ_STRING, '');
+          if(!fy.noAppendDiv) {
+            const infoEl = document.createElement('div');
+            infoEl.classList.add(FY_UNIQ_STRING);
+            infoEl.classList.add(fy.site.replace(/\./g, '_'));
+            baseEl.insertBefore(infoEl, baseEl.firstChild);
+          }
         }
       }
     });
   };
 
   preUpdateDivses = {
+    'uflix.co.kr': (itemDivs, numberToBaseEl, remove) => {
+      if(location.pathname.startsWith('/uws/web/search/')) {
+        itemDivs.forEach(item => {
+          const tempEl = document.createElement('div');
+          tempEl.classList.add('fy-temp');
+          for(const child of [...item.children])
+            tempEl.appendChild(child);
+          item.appendChild(tempEl);
+        });
+        console.debug('DOM was modified (dirty fix).');
+        itemDivs = [...fy.root.querySelectorAll(fy.selector)];
+      }
+      fy.defaultBaseElementProc(itemDivs, numberToBaseEl, remove);
+    }
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
@@ -493,7 +497,8 @@ class FyGlobal {
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
-    fy.preUpdateDivs(itemDivs, trueData.selectors.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl);
+    const numberToBaseEl = trueData.selectors.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl;
+    fy.preUpdateDivs(itemDivs, numberToBaseEl);
 
     //get titles, etc
     itemDivs.forEach((item, i) => {
@@ -501,12 +506,21 @@ class FyGlobal {
 
       let title = trueData.title;
       //console.debug('baseEl, q', baseEl, trueData.selectors.title);
-      if(!title && baseEl) title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
+      if(!title && baseEl) {
+        title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
+      }
 
       if(!title) {
-        console.warn('no title found on', item, 'query:', trueData.selectors.title);
+        console.warn('no title found on', item, 'baseEl:', baseEl, 'query:', trueData.selectors.title);
         return;
       }
+      else if(title == 'fy ignore this!') {
+        console.debug('ignored item:', item);
+        title = null;
+        fy.preUpdateDivs([item], numberToBaseEl, true);
+        return;
+      }
+
       if(title.includes(':') && title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
         title = title.replace(/ \(에피소드 [0-9]+\)$/, '');
         console.info('(에피소드 x) was stripped.', title);
@@ -516,19 +530,28 @@ class FyGlobal {
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
-      //year 구할 수 있으면 구한다(일단은 왓챠 /search)
+      //year 구할 수 있으면 구한다(왓챠 /search와 유플릭스 /main)
       if(!trueData.year && trueData.selectors.year) {
-        let year = querySelectorFiFo_(baseEl, trueData.selectors.year);
-        if(year) {
-          year = year.innerText
-          .replace(/^.+ · /, '');  //for watcha /search page
-          if(!isNaN(parseInt(year))) 
-            otData[i].year = year;
+        let year = querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText;
+        if(!year && trueData.selectors.getYearFromTitle) {
+          let match = title.match(/\((\d{4})\)$/);
+          if(match) {
+            year = match[1];
+            title = title.replace(match[0], '');
+            //console.debug('got year from title', title, year);
+          }
         }
+        
+        if(year) {
+          year = year.replace(/^.+ · /, '')  //왓챠 /search
+          if(year.length > 4) year = year.slice(0, 4);  //유플릭스 /search
+        }
+        
+        if(!isNaN(parseInt(year))) otData[i].year = year;
       }
 
-      //타입 얻기. 왓챠 보관함과 /search
-      let type = getTypeFromDiv_(trueData.selectors, baseEl);
+      //타입 얻기. 왓챠 보관함과 /search, 유플릭스
+      let type = getTypeFromDiv_(trueData.selectors, baseEl, item);
       if(type && !type.startsWith('not ')) {
         //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
         if(!otData[i].type || otData[i].otFlag != '')
@@ -789,7 +812,7 @@ class FyGlobal {
         return value;
       }
       else {
-        console.debug(`cache for ${value} will be used. org-title: ${cache.orgTitle} (${cache.year})`);
+        console.debug(`cache for ${value} will be used. org-title and year: ${cache.orgTitle} (${cache.year})`);
         return null;
       }
     }

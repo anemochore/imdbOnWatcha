@@ -181,17 +181,18 @@ fragment SuggestedTitle on MovieOrShow {
 
 
 //small utils
-function getTypeFromDiv_(selectors, baseEl) {
+function getTypeFromDiv_(selectors, baseEl, curEl = null) {
   let nestedSelector = selectors.isTVSeries || selectors.types;  //either. not and/or
   if(nestedSelector) {
     let els;
     if(nestedSelector.numberToBaseEl) {
       const div = getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
-      els = [...querySelectorAllFiFo_(div, nestedSelector.selector)];
+      els = querySelectorAllFiFo_(div, nestedSelector.selector);
     }
     else {
-      els = [...querySelectorAllFiFo_(baseEl, nestedSelector.selector)];
+      els = querySelectorAllFiFo_(baseEl, nestedSelector.selector);
     }
+
     if(selectors.isTVSeries) {
       if(els.filter(el => el.innerText.match(nestedSelector?.contains)).length > 0)
         return 'TV Series';  //tv mini series는 어떡하냐 -_- 아오
@@ -199,8 +200,13 @@ function getTypeFromDiv_(selectors, baseEl) {
         return 'not TV Series';  //not tv series. should not be null
     }
     else if(selectors.types) {
-      const key = els[0]?.innerText
-      .replace(/ ·.+$/, '');  //for watcha /search page
+      let key = els[0]?.innerText.replace(/ ·.+$/, '');  //for watcha /search page
+      if(nestedSelector.attribute) {  //유플릭스(els는 안 쓰임)
+        let targetEl;
+        if(curEl) targetEl = curEl;  //else 경우는 아직 안 생각. todo
+        key = targetEl?.getAttribute(nestedSelector.attribute);
+      }
+
       return nestedSelector?.mapping[key];
     }
   }
@@ -229,19 +235,25 @@ function getTextFromNode_(el = null) {
     //get self node's text only
     let child = el.firstChild, texts = [];
     while (child) {
-        if (child.nodeType == 3) {
-            texts.push(child.data);
-        }
-        child = child.nextSibling;
+      if (child.nodeType == 3) {
+          texts.push(child.data);
+      }
+      child = child.nextSibling;
     }
     result = texts.join("");
 
-    if(!result) result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
+    if(!result || !result.trim()) result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
   }
+
+  if(fy.selectorsForListItems?.ignoreItemIfMatches) {
+    let ignoreStrings = fy.selectorsForListItems.ignoreItemIfMatches;
+    if(!Array.isArray(fy.selectorsForListItems.ignoreItemIfMatches)) ignoreStrings = [ignoreItemIfMatches];
+    if(ignoreStrings.some(ignoreString => result.match(ignoreString))) result = 'fy ignore this!';
+  }
+
   if(fy.selectorsForListItems?.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
-    if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) 
-      ignoreStrings = [ignoreStrings];
+    if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) ignoreStrings = [ignoreStrings];
     for(const ignoreString of ignoreStrings)
       result = result?.replace(ignoreString, '');
   }
@@ -303,9 +315,11 @@ function querySelectorFiFo_(baseEl, selectors) {
 
 function querySelectorAllFiFo_(baseEl, selectors) {
   let results = [];
-  for(const selector of selectors.split(', ')) {
-    results = baseEl.querySelectorAll(selector);
-    if(results.length > 0) break;
+  if(selectors) {
+    for(const selector of selectors?.split(', ')) {
+      results = [...baseEl.querySelectorAll(selector)];
+      if(results.length > 0) break;
+    }
   }
 
   return results;

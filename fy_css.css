@@ -42,6 +42,11 @@ div.www_tving_com {
   top: 2%;
 }
 
+div.uflix_co_kr {
+  position: absolute;
+  z-index: 999;
+}
+
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {
   color: white;
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;

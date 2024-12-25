@@ -403,3 +403,6 @@
     //    netflix: supports titles below on large-div
     // ver 0.8.5 @ 2024-12-25
     //    kino: fix orgTitle and year selectors
+    // ver 0.9.0 @ 2024-12-25
+    //    jw: fix minor logic
+    //    uflix: support some pages(/main, /mine, /search)

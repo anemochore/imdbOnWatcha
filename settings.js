@@ -186,4 +186,32 @@ SETTINGS['www.tving.com'] = {
   selectorsForListItems: {
     title: 'dt, p.atom-text-wrapper, p.item__title, img[alt]',  //prefer text
   },
-}
+};
+
+SETTINGS['uflix.co.kr'] = {
+  includingPaths: ['/main', '/mine', '/search'],  //todo: '/genre', '/premium'],
+  //rootSelector: 'div.outwrap',
+
+  selector: `div.updatelist div.owl-item:not([${FU}])>li:has(a), `  //main
+  + `div.medialist li.delete:not([${FU}])>a, `  // mine
+  + `div.resultlist>div.resultcon, `  // search(before hardcoded pre-proc in app.js)
+  + `div.resultlist>div.resultcon:not([${FU}])>div.fy-temp`,  // search(after)
+
+  selectorsForListItems: {
+    ignoreItemIfMatches: ['유플레이 가입하기', '유플레이 소개 영상', /^\[유플레이\] /],
+    ignoreStrings: ['(예고편)'],
+    title: `div.tit_caption>span, a>img[alt], `  //main
+    + `span.title, a>img[alt], `  //mine
+    + `div.title, div.resultpst>img[alt]`,  //search
+    year: 'ul>li:last-of-type>span:last-of-type',
+    getYearFromTitle: true,
+    /*
+    // 부정확해서 사용하지 않음
+    types: {
+      attribute: 'data-seriesyn',
+      mapping: {'N': 'Movie', 'Y': 'TV Series'},
+    }
+    */
+  },
+};
+SETTINGS['uflix.co.kr'].includingPaths = SETTINGS['uflix.co.kr'].includingPaths.map(el => '/uws/web' + el);

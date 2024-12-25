@@ -6,7 +6,7 @@ class ParseJW {
       if(!title) continue;
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      console.debug(`result for ${title}:`, result);
+      if(result.length > 0) console.debug(`result for ${title}:`, result);
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -128,7 +128,7 @@ class ParseJW {
               }
             }
 
-            //console.debug('found:', found);
+            //console.debug('title, sTitle, found:', title, sTitle, found);
             if(!found) {
               if(title == sTitle || 
                 title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
@@ -160,14 +160,15 @@ class ParseJW {
                     found = true;
                     console.info(`spaces were ignored for ${title} and ${sTitle}`);
                   }
-                  else if(sTitle.replace(/ ?: ?/, '') == title.replace(/ ?: ?/, '')) {
+                  else if(sTitle.replace(/ ?: ?/, '') == title.replace(/ ?: ?/, '') ||
+                          sTitle.replace(/ ?: ?/, '') == title.replace(/ ?~?/, '')) {
                     found = true;
-                    console.info(`a colon was ignored for ${title} and ${sTitle}`);
+                    console.info(`colon (and possibly tilde) were ignored for ${title} and ${sTitle}`);
                   }
                   else if(title.includes(':') && sTitle.includes(':')) {
                     const subTitle = title.split(':').pop().trim();
                     const subSTitle = sTitle.split(':').pop().trim();
-                    if(subTitle.replace(/^The /, '') == subSTitle) {
+                    if(subTitle != subSTitle && subTitle.replace(/^The /, '') == subSTitle) {
                       found = true;
                       console.info(`'The' in the sub-title were ignored for ${title}`);
                     }
@@ -255,7 +256,7 @@ class ParseJW {
               console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
               otData[i].otFlag = '?';
             }
-            else {
+            else if(result.length > 0) {
               if(title.length > fuzzyThresholdLength) {
                 //https://github.com/farzher/fuzzysort
                 let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
@@ -296,7 +297,7 @@ class ParseJW {
                 }
               }
 
-              if(idx == -1) {
+              if(idx == -1 && result.length > 0) {
                 if(maybeIdxWithSameDateOrType > -1 && sRatings[maybeIdxWithSameDateOrType] >= fuzzyThresholdRating) {
                   idx = maybeIdxWithSameDateOrType;
                   console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with not-poor rating present and with the same date or type: ${sTitles[idx]} (${sYears[idx]})`);
