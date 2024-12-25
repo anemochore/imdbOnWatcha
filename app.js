@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.8.4
+// @version      0.8.5
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -376,9 +376,9 @@ class FyGlobal {
       //on single content page
       const selectors = fy.selectorsForSinglePage;
 
-      const orgTitle = getTextFromNode_(largeDiv.querySelector(selectors.orgTitle)).replace(/ ·$/, '');
-      const year = parseInt(getTextFromNode_(largeDiv.querySelector(selectors.year)));
+      const [orgTitle, year] = getTextFromNode_(largeDiv.querySelector(selectors.meta)).split(' · ');
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
+      console.debug('orgTitle, year, imdbRating', orgTitle, year, imdbRating);
 
       fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, imdbRating});
     },

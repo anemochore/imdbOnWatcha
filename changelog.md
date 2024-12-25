@@ -401,3 +401,5 @@
     //    watcha: fixed selectors (not perfect)
     // ver 0.8.4 @ 2024-11-13
     //    netflix: supports titles below on large-div
+    // ver 0.8.5 @ 2024-12-25
+    //    kino: fix orgTitle and year selectors
