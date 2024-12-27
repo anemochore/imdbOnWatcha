@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.9.0
+// @version      0.9.1
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -476,15 +476,19 @@ class FyGlobal {
   preUpdateDivses = {
     'uflix.co.kr': (itemDivs, numberToBaseEl, remove) => {
       if(location.pathname.startsWith('/uws/web/search/')) {
-        itemDivs.forEach(item => {
-          const tempEl = document.createElement('div');
-          tempEl.classList.add('fy-temp');
-          for(const child of [...item.children])
-            tempEl.appendChild(child);
-          item.appendChild(tempEl);
-        });
-        console.debug('DOM was modified (dirty fix).');
-        itemDivs = [...fy.root.querySelectorAll(fy.selector)];
+        const targetItemDivs = itemDivs.filter(el => !el.querySelector('div.fy-temp'));
+        if(targetItemDivs.length > 0) {
+          targetItemDivs.forEach(item => {
+            const tempEl = document.createElement('div');
+            tempEl.classList.add('fy-temp');
+            for(const child of [...item.children])
+              tempEl.appendChild(child);
+            item.appendChild(tempEl);
+          });
+
+          console.debug('DOM was modified (dirty fix).');
+          itemDivs = [...fy.root.querySelectorAll(fy.selector)];
+        }
       }
       fy.defaultBaseElementProc(itemDivs, numberToBaseEl, remove);
     }

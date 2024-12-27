@@ -194,12 +194,12 @@ SETTINGS['uflix.co.kr'] = {
 
   selector: `div.updatelist div.owl-item:not([${FU}])>li:has(a), `  //main
   + `div.medialist li.delete:not([${FU}])>a, `  // mine
-  + `div.resultlist>div.resultcon, `  // search(before hardcoded pre-proc in app.js)
+  + `div.resultlist>div.resultcon:not(:has(div.fy-temp)), `  // search(before hardcoded pre-proc in app.js)
   + `div.resultlist>div.resultcon:not([${FU}])>div.fy-temp`,  // search(after)
 
   selectorsForListItems: {
     ignoreItemIfMatches: ['유플레이 가입하기', '유플레이 소개 영상', /^\[유플레이\] /],
-    ignoreStrings: ['(예고편)'],
+    ignoreStrings: ['(예고편)', '[우리말]'],
     title: `div.tit_caption>span, a>img[alt], `  //main
     + `span.title, a>img[alt], `  //mine
     + `div.title, div.resultpst>img[alt]`,  //search

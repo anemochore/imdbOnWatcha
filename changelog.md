@@ -406,3 +406,5 @@
     // ver 0.9.0 @ 2024-12-25
     //    jw: fix minor logic
     //    uflix: support some pages(/main, /mine, /search)
+    // ver 0.9.0 @ 2024-12-27
+    //    uflix: fix div update logic
