@@ -6,7 +6,7 @@ class ParseJW {
       if(!title) continue;
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      if(result.length > 0) console.debug(`result for ${title}:`, result);
+      if(result.length > 0) console.debug(`result for ${title} (${trueData.year}, type: ${trueData.type}):`, result);
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.

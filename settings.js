@@ -50,9 +50,8 @@ SETTINGS['m.kinolights.com'] = {
   noAppendDiv: true,  //hack for kino
 
   numberToBaseElWhenUpdating: 0,
-  numberToBaseElWhenEditing: 'html',
+
   selectorsForSinglePage: {
-    determineSinglePageBy: true,  //force single-page
     title: 'h2.title-kr',
     isTVSeries: {
       selector: 'span.tv-label',
@@ -149,16 +148,13 @@ SETTINGS['www.disneyplus.com'] = {
   //preventMultipleUrlChanges: true,  //hack 
 
   //no '/ko-kr/search' page
-  includingPaths: ['/ko-kr/browse', '/ko-kr/character', '/ko-kr/originals', '/ko-kr/movies', '/ko-kr/home', '/ko-kr/series', '/ko-kr/movies'],
+  includingPaths: ['/browse', '/home'],
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  //selector: `div.gv2-asset:not([${FU}])>a[data-gv2elementkey]>div.image-container`,
-  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label], `      //home list
-  //+ `div[id^="hero-carousel"]>div[data-testid][aria-hidden="false"]:not([${FU}])>a[aria-label], ` //home upper
-  + `div[id]>section>div[data-testid]:not([${FU}])>div>a[aria-label], `               //browse lower
-  + `section[id="explore-ui-main-content-container"]:not([${FU}])>div>div>img[alt], ` //browse upper
-  + `div:not([id="episodes"])>div>section>div[data-testid]:not([${FU}])>div>a[aria-label]`,  //watchlist
+  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"], `      //main??
+  + `div>div>section>div[data-testid]>div:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"]`,  //browse/... except large-div
+  
   numberToBaseElWhenUpdating: 0,
 
   elementReadyOption: {
@@ -167,12 +163,18 @@ SETTINGS['www.disneyplus.com'] = {
 
   selectorsForListItems: {
     ignoreItemIfMatches: [/^STAR Original$/, / 예고편 콘텐츠를 시청하려면 선택하세요/, / 예고편$/],
-    ignoreStrings: [' STAR Original', ' Disney+ Original', '이 콘텐츠에 대한 정보를 보려면 선택하세요.'],
-    title: 'a[aria-label], img[alt]',  //this should be the child of 'the last element' or itself!.
+    ignoreStrings: [' STAR Original', ' | 특별 영상', ': 특별 영상', ' Disney+ Original', '이 콘텐츠에 대한 정보를 보려면 선택하세요.'],
+    title: 'a[data-item-id][aria-label], img:not([alt=""])',  //this should be the child of 'the last element' or itself!.
   },
 
-  //large-div is not implemented. no need for now. 
+  selectorOnSinglePage: `section#explore-ui-main-content-container:not([${FU}])>div`,  //browse/... large-div`,
+  
+  //year 등은 app.js에 하드코딩했음. edit 시에는 캐시 정보를 이용하므로 셀렉터 없어도 될 듯.
+  selectorsForSinglePage: {
+    useHardcodedFunc: true,  //selectors를 안 쓸 때만.
+  },
 };
+SETTINGS['www.disneyplus.com'].includingPaths = SETTINGS['www.disneyplus.com'].includingPaths.map(el => '/ko-kr' + el);
 
 
 SETTINGS['www.tving.com'] = {

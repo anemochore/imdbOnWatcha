@@ -40,7 +40,8 @@
 3. support for seezn (closed now)
 4. support for imdb my rating (when accessing www.imdb.com)
 5. support for uflix (partially done)
-6. setting.js 문서화
+6. support for coupang play
+7. setting.js 문서화
 
 ## 버전 히스토리
 `changelog.md` 참고.

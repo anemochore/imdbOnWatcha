@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.9.2
+// @version      0.9.4
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -218,7 +218,7 @@ class FyGlobal {
           }
         });
         if(isExcludingPath) {
-          toast.log('on excluding page, curLocation');
+          toast.log('on excluding page:', curLocation.pathname);
           result = true;
         }
       }
@@ -233,7 +233,7 @@ class FyGlobal {
           }
         });
         if(!isIncludingPath) {
-          toast.log('not in including page:', curLocation);
+          toast.log('not in including page:', curLocation.pathname);
           result = true;
         }
       }
@@ -259,7 +259,6 @@ class FyGlobal {
       }
       else if(!fy.isUpdatingLargeDiv) {
         console.info('(possibly) waiting for large-div...');
-
         fy.isUpdatingLargeDiv = true;
         largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
         let largeDivTargetEl = largeDiv;
@@ -281,13 +280,10 @@ class FyGlobal {
       fy.isFetching = false;  //hack for kino
 
       const largeDiv = document.querySelector(fy.selectorOnSinglePage);
-      if(largeDiv)
-        await fy.largeDivUpdate(largeDiv);
+      if(largeDiv) await fy.largeDivUpdate(largeDiv);
     },
 
-    'www.netflix.com': async (m, o) => {
-      //fy.observer.disconnect();
-
+    'www.netflix.com': async () => {
       if(location.search.includes('?jbv=') || location.pathname.startsWith('/title/')) {
         //large-div or single-page
         let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage);
@@ -310,20 +306,44 @@ class FyGlobal {
         }
       }
       else {
-        await fy.handlerWrapUp(fy.selectorsForListItems);
+        await fy.defaultHandler(fy.selectorsForListItems);
       }
     },
+
+    'www.disneyplus.com': async () => {
+      let type;
+      if(location.pathname.startsWith('/ko-kr/browse/movies')) type = 'Movie';
+      else if(location.pathname.startsWith('/ko-kr/browse/series')) type = 'TV Series';
+      else if(location.pathname.startsWith('/ko-kr/browse/entity-')) {
+        if(!fy.isUpdatingLargeDiv) {
+          console.info('waiting for large-div...');
+          fy.isUpdatingLargeDiv = true;
+          let largeDiv = document.querySelector(fy.selectorOnSinglePage);
+          if(!largeDiv) largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
+          await fy.largeDivUpdate(largeDiv);
+        }
+      }
+      await fy.handlerWrapUp(fy.selectorsForListItems, type);
+    }
   };
 
-  handlerWrapUp = async (selectorObj, noGlobalSelect) => {
-    let selector = fy.selector;
-    if(noGlobalSelect) selector = selectorObj.selector;
+  handlerWrapUp = async (selectorObj, type) => {
+    const selector = fy.selector;
 
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
-    console.debug('itemNum', itemNum);
+    
     if(itemNum > 0) {
-      fy.search(itemDivs, {selectors: selectorObj});
+      console.log('itemNum', itemNum);
+      if(type) console.log(`type is '${type}' (possibly based on url).`);  //dp
+      //dev
+      /*
+      if(fy.root.querySelector(FY_UNIQ_STRING)) {
+        console.log('selector', selector);
+        return;
+      }
+      */
+      fy.search(itemDivs, {selectors: selectorObj, type: type});
     }
     else {
       //nothing to do
@@ -333,7 +353,7 @@ class FyGlobal {
   };
 
   largeDivUpdates = {
-    'watcha.com': async (largeDiv) => {
+    'watcha.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
@@ -354,10 +374,10 @@ class FyGlobal {
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
       //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
-      await fy.largeDivUpdateWrapUp(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
+      await cb(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
     },
 
-    'm.kinolights.com': (largeDiv) => {
+    'm.kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       //on single content page
       const selectors = fy.selectorsForSinglePage;
 
@@ -365,20 +385,20 @@ class FyGlobal {
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
       console.debug('orgTitle, year, imdbRating', orgTitle, year, imdbRating);
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, orgTitle, year, imdbRating});
+      await cb(largeDiv, {selectors, orgTitle, year, imdbRating});
     },
 
-    'www.netflix.com': (largeDiv) => {
+    'www.netflix.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       //on large div (=single content) page
       const selectors = fy.selectorForSinglePage;
       const baseEl = getParentsFrom_(largeDiv, fy.numberToBaseEl);
 
       const year = parseInt(getTextFromNode_(baseEl.querySelector(selectors.year)));
 
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, year});
+      await cb(largeDiv, {selectors, year});
     },
 
-    'www.wavve.com': async (largeDiv) => {
+    'www.wavve.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       //on large div (=single content) page
       const selectors = fy.selectorsForSinglePage;
 
@@ -393,29 +413,29 @@ class FyGlobal {
       const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
       document.querySelector('table.detail-info-table>tr>th+td')?.innerText.split(',').pop().split('~')[0].trim();  //large-div
 
-      await fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, year});
+      await cb(largeDiv, {selectors, title, year});
     },
 
-    'www.disneyplus.com': (largeDiv) => {
+    'www.disneyplus.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       //제목, 타입 등 여기서 처리하는 게 더 편해서...
       const title = document.head.querySelector('title').textContent.replace(' | 디즈니+', '');
-      const metaSelector = 'script[type="application/ld+json"]';
-      const metaEl = document.head.querySelector(metaSelector);
-      const meta = JSON.parse(metaEl.textContent);
+      let year, type;
 
-      let type = meta['@type'];
-      if(type == 'WebSite')  //왜 website???
-        type =  'TV Series';
+      const metaEl = fy.root.querySelector('div[data-testid="masthead-metadata"]');
+      if(metaEl) {
+        const testStrings = metaEl.innerText.split('•').map(el => el.trim());
+        year = testStrings[0];
+        if(testStrings[1].startsWith('시즌 ')) type = 'TV Series';
+        else type = 'Movie';
+      }
 
-      const year = null;  //todo
-
-      fy.largeDivUpdateWrapUp(largeDiv, {selectors, title, type, year});
+      await cb(largeDiv, {title, type, year});
     }
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
-    const baseEl = getParentsFrom_(largeDiv, trueData.selectors.numberToBaseEl || fy.numberToBaseEl);
-    if(!trueData.type)  //watcha는 이미 가져온 상태라 패스
+    const baseEl = getParentsFrom_(largeDiv, trueData.selectors?.numberToBaseEl || fy.numberToBaseEl);
+    if(!trueData.type)  //watcha 등 이미 가져온 상태면 패스
       trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);
 
     let sEl = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
@@ -501,7 +521,7 @@ class FyGlobal {
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
-    const numberToBaseEl = trueData.selectors.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl;
+    const numberToBaseEl = trueData.selectors?.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl;
     fy.preUpdateDivs(itemDivs, numberToBaseEl);
 
     //get titles, etc
@@ -555,11 +575,12 @@ class FyGlobal {
       }
 
       //타입 얻기. 왓챠 보관함과 /search, 유플릭스
-      let type = getTypeFromDiv_(trueData.selectors, baseEl, item);
-      if(type && !type.startsWith('not ')) {
-        //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
-        if(!otData[i].type || otData[i].otFlag != '')
-          otData[i].type = type;
+      if(!trueData.type) {
+        let type = getTypeFromDiv_(trueData.selectors, baseEl, item);
+        if(type && !type.startsWith('not ')) {
+          //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
+          if(!otData[i].type || otData[i].otFlag != '') otData[i].type = type;
+        }
       }
 
       if(!trueData.forceUpdate)
@@ -572,7 +593,7 @@ class FyGlobal {
 
 
     //large div update
-    if(trueData.year && trueData.type != 'TV Series' && trueData.type != 'TV Mini Series') {
+    if(trueData.year && trueData.type && trueData.type != 'TV Series' && trueData.type != 'TV Mini Series') {
       //TV물이면 연도를 수정하지 않음
       if(otData[0].otFlag != '' || !otData[0].year)
         otData[0].year = trueData.year;
@@ -646,7 +667,11 @@ class FyGlobal {
     await setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
-    if(fy.isUpdatingLargeDiv && itemDivs.length == 1) fy.isUpdatingLargeDiv = false;
+    console.debug()
+    if(fy.isUpdatingLargeDiv && itemDivs.length == 1) {
+      console.debug('isUpdatingLargeDiv is set to false');
+      fy.isUpdatingLargeDiv = false;
+    }
     toast.log();
     if(!fy.preventMultipleUrlChanges) fy.observer.observe(fy.root, fy.observerOption);
 
@@ -681,37 +706,6 @@ class FyGlobal {
 
       //hack for kino
       if(fy.noAppendDiv) div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
-
-      /*
-      let numberToParent = fy.numberToBaseElWhenUpdating || (fy.numberToBaseEl + 1);
-      if(selectors.determineSinglePageBy || selectors.determinePathnameBy)
-        numberToParent = selectors.numberToBaseEl || numberToParent;
-
-      let baseEl = getParentsFrom_(fyItemToUpdate, numberToParent);
-      let divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
-      */
-
-      /*
-      if(!divs && selectors.async) {
-        divs = await elementReady('div.'+FY_UNIQ_STRING);
-      }
-      */
-
-      /*
-      //ul>li 같은 경우 방지... 일단은 watcha용(search 페이지)
-      if(divs?.length > 1 && baseEl.tagName == 'UL') {
-        baseEl = getParentsFrom_(fyItemToUpdate, numberToParent - 1);
-        divs = baseEl.querySelectorAll('div.'+FY_UNIQ_STRING);
-      }
-      */
-
-      /*
-      let div = divs ? divs[0] : null;
-      if(!div) {
-        if(totalNumber > 1) div = baseEl.querySelector(fy.selectorsForListItems?.targetEl);
-        else                div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
-      }
-      */
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
@@ -875,27 +869,35 @@ class FyGlobal {
     //console.debug('baseEl, targetEl on edit', baseEl, targetEl);
 
     //search title, etc
-    let type = getTypeFromDiv_(selectors, baseEl);
-    let url, title, otDatum;
+    let type = getTypeFromDiv_(selectors, baseEl), year;
 
     let titleEl = querySelectorFiFo_(baseEl, selectors.title);
-    title = getTextFromNode_(titleEl);
-    if(type && title) console.debug('type, title on edit', type, title);
+    let title = getTextFromNode_(titleEl);
+    //if(type || title) console.debug('type, title on edit (first pass)', type, title);
 
-    if(!title && fy.selectorsForSinglePage) {
+    if(!title && fy.selectorsForSinglePage?.selectors) {
       selectors = fy.selectorsForSinglePage;
-      type = getTypeFromDiv_(selectors, baseEl);
       titleEl = querySelectorFiFo_(baseEl, selectors.title);
       title = getTextFromNode_(titleEl);
-      if(type && title) console.debug('type, title on edit (large div)', type, title);
-      else console.debug('type or title not found on edit!');
+      type = getTypeFromDiv_(selectors, baseEl);
     }
+    else if(!type && fy.selectorsForSinglePage?.useHardcodedFunc) {  //dp only (as of 24-12-28)
+      const largeDiv = fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, `[${FY_UNIQ_STRING}]`));
+      if(!largeDiv) {
+        toast.log('no large-div detected!');
+        return;
+      }
+      await fy.largeDivUpdate(largeDiv, (largeDiv, tempData) => {
+        ({title, year, type} = tempData);
+      });
+    }
+    console.debug('title, year, type on edit (second pass)', title, year, type);
 
     //캐시에 있다면 사용.
-    if(!otDatum) otDatum = otCache[title] || {};
+    const otDatum = otCache[title] || {};
 
     //get input
-    let imdbId, imdbUrl, jwUrl;
+    let url, imdbId, imdbUrl, jwUrl;
     if(onSite == 'ot') {
       url = prompt("Enter proper JustWatch url: ", otDatum.jwUrl);
       if(!url) {
@@ -943,7 +945,7 @@ class FyGlobal {
 
     //change flow
     fy.observer.disconnect();
-    fy.search([targetEl], {title, jwUrl, type, imdbId, imdbUrl, forceUpdate: true, selectors});
+    fy.search([targetEl], {title, jwUrl, type, year, imdbId, imdbUrl, forceUpdate: true, selectors});
   }
 
   xhrAbort() {
