@@ -166,6 +166,7 @@ SETTINGS['www.disneyplus.com'] = {
   },
 
   selectorsForListItems: {
+    ignoreItemIfMatches: [/^STAR Original$/, / 예고편 콘텐츠를 시청하려면 선택하세요/, / 예고편$/],
     ignoreStrings: [' STAR Original', ' Disney+ Original', '이 콘텐츠에 대한 정보를 보려면 선택하세요.'],
     title: 'a[aria-label], img[alt]',  //this should be the child of 'the last element' or itself!.
   },
