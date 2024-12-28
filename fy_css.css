@@ -2,49 +2,37 @@ div.fy-item>a {
   text-decoration: none;
 }
 
-div.watcha_com {
+.watcha_com, .www_netflix_com, .www_wavve_com, .www_disneyplus_com, .www_tving_com, .uflix_co_kr, .www_coupangplay_com {
   position: absolute;
   z-index: 999;
+}
+
+.watcha_com {
   right: 4%;
 }
 
-li[fy-item]>div.watcha_com {
+li[fy-item]>.watcha_com {
   margin-left: 64px;
   margin-top: -60px;
   font-size: 80%;
 }
 
-div.www_netflix_com {
-  position: absolute;
-  z-index: 999;
-}
-
-div.www_wavve_com {
-  position: absolute;
-  z-index: 999;
-}
-
-div.www_wavve_com>a {
+.www_wavve_com>a {
   display: inline !important;
 }
 
-div.www_disneyplus_com {
-  position: absolute;
-  z-index: 999;
+.www_disneyplus_com {
   margin-left: 10px;
   margin-top: 10px;
 }
 
-div.www_tving_com {
-  position: absolute;
-  z-index: 999;
+.www_tving_com {
   right: 1%;
   top: 2%;
 }
 
-div.uflix_co_kr {
-  position: absolute;
-  z-index: 999;
+.www_coupangplay_com {
+  display: flex;
 }
 
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.9.5
+// @version      0.10.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -13,6 +13,7 @@
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.tving.com/*
 // @match        http://uflix.co.kr/uws/web/*
+// @match        https://www.coupangplay.com/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
@@ -63,9 +64,9 @@ class FyGlobal {
       return;
     }
 
-    if(!SETTINGS[fy.site]) return;
-
     toast.log('fy script started.');
+    if(!SETTINGS[fy.site]) return;
+    toast.log('setting found.');
 
     //set locale
     fy.locale = navigator.language.replace('-', '_');
@@ -192,7 +193,10 @@ class FyGlobal {
     toast.log();
 
     const isExit = determineExit_();
-    if(isExit || fy.isFetching) return;
+    if(isExit || fy.isFetching) {
+      if(fy.isFetching) console.debug('already fetching.');
+      return;
+    }
 
     //entry point
     let selector = fy.selector || '';
@@ -243,8 +247,6 @@ class FyGlobal {
   }
 
   defaultHandler = async (m, o) => {
-    fy.observer.disconnect();
-
     if(fy.selectorsForSinglePage && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
       let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage)
       || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
@@ -258,7 +260,7 @@ class FyGlobal {
         }
       }
       else if(!fy.isUpdatingLargeDiv) {
-        console.info('(possibly) waiting for large-div...');
+        console.log('(possibly) waiting for large-div...');
         fy.isUpdatingLargeDiv = true;
         largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
         let largeDivTargetEl = largeDiv;
@@ -276,7 +278,6 @@ class FyGlobal {
 
   handlers = {
     'm.kinolights.com': async () => {
-      //fy.observer.disconnect();
       fy.isFetching = false;  //hack for kino
 
       const largeDiv = document.querySelector(fy.selectorOnSinglePage);
@@ -311,30 +312,34 @@ class FyGlobal {
     },
 
     'www.disneyplus.com': async () => {
-      let type;
-      if(location.pathname.startsWith('/ko-kr/browse/movies')) type = 'Movie';
-      else if(location.pathname.startsWith('/ko-kr/browse/series')) type = 'TV Series';
-      else if(location.pathname.startsWith('/ko-kr/browse/entity-')) {
+      if(location.pathname.startsWith('/ko-kr/browse/entity-')) {
         if(!fy.isUpdatingLargeDiv) {
-          console.info('waiting for large-div...');
+          toast.log('waiting for large-div...');
           fy.isUpdatingLargeDiv = true;
           let largeDiv = document.querySelector(fy.selectorOnSinglePage);
           if(!largeDiv) largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
           await fy.largeDivUpdate(largeDiv);
         }
       }
-      await fy.handlerWrapUp(fy.selectorsForListItems, type);
+      await fy.handlerWrapUp(fy.selectorsForListItems);
     }
   };
 
-  handlerWrapUp = async (selectorObj, type) => {
+  handlerWrapUp = async (selectorObj) => {
     const selector = fy.selector;
 
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
     
+    console.log('itemNum', itemNum);
     if(itemNum > 0) {
-      console.log('itemNum', itemNum);
+      let type;
+      if(fy.typePerPath) {
+        for (const [key, value] of Object.entries(fy.typePerPath)) {
+          if(location.pathname.startsWith(key)) type = value;
+        }
+      }
+
       if(type) console.log(`type is '${type}' (possibly based on url).`);  //dp
       //dev
       /*
@@ -556,14 +561,14 @@ class FyGlobal {
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
       //year 구할 수 있으면 구한다(왓챠 /search와 유플릭스 /main)
-      if(!trueData.year && trueData.selectors.year) {
+      if(!trueData.year && (trueData.selectors.year || trueData.selectors.getYearFromTitle)) {
         let year = querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText;
         if(!year && trueData.selectors.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
-            title = title.replace(match[0], '');
-            //console.debug('got year from title', title, year);
+            title = title.replace(match[0], '').trim();
+            console.debug('got year from title', title, year);
           }
         }
         
@@ -575,12 +580,16 @@ class FyGlobal {
         if(!isNaN(parseInt(year))) otData[i].year = year;
       }
 
-      //타입 얻기. 왓챠 보관함과 /search, 유플릭스
+      //타입 얻기. 왓챠 보관함과 /search, 유플릭스, 쿠팡플레이 /query
       if(!trueData.type) {
         let type = getTypeFromDiv_(trueData.selectors, baseEl, item);
         if(type && !type.startsWith('not ')) {
           //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
-          if(!otData[i].type || otData[i].otFlag != '') otData[i].type = type;
+          console.debug('otData[i].type, otData[i].otFlag', otData[i].type, otData[i].otFlag);
+          if(!otData[i].type || otData[i].otFlag != '') {
+            console.debug(`got type in searchByTitle: ${type} for ${title}`);
+            otData[i].type = type;
+          }
         }
       }
 

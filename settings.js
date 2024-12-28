@@ -169,7 +169,12 @@ SETTINGS['www.disneyplus.com'] = {
 
   selectorOnSinglePage: `section#explore-ui-main-content-container:not([${FU}])>div`,  //browse/... large-div`,
   
-  //year 등은 app.js에 하드코딩했음. edit 시에는 캐시 정보를 이용하므로 셀렉터 없어도 될 듯.
+  typePerPath: {
+    '/ko-kr/browse/movies': 'Movie',
+    '/ko-kr/browse/series': 'TV Series',
+  },
+
+  //year 등은 app.js에 하드코딩했음
   selectorsForSinglePage: {
     useHardcodedFunc: true,  //selectors를 안 쓸 때만.
   },
@@ -190,6 +195,7 @@ SETTINGS['www.tving.com'] = {
     title: 'dt, p.atom-text-wrapper, p.item__title, img[alt]',  //prefer text
   },
 };
+
 
 SETTINGS['uflix.co.kr'] = {
   includingPaths: ['/main', '/mine', '/search'],  //todo: '/genre', '/premium'],
@@ -218,3 +224,33 @@ SETTINGS['uflix.co.kr'] = {
   },
 };
 SETTINGS['uflix.co.kr'].includingPaths = SETTINGS['uflix.co.kr'].includingPaths.map(el => '/uws/web' + el);
+
+
+SETTINGS['www.coupangplay.com'] = {
+  includingPaths: ['/my-profile', '/mylist', '/search', '/query'],
+
+  preventMultipleUrlChanges: true,
+
+  selector: `div[class^="MyProfile_mainContent__"]>div>div>ul>li:not([${FU}])>a[href^="/titles/"], `  //my-profile
+  + `div[class*="TitleListContainer_gridContainer__"]>div[data-cy="titleListItem"]>div>div>div:not([${FU}])>a[href^="/titles/"],  `  //mylist
+  + `div[class^="SearchTopTrending_topTrendingContainer__"]>div div:not([${FU}])>a[href^="/titles/"], `  //search
+  + `div[class^="SearchResultGrouped_results__"]>div div:not([${FU}])>a[href^="/titles/"]`,  //query
+
+  selectorsForListItems: {
+    ignoreStrings: ['thumbnail '],
+    title: `div>img[aria-label], `  //my-profile
+    + `img[class^="TitleListItem_listItemThumbnail__"][alt], `  //mylist, search
+    + `div>p[class^="CarouselThumbnail_spareContainerText__"]`,  //query
+    types: {  //either use types or isTVSeries
+      numberToBaseEl: 4,
+      selector: 'div>h1[class^="SearchResultGrouped_rowTitle__"]',  //query page only
+      mapping: {'스토어': 'Movie'},
+    },
+    getYearFromTitle: true,
+  },
+
+  typePerPath: {
+    '/buy': 'Movie',
+    '/movies': 'Movie',
+  },
+};

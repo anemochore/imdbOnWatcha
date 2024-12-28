@@ -414,4 +414,5 @@
     //    disneyplus: fix setting and logic according to url changes
     //    internal: improving (refactoring) larde-div logic. applied to dp only as of now
     //    kino: fix type detection
-    //    todo: add support coupang play
+    // ver 0.10.0 @ 2024-12-28
+    //    coupang play: support now (partially)

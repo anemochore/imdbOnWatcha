@@ -27,7 +27,8 @@
 5. m.kinolights.com/title pages
 6. www.tving.com
 7. uflix.co.kr: /main, /mine, /search pages only
-8. www.imdb.com/title/ pages
+8. www.coupangplay.com: /my-profile, /mylist, /search (and /query) pages only
+9. www.imdb.com/title/ pages
 
 ## 서드파티 라이선스 등
 1. 저스트워치 무료 API는 공개되어 있지 않다. [이런 곳](https://github.com/Fredwuz/node-justwatch-api) 등에서 엔드포인트를 베꼈다.
@@ -40,7 +41,7 @@
 3. support for seezn (closed now)
 4. support for imdb my rating (when accessing www.imdb.com)
 5. support for uflix (partially done)
-6. support for coupang play
+6. support for coupang play (partially done)
 7. setting.js 문서화
 
 ## 버전 히스토리

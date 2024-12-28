@@ -189,6 +189,12 @@ function getTypeFromDiv_(selectors, baseEl, curEl = null) {
       const div = getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
       els = querySelectorAllFiFo_(div, nestedSelector.selector);
     }
+    /*
+    else if(nestedSelector.selectorClosest) {
+      els = [curEl.closest(nestedSelector.selectorClosest)];
+      console.log('el', els[0]);
+    }
+    */
     else {
       els = querySelectorAllFiFo_(baseEl, nestedSelector.selector);
     }
@@ -305,9 +311,11 @@ function isValidRating_(rating = 'n/a') {
 
 function querySelectorFiFo_(baseEl, selectors) {
   let result;
-  for(const selector of selectors.split(', ')) {
-    result = baseEl.querySelector(selector);
-    if(result) break;
+  if(selectors) {
+    for(const selector of selectors.split(', ')) {
+      result = baseEl.querySelector(selector);
+      if(result) break;
+    }
   }
 
   return result;

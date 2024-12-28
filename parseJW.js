@@ -6,7 +6,7 @@ class ParseJW {
       if(!title) continue;
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      if(result.length > 0) console.debug(`result for ${title} (${trueData.year}, type: ${trueData.type}):`, result);
+      if(result.length > 0) console.info(`result for ${title} (${trueData.year || otData[i].year}, type: ${trueData.type || otData[i].type}):`, result);
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -187,7 +187,7 @@ class ParseJW {
           }
         });
 
-        console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        //console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
