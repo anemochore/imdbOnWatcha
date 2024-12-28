@@ -410,7 +410,8 @@
     //    uflix: fix div update logic
     // ver 0.9.2 @ 2024-12-28
     //    disneyplus: add ignoreItemIfMatches setting
-    // ver 0.9.4 @ 2024-12-28
+    // ver 0.9.5 @ 2024-12-28
     //    disneyplus: fix setting and logic according to url changes
     //    internal: improving (refactoring) larde-div logic. applied to dp only as of now
+    //    kino: fix type detection
     //    todo: add support coupang play
