@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.2
+// @version      0.10.3
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -736,7 +736,7 @@ class FyGlobal {
       let year = otDatum.year || '';
       let targetInnerHtml = '';
 
-      if(otDatum.jwUrl) targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank">`;
+      if(otDatum.jwUrl) targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank" onclick="event.stopPropation()">`;
 
       targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
 
@@ -774,7 +774,7 @@ class FyGlobal {
       }
 
       flag = otDatum.imdbFlag || '';
-      if(otDatum.imdbUrl) targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank" title=${label}>`;
+      if(otDatum.imdbUrl) targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank"  onclick="event.stopPropation()" title=${label}>`;
 
       targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
 
@@ -873,7 +873,7 @@ class FyGlobal {
   ////other publics
   async edit(event, onSite) {
     event.stopPropagation();
-    event.preventDefault();
+    //event.preventDefault();
 
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
     const el = event.target;

@@ -416,5 +416,7 @@
     //    kino: fix type detection
     // ver 0.10.0 @ 2024-12-28
     //    coupang play: support now (partially)
-    // ver 0.10.2 @ 2025-01-05
+    // ver 0.10.3 @ 2025-01-05
     //    uflix: fix getting year from title, etc
+    //    app: stop link click propagation
+    //    css: change outline black to gray
