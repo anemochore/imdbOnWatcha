@@ -297,7 +297,7 @@ class ParseJW {
                 }
               }
 
-              if(idx == -1 && result.length > 0) {
+              if(idx == -1) {
                 if(maybeIdxWithSameDateOrType > -1 && sRatings[maybeIdxWithSameDateOrType] >= fuzzyThresholdRating) {
                   idx = maybeIdxWithSameDateOrType;
                   console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with not-poor rating present and with the same date or type: ${sTitles[idx]} (${sYears[idx]})`);
@@ -331,12 +331,12 @@ class ParseJW {
           //if search failed but present (on kino), use it.
           toast.log(`jw search failed. so use kino or cache's rating instead`);
           if(!otData[i].imdbVisitedDate) otData[i].imdbFlag = '??';
-          if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle);
+          if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle || title);
         }
         else {
           if(idx > -1) otData[i].imdbRating = sRatings[idx] || '??';
 
-          otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle);
+          otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle || title);
           otData[i].imdbRatingFetchedDate = new Date().toISOString();
 
           if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.

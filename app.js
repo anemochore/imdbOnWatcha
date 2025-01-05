@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.0
+// @version      0.10.2
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -46,6 +46,7 @@ const GM_CACHE_KEY = 'OT_CACHE_WITH_IMDB_RATINGS';
 const UPDATE_INTERVAL_DAYS_ORG_TITLES = 30;  //in days
 const UPDATE_INTERVAL_DAYS_IMDB_VISITED = 7;  //in days
 const YEAR_DIFFERENCE_THRESHOLD = 5;  //if year difference is larger than this const, discard it.
+const MAX_SEARCH_ITEMS = 100;
 
 const OT_URL = `https://apis.justwatch.com/graphql`;
 
@@ -523,6 +524,11 @@ class FyGlobal {
   async searchByTitle(itemDivs, trueData = {}) {
     const otCache = await GM_getValue(GM_CACHE_KEY);
 
+    if(itemDivs.length > MAX_SEARCH_ITEMS) {
+      itemDivs = itemDivs.slice(0, MAX_SEARCH_ITEMS);
+      toast.log(`too many items. truncated to ${MAX_SEARCH_ITEMS} items.`);
+    }
+
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
@@ -561,9 +567,9 @@ class FyGlobal {
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
       //year 구할 수 있으면 구한다(왓챠 /search와 유플릭스 /main)
-      if(!trueData.year && (trueData.selectors.year || trueData.selectors.getYearFromTitle)) {
+      if((!trueData.year && trueData.selectors.year) || trueData.selectors.getYearFromTitle) {
         let year = querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText;
-        if(!year && trueData.selectors.getYearFromTitle) {
+        if(!year || trueData.selectors.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
@@ -867,6 +873,7 @@ class FyGlobal {
   ////other publics
   async edit(event, onSite) {
     event.stopPropagation();
+    event.preventDefault();
 
     const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
     const el = event.target;

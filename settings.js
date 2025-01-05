@@ -202,7 +202,7 @@ SETTINGS['uflix.co.kr'] = {
   //rootSelector: 'div.outwrap',
 
   selector: `div.updatelist div.owl-item:not([${FU}])>li:has(a), `  //main
-  + `div.medialist li.delete:not([${FU}])>a, `  // mine
+  + `div.medialist li.delete:not([${FU}])>a.photo_wrap, `  // mine
   + `div.resultlist>div.resultcon:not(:has(div.fy-temp)), `  // search(before hardcoded pre-proc in app.js)
   + `div.resultlist>div.resultcon:not([${FU}])>div.fy-temp`,  // search(after)
 
