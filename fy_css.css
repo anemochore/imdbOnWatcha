@@ -2,7 +2,7 @@ div.fy-item>a {
   text-decoration: none;
 }
 
-.watcha_com, .www_netflix_com, .www_wavve_com, .www_disneyplus_com, .www_tving_com, .uflix_co_kr, .www_coupangplay_com {
+.watcha_com, .www_netflix_com, .www_wavve_com, .www_disneyplus_com, .www_tving_com, .uflix_co_kr {
   position: absolute;
   z-index: 999;
 }
@@ -33,6 +33,9 @@ li[fy-item]>.watcha_com {
 
 .www_coupangplay_com {
   display: flex;
+  position: relative;
+  z-index: 999;
+  top: 1.25rem;
 }
 
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {

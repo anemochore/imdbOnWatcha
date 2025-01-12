@@ -420,3 +420,6 @@
     //    uflix: fix getting year from title, etc
     //    app: stop link click propagation
     //    css: change outline black to gray
+    // ver 0.10.4 @ 2025-01-12
+    //    coupang play: support /titles
+    //    todo: support /tv on coupang play

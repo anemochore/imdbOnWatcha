@@ -145,8 +145,6 @@ SETTINGS['www.wavve.com'] = {
 
 
 SETTINGS['www.disneyplus.com'] = {
-  //preventMultipleUrlChanges: true,  //hack 
-
   //no '/ko-kr/search' page
   includingPaths: ['/browse', '/home'],
   rootSelector: 'div#webAppRoot',
@@ -227,20 +225,26 @@ SETTINGS['uflix.co.kr'].includingPaths = SETTINGS['uflix.co.kr'].includingPaths.
 
 
 SETTINGS['www.coupangplay.com'] = {
-  includingPaths: ['/my-profile', '/mylist', '/search', '/query'],
+  includingPaths: ['/my-profile', '/mylist', '/search', '/query', '/titles'],
 
-  preventMultipleUrlChanges: true,
+  //preventMultipleUrlChanges: true,
 
   selector: `div[class^="MyProfile_mainContent__"]>div>div>ul>li:not([${FU}])>a[href^="/titles/"], `  //my-profile
   + `div[class*="TitleListContainer_gridContainer__"]>div[data-cy="titleListItem"]>div>div>div:not([${FU}])>a[href^="/titles/"],  `  //mylist
   + `div[class^="SearchTopTrending_topTrendingContainer__"]>div div:not([${FU}])>a[href^="/titles/"], `  //search
-  + `div[class^="SearchResultGrouped_results__"]>div div:not([${FU}])>a[href^="/titles/"]`,  //query
+  + `div[class^="SearchResultGrouped_results__"]>div div:not([${FU}])>a[href^="/titles/"], `  //query
+  + `div:not([${FU}])>div[class^="TitleV2_shared_playerContainer__"], `  //titles main
+  + `div[class^="RelatedTitleListContainer_gridContainer__"]>div>div:not([${FU}])>a[href^="/titles/"]`,  //titles list
 
   selectorsForListItems: {
-    ignoreStrings: ['thumbnail '],
+    ignoreStrings: ['thumbnail ', '(자막)'],
     title: `div>img[aria-label], `  //my-profile
     + `img[class^="TitleListItem_listItemThumbnail__"][alt], `  //mylist, search
-    + `div>p[class^="CarouselThumbnail_spareContainerText__"]`,  //query
+    + `div>p[class^="CarouselThumbnail_spareContainerText__"], `  //query
+    + `div[class^="TitleV2_shared_title__"], `  //titles main
+    + `div[class^="RelatedTitleListItem_metadataWrapper__"]>h1`,  //titles list (prefer text)
+    year: 'div[class^="TitleV2_shared_subtitle__"], '  //titles main
+    + 'div[class^="RelatedTitleListItem_metadataWrapper__"]>div[class^="RelatedTitleListItem_subtitle__"]',  //titles list (prefer text)
     types: {  //either use types or isTVSeries
       numberToBaseEl: 4,
       selector: 'div>h1[class^="SearchResultGrouped_rowTitle__"]',  //query page only

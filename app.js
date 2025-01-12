@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.3
+// @version      0.10.4
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -204,7 +204,7 @@ class FyGlobal {
     if(fy.selectorOnSinglePage) selector += ', ' + fy.selectorOnSinglePage;
     selector = selector.replace(/^, /, '');
 
-    if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino
+    if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino, cp
 
     toast.log('waiting for page loading (or changing)...');
     await elementReady(selector, fy.root);
@@ -537,7 +537,7 @@ class FyGlobal {
     fy.preUpdateDivs(itemDivs, numberToBaseEl);
 
     //get titles, etc
-    itemDivs.forEach((item, i) => {
+    for(const [i, item] of itemDivs.entries()) {
       const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
 
       let title = trueData.title;
@@ -548,13 +548,13 @@ class FyGlobal {
 
       if(!title) {
         console.warn('no title found on', item, 'baseEl:', baseEl, 'query:', trueData.selectors.title);
-        return;
+        continue;
       }
       else if(title == 'fy ignore this!') {
         console.debug('ignored item:', item);
         title = null;
         fy.preUpdateDivs([item], numberToBaseEl, true);
-        return;
+        continue;
       }
 
       if(title.includes(':') && title.match(/ \(에피소드 [0-9]+\)$/)) {  //디플의 스타워즈 클래식 같은 경우
@@ -568,8 +568,10 @@ class FyGlobal {
 
       //year 구할 수 있으면 구한다(왓챠 /search와 유플릭스 /main)
       if((!trueData.year && trueData.selectors.year) || trueData.selectors.getYearFromTitle) {
-        let year = querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText;
-        if(!year || trueData.selectors.getYearFromTitle) {
+        let year = (querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText ||
+          querySelectorFiFo_(baseEl, trueData.selectors.year)?.textContent)?.trim();
+        
+        if(!year && trueData.selectors.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
@@ -579,11 +581,11 @@ class FyGlobal {
         }
         
         if(year) {
-          year = year.replace(/^.+ · /, '')  //왓챠 /search
+          year = year.replace(/\n/g, ' ').replace(/^.+ [·•] /, '');  //왓챠 search, 쿠팡플레이 titles list
           if(year.length > 4) year = year.slice(0, 4);  //유플릭스 /search
         }
         
-        if(!isNaN(parseInt(year))) otData[i].year = year;
+        if(!isNaN(parseInt(year)) && Number.isInteger(year)) otData[i].year = year;
       }
 
       //타입 얻기. 왓챠 보관함과 /search, 유플릭스, 쿠팡플레이 /query
@@ -605,7 +607,7 @@ class FyGlobal {
         titles[i] = title;
 
       otData[i].query = title;
-    });
+    }
 
 
     //large div update
