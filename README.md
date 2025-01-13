@@ -27,7 +27,7 @@
 5. m.kinolights.com/title pages
 6. www.tving.com
 7. uflix.co.kr: /main, /mine, /search pages only
-8. www.coupangplay.com: /my-profile, /mylist, /search (and /query) pages only
+8. www.coupangplay.com
 9. www.imdb.com/title/ pages
 
 ## 서드파티 라이선스 등
@@ -41,7 +41,7 @@
 3. support for seezn (closed now)
 4. support for imdb my rating (when accessing www.imdb.com)
 5. support for uflix (partially done)
-6. support for coupang play (partially done)
+6. support for coupang play (done)
 7. setting.js 문서화
 
 ## 버전 히스토리

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.4
+// @version      0.10.6
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -195,7 +195,7 @@ class FyGlobal {
 
     const isExit = determineExit_();
     if(isExit || fy.isFetching) {
-      if(fy.isFetching) console.debug('already fetching.');
+      if(fy.isFetching) console.debug('already fetching (or waiting).');
       return;
     }
 
@@ -207,7 +207,9 @@ class FyGlobal {
     if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino, cp
 
     toast.log('waiting for page loading (or changing)...');
+    fy.isFetching = true;
     await elementReady(selector, fy.root);
+    fy.isFetching = false;
     fy.handler();  //force first run
 
     function determineExit_() {
@@ -332,8 +334,8 @@ class FyGlobal {
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
     
-    console.log('itemNum', itemNum);
     if(itemNum > 0) {
+      console.log('itemNum', itemNum);
       let type;
       if(fy.typePerPath) {
         for (const [key, value] of Object.entries(fy.typePerPath)) {
@@ -524,11 +526,6 @@ class FyGlobal {
   async searchByTitle(itemDivs, trueData = {}) {
     const otCache = await GM_getValue(GM_CACHE_KEY);
 
-    if(itemDivs.length > MAX_SEARCH_ITEMS) {
-      itemDivs = itemDivs.slice(0, MAX_SEARCH_ITEMS);
-      toast.log(`too many items. truncated to ${MAX_SEARCH_ITEMS} items.`);
-    }
-
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
@@ -540,14 +537,14 @@ class FyGlobal {
     for(const [i, item] of itemDivs.entries()) {
       const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
 
-      let title = trueData.title;
-      //console.debug('baseEl, q', baseEl, trueData.selectors.title);
+      let title = trueData.title, titleEl;
       if(!title && baseEl) {
-        title = getTextFromNode_(querySelectorFiFo_(baseEl, trueData.selectors.title));
+        titleEl = querySelectorFiFo_(baseEl, trueData.selectors.title);
+        title = getTextFromNode_(titleEl);
       }
 
       if(!title) {
-        console.warn('no title found on', item, 'baseEl:', baseEl, 'query:', trueData.selectors.title);
+        console.warn('no title found on', item, 'baseEl:', baseEl, 'title El:', titleEl);
         continue;
       }
       else if(title == 'fy ignore this!') {
@@ -647,14 +644,30 @@ class FyGlobal {
       console.log(`nothing to search or scrape on jw.`);
     }
     else {  //if(!trueData.id) {
-      //업데이트
-      toast.log(`getting infos from jw... length: ${searchLength}`);
+      //업데이트!
+      let qTitles = titles.map(title => title ? title : null);
 
-      const qTitles = titles.map(title => title ? title : null);
+      searchLength = qTitles.filter(el => el).length;
+      if(searchLength > MAX_SEARCH_ITEMS) {
+        toast.log(`too many items. truncated to ${MAX_SEARCH_ITEMS} items.`);
+
+        let count = 0, idx;
+        for(const [i, item] of qTitles.entries()) {
+          if(item) count++;
+          if(count >= MAX_SEARCH_ITEMS) {
+            idx = i;
+            break;
+          }
+        }
+        qTitles = qTitles.slice(0, idx + 1);
+        searchLength = MAX_SEARCH_ITEMS;
+      }
+  
+      toast.log(`getting infos from jw... length: ${searchLength}`);
       const urls = qTitles.map(title => title ? OT_URL: null)
       const otSearchResults = await fetchAll(urls, {}, qTitles);
-
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
+
       searchLength = otSearchResults.filter(el => el).length;
       if(searchLength == 0) {
         console.log('jw searching result is empty.');

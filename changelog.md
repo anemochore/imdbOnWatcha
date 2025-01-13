@@ -423,3 +423,6 @@
     // ver 0.10.4 @ 2025-01-12
     //    coupang play: support /titles
     //    todo: support /tv on coupang play
+    // ver 0.10.6 @ 2025-01-12
+    //    coupang play: support /movies, /buy, /tv
+    //    app: fix flow in order not to re-run

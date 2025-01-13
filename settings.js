@@ -225,7 +225,7 @@ SETTINGS['uflix.co.kr'].includingPaths = SETTINGS['uflix.co.kr'].includingPaths.
 
 
 SETTINGS['www.coupangplay.com'] = {
-  includingPaths: ['/my-profile', '/mylist', '/search', '/query', '/titles'],
+  includingPaths: ['/my-profile', '/mylist', '/search', '/query', '/titles', '/movies', '/buy', '/tv'],
 
   //preventMultipleUrlChanges: true,
 
@@ -234,15 +234,17 @@ SETTINGS['www.coupangplay.com'] = {
   + `div[class^="SearchTopTrending_topTrendingContainer__"]>div div:not([${FU}])>a[href^="/titles/"], `  //search
   + `div[class^="SearchResultGrouped_results__"]>div div:not([${FU}])>a[href^="/titles/"], `  //query
   + `div:not([${FU}])>div[class^="TitleV2_shared_playerContainer__"], `  //titles main
-  + `div[class^="RelatedTitleListContainer_gridContainer__"]>div>div:not([${FU}])>a[href^="/titles/"]`,  //titles list
+  + `div[class^="RelatedTitleListContainer_gridContainer__"]>div>div:not([${FU}])>a[href^="/titles/"], `  //titles list
+  + `div[class^="CarouselSlider_carouselThumbnailContainer__"]:not([${FU}])>a[href^="/titles/"]:has(p[class^="CarouselThumbnail_spareContainerText__"])`,  //movies
 
   selectorsForListItems: {
-    ignoreStrings: ['thumbnail ', '(자막)'],
+    ignoreStrings: ['thumbnail ', '(자막)', '(더빙)'],
     title: `div>img[aria-label], `  //my-profile
     + `img[class^="TitleListItem_listItemThumbnail__"][alt], `  //mylist, search
     + `div>p[class^="CarouselThumbnail_spareContainerText__"], `  //query
     + `div[class^="TitleV2_shared_title__"], `  //titles main
-    + `div[class^="RelatedTitleListItem_metadataWrapper__"]>h1`,  //titles list (prefer text)
+    + `div[class^="RelatedTitleListItem_metadataWrapper__"]>h1, `  //titles list (prefer text)
+    + `p[class^="CarouselThumbnail_spareContainerText__"]`,  //movies
     year: 'div[class^="TitleV2_shared_subtitle__"], '  //titles main
     + 'div[class^="RelatedTitleListItem_metadataWrapper__"]>div[class^="RelatedTitleListItem_subtitle__"]',  //titles list (prefer text)
     types: {  //either use types or isTVSeries
@@ -256,5 +258,6 @@ SETTINGS['www.coupangplay.com'] = {
   typePerPath: {
     '/buy': 'Movie',
     '/movies': 'Movie',
+    '/tv': 'TV Series',
   },
 };
