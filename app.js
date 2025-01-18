@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.7
+// @version      0.10.8
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -544,34 +544,37 @@ class FyGlobal {
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
 
-      //year 구할 수 있으면 구한다(왓챠 /search와 유플릭스 /main)
+      //year 구할 수 있으면 구한다.
       if((!trueData.year && trueData.selectors.year) || trueData.selectors.getYearFromTitle) {
         let year = (querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText ||
           querySelectorFiFo_(baseEl, trueData.selectors.year)?.textContent)?.trim();
         
-        if(!year && trueData.selectors.getYearFromTitle) {
+        //year 셀렉터가 우선
+        if(trueData.selectors.year && year) {
+          year = year.replace(/^.+ · /, '');  //왓챠 search
+          if(isNaN(parseInt(year)) || !Number.isInteger(year)) {
+            if(year.replace(/\n/g, ' ').match(/• \d{4} •/)) year = year.replace(/\n/g, ' ').match(/• (\d{4}) •/)[1];  //쿠팡플레이 titles list
+            else if(year.match(/• \d{4}/)) year = year.match(/• (\d{4})/)[1];  //쿠팡플레이 titles list
+          }
+          //console.debug('got possible year from selector:', year);
+        }
+        else if(trueData.selectors.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
             title = title.replace(match[0], '').trim();
-            console.debug('got year from title', title, year);
+            //console.debug('got possible year from title', title, year);
           }
         }
         
-        if(year) {
-          year = year.replace(/\n/g, ' ').replace(/^.+ [·•] /, '');  //왓챠 search, 쿠팡플레이 titles list
-          if(year.length > 4) year = year.slice(0, 4);  //유플릭스 /search
-        }
-        
-        if(!isNaN(parseInt(year)) && Number.isInteger(year)) otData[i].year = year;
+        if(!isNaN(parseInt(year)) && Number.isInteger(parseInt(year))) otData[i].year = year;
       }
 
-      //타입 얻기. 왓챠 보관함과 /search, 유플릭스, 쿠팡플레이 /query
+      //타입 구할 수 있으면 구한다.
       if(!trueData.type) {
-        let type = getTypeFromDiv_(trueData.selectors, baseEl, item);
+        let type = getTypeFromDiv_(trueData.selectors, baseEl);
         if(type && !type.startsWith('not ')) {
           //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
-          console.debug('otData[i].type, otData[i].otFlag', otData[i].type, otData[i].otFlag);
           if(!otData[i].type || otData[i].otFlag != '') {
             console.debug(`got type in searchByTitle: ${type} for ${title}`);
             otData[i].type = type;

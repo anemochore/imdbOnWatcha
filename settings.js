@@ -6,7 +6,7 @@ const SETTINGS = {};
 //see the comments in detail on neflix
 
 SETTINGS['watcha.com'] = {
-  includingPaths: ['/', '/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/search', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
+  includingPaths: ['/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
   selector: `section:not([class$="BrowseSection"]) ul>li>div[class*="-Cell"]:not([${FU}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
   + `section>ul>li:not([${FU}])>a[href^="/contents/"]>div, `  //search
@@ -15,12 +15,7 @@ SETTINGS['watcha.com'] = {
   //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
 
   selectorsForListItems: {
-    title: 'div[aria-hidden]>p, a>div>div:first-of-type',  //the latter is for /search page
-    year: 'a>div>div+div>div+div',  //for /search page only
-    types: {  //either use types or isTVSeries
-      selector: 'div+p+p, a>div>div+div>div+div',  //the latter is for /search page
-      mapping: {'영화': 'Movie', 'TV 프로그램': 'TV Series'},  //미니 시리즈는 어쩔...
-    },
+    title: 'div[aria-hidden]>p',
   },
 
   //singlePageWithoutListItems: false,  //no need since 23-10-29
@@ -181,7 +176,7 @@ SETTINGS['www.disneyplus.com'].includingPaths = SETTINGS['www.disneyplus.com'].i
 
 
 SETTINGS['www.tving.com'] = {
-  includingPaths: ['/', '/contents', '/movie', '/series', '/paramount'],
+  includingPaths: ['/contents', '/movie', '/series', '/paramount'],
   rootSelector: 'main',  //required
 
   selector: `section>article>article>div:not([${FU}])>div:has(h2), `  //contents main
@@ -219,9 +214,15 @@ SETTINGS['www.coupangplay.com'] = {
     year: 'div[class^="TitleV2_shared_subtitle__"], '  //titles main
     + 'div[class^="RelatedTitleListItem_metadataWrapper__"]>div[class^="RelatedTitleListItem_subtitle__"]',  //titles list (prefer text)
     types: {  //either use types or isTVSeries
-      numberToBaseEl: 4,
-      selector: 'div>h1[class^="SearchResultGrouped_rowTitle__"]',  //query page only
-      mapping: {'스토어': 'Movie'},
+      numberToBaseEl: 4,  //for query page only
+      selector: 'div>h1[class^="SearchResultGrouped_rowTitle__"], a[class^="TitlePlayCTAButton_"]',  //query page, titles main
+      mapping: {'스토어': 'Movie'},  //query page only
+    },
+    typeMatch: {
+      tagName: 'A',
+      attr: 'href',
+      matches: ['/tvshow?', '/movie?'],
+      results: ['TV Series', 'Movie'],
     },
     getYearFromTitle: true,
   },

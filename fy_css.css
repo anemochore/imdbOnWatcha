@@ -38,6 +38,11 @@ li[fy-item]>.watcha_com {
   top: 1.25rem;
 }
 
+[class^="SearchTopTrending_topTrendingContainer__"] .www_coupangplay_com {
+  position: absolute;
+  top: 0.25rem;
+}
+
 .fy-edit, .fy-external-site, .fy-imdb-rating.over-na {
   color: white;
   text-shadow: -1px -1px 0 gray, 1px -1px 0 gray, -1px 1px 0 gray, 1px 1px 0 gray;

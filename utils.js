@@ -181,22 +181,28 @@ fragment SuggestedTitle on MovieOrShow {
 
 
 //small utils
-function getTypeFromDiv_(selectors, baseEl, curEl = null) {
+function getTypeFromDiv_(selectors, baseEl) {
   let nestedSelector = selectors.isTVSeries || selectors.types;  //either. not and/or
   if(nestedSelector) {
     let els;
     if(nestedSelector.numberToBaseEl) {
-      const div = getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
-      els = querySelectorAllFiFo_(div, nestedSelector.selector);
+      if(Array.isArray(nestedSelector.numberToBaseEl)) {
+        for(const [i, number] of nestedSelector.numberToBaseEl.entries()) {
+          const div = getParentsFrom_(baseEl, number);
+          const el = div.querySelector(nestedSelector.selector[i]);
+          if(el) {
+            els = [el];
+            break;
+          }
+        }
+      }
+      else {
+        const div = getParentsFrom_(baseEl, nestedSelector.numberToBaseEl);
+        els = querySelectorAllFiFo_(div, nestedSelector.selector);
+      }
     }
-    /*
-    else if(nestedSelector.selectorClosest) {
-      els = [curEl.closest(nestedSelector.selectorClosest)];
-      console.log('el', els[0]);
-    }
-    */
     else {
-      els = querySelectorAllFiFo_(baseEl, nestedSelector.selector);
+      els = querySelectorAllFiFo_(baseEl, nestedSelector.selector);      
     }
 
     if(selectors.isTVSeries) {
@@ -206,14 +212,23 @@ function getTypeFromDiv_(selectors, baseEl, curEl = null) {
         return 'not TV Series';  //not tv series. should not be null
     }
     else if(selectors.types) {
-      let key = els[0]?.innerText.replace(/ ·.+$/, '');  //for watcha /search page
-      if(nestedSelector.attribute) {  //유플릭스(els는 안 쓰임)
-        let targetEl;
-        if(curEl) targetEl = curEl;  //else 경우는 아직 안 생각. todo
-        key = targetEl?.getAttribute(nestedSelector.attribute);
+      let el = els?.[0];
+      let result = nestedSelector?.mapping[el?.innerText];
+
+      if(el && !result && selectors.typeMatch) {
+        if(el.tagName == selectors.typeMatch.tagName) {
+          const attr = el.getAttribute(selectors.typeMatch.attr)
+          for(const [i, match] of selectors.typeMatch.matches.entries()) {
+            if(attr.match(match)) {
+              result = selectors.typeMatch.results[i];
+              break;
+            }
+          }
+        }
+        console.debug('typeMatch setting present. result:', result);
       }
 
-      return nestedSelector?.mapping[key];
+      return result;
     }
   }
   //return null;
