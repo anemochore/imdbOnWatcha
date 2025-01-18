@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.6
+// @version      0.10.7
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -12,7 +12,6 @@
 // @match        https://www.wavve.com/*
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.tving.com/*
-// @match        http://uflix.co.kr/uws/web/*
 // @match        https://www.coupangplay.com/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
@@ -503,24 +502,6 @@ class FyGlobal {
   };
 
   preUpdateDivses = {
-    'uflix.co.kr': (itemDivs, numberToBaseEl, remove) => {
-      if(location.pathname.startsWith('/uws/web/search/')) {
-        const targetItemDivs = itemDivs.filter(el => !el.querySelector('div.fy-temp'));
-        if(targetItemDivs.length > 0) {
-          targetItemDivs.forEach(item => {
-            const tempEl = document.createElement('div');
-            tempEl.classList.add('fy-temp');
-            for(const child of [...item.children])
-              tempEl.appendChild(child);
-            item.appendChild(tempEl);
-          });
-
-          console.debug('DOM was modified (dirty fix).');
-          itemDivs = [...fy.root.querySelectorAll(fy.selector)];
-        }
-      }
-      fy.defaultBaseElementProc(itemDivs, numberToBaseEl, remove);
-    }
   };
 
   async searchByTitle(itemDivs, trueData = {}) {

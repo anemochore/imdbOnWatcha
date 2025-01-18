@@ -1,5 +1,5 @@
 # imdb on watcha
-[탬퍼멍키](https://www.tampermonkey.net/)와 [저스트워치](https://www.justwatch.com/) API를 이용해 왓챠, 넷플릭스, 웨이브, 디플, 티빙, 유플릭스, 쿠팡플레이, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
+[탬퍼멍키](https://www.tampermonkey.net/)와 [저스트워치](https://www.justwatch.com/) API를 이용해 왓챠, 넷플릭스, 웨이브, 디플, 티빙, 쿠팡플레이, 키노라이츠 등의 목록/타이틀 화면에 IMDb 평점을 보여준다.
 
 ## 기능 및 간단한 원리
 1. 화면에 뜬 영화(들)의 국문 제목을 [저스트워치](https://www.justwatch.com/) API로 검색한다. 
@@ -26,7 +26,6 @@
 4. www.waave.com: /player & /my pages
 5. m.kinolights.com/title pages
 6. www.tving.com
-7. uflix.co.kr: /main, /mine, /search pages only
 8. www.coupangplay.com
 9. www.imdb.com/title/ pages
 
@@ -35,14 +34,8 @@
 2. 저스트워치 검색 시 정확히 일치하는 제목이 없을 때는 [fuzzysort](https://github.com/farzher/fuzzysort)로 일치도가 가장 높은 제목을 고른다. MIT 라이선스다.
 
 ## todo
-0. support for tving (done)
-1. support for waave (done)
-2. support for disney+ (done)
-3. support for seezn (closed now)
-4. support for imdb my rating (when accessing www.imdb.com)
-5. support for uflix (partially done)
-6. support for coupang play (done)
-7. setting.js 문서화
+1. support for imdb my rating (when accessing www.imdb.com)
+2. setting.js 문서화
 
 ## 버전 히스토리
 `changelog.md` 참고.

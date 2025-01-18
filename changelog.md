@@ -426,3 +426,5 @@
     // ver 0.10.6 @ 2025-01-12
     //    coupang play: support /movies, /buy, /tv
     //    app: fix flow in order not to re-run
+    // ver 0.10.7 @ 2025-01-18
+    //    uflix: remove support for the site is down
