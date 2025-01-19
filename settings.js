@@ -75,8 +75,7 @@ SETTINGS['www.netflix.com'] = {
   //numberToBaseEl: 2,  //in this case, 'the base element' is the 2nd parent of 'the last element'.
 
   selectorsForListItems: {
-    //this should be the child of 'the last element'. the latter is for edit() of additional titles on large-div.
-    title: 'a[href^="/watch/"]:not([class*="playLink"]), img[alt]',
+    title: 'a[href^="/watch/"]:not([class*="playLink"]), img:not([alt=""]), p.fallback-text',
   },
 
   //large-div works like a single-page. don't use both.
@@ -93,7 +92,7 @@ SETTINGS['www.netflix.com'] = {
     },
     additionalSelector: {
       selector: `.moreLikeThis--container>.titleCard--container:not([${FU}])>div>div.ptrack-content`,
-      title: 'img[alt]',
+      title: 'img:not([alt=""]), p.fallback-text',
       year: 'div.year',
     },
   },

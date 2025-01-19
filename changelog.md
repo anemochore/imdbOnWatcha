@@ -430,3 +430,6 @@
     //    uflix: remove support for the site is down
     //    coupang play: fix getting year logic
     //    watcha, tving: remove support for the main page
+    // ver 0.10.10 @ 2025-01-19
+    //    netflix: fix large-div additional titles
+    //    wavve: fix large-div edit()

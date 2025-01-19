@@ -334,7 +334,9 @@ class ParseJW {
           if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle || title);
         }
         else {
-          if(idx > -1) otData[i].imdbRating = sRatings[idx] || '??';
+          if(idx > -1) {
+            otData[i].imdbRating = sRatings[idx] || (isValidRating_(otData[i].imdbRating) ? otData[i].imdbRating : '??');
+          }
 
           otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle || title);
           otData[i].imdbRatingFetchedDate = new Date().toISOString();

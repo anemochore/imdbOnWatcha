@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.8
+// @version      0.10.10
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -275,7 +275,7 @@ class FyGlobal {
       //else is not happening
     }
 
-    await fy.handlerWrapUp(fy.selectorsForListItems);
+    await fy.handlerWrapUp();
   };
 
   handlers = {
@@ -304,8 +304,9 @@ class FyGlobal {
         //함께 시청된 콘텐츠
         if(selectors.additionalSelector) {
           toast.log('waiting for additional titles...');
-          await elementReady(selectors.additionalSelector.selector);
-          await fy.handlerWrapUp(selectors.additionalSelector, true);
+          const additionalTitles = await elementReady(selectors.additionalSelector.selector);
+          
+          await fy.handlerWrapUp(selectors.additionalSelector);
         }
       }
       else {
@@ -323,12 +324,19 @@ class FyGlobal {
           await fy.largeDivUpdate(largeDiv);
         }
       }
-      await fy.handlerWrapUp(fy.selectorsForListItems);
+      await fy.handlerWrapUp();
     }
   };
 
   handlerWrapUp = async (selectorObj) => {
-    const selector = fy.selector;
+    let selector;
+    if(!selectorObj) {
+      selectorObj = fy.selectorsForListItems;
+      selector = fy.selector;
+    }
+    else {
+      selector = selectorObj.selector;
+    }
 
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
@@ -468,9 +476,8 @@ class FyGlobal {
 
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
     if(otFlag != '' || imdbFlag != '' || !sEl) {
-      toast.log(`large div on single-page update triggered. forceUpdate: ${forceUpdate}`);
-      //console.debug('large div', largeDiv);
       trueData.forceUpdate = forceUpdate;
+      toast.log('large div on single-page update triggered.');
       await fy.search([largeDiv], trueData);
     }
     else {
@@ -543,6 +550,7 @@ class FyGlobal {
 
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
+      //console.debug('otCache[title]', otCache[title]);
 
       //year 구할 수 있으면 구한다.
       if((!trueData.year && trueData.selectors.year) || trueData.selectors.getYearFromTitle) {
@@ -889,9 +897,9 @@ class FyGlobal {
 
     let titleEl = querySelectorFiFo_(baseEl, selectors.title);
     let title = getTextFromNode_(titleEl);
-    //if(type || title) console.debug('type, title on edit (first pass)', type, title);
+    if(type || title) console.debug('type, title on edit (first pass)', type, title);
 
-    if(!title && fy.selectorsForSinglePage?.selectors) {
+    if(!title && fy.selectorsForSinglePage) {
       selectors = fy.selectorsForSinglePage;
       titleEl = querySelectorFiFo_(baseEl, selectors.title);
       title = getTextFromNode_(titleEl);
