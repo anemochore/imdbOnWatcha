@@ -433,3 +433,5 @@
     // ver 0.10.10 @ 2025-01-19
     //    netflix: fix large-div additional titles
     //    wavve: fix large-div edit()
+    // ver 0.10.11 @ 2025-01-27
+    //    disneyplus: fix large-div update (bug of circa v0.10.3)

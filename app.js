@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.10
+// @version      0.10.11
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -553,7 +553,7 @@ class FyGlobal {
       //console.debug('otCache[title]', otCache[title]);
 
       //year 구할 수 있으면 구한다.
-      if((!trueData.year && trueData.selectors.year) || trueData.selectors.getYearFromTitle) {
+      if((!trueData.year && trueData.selectors.year) || trueData.selectors?.getYearFromTitle) {
         let year = (querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText ||
           querySelectorFiFo_(baseEl, trueData.selectors.year)?.textContent)?.trim();
         
