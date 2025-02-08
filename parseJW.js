@@ -128,7 +128,7 @@ class ParseJW {
               }
             }
 
-            //console.debug('title, sTitle, found:', title, sTitle, found);
+            //console.debug('title, trueType, sTitle, found:', title, trueType, sTitle, found);
             if(!found) {
               if(title == sTitle || 
                 title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
@@ -151,9 +151,10 @@ class ParseJW {
               }
             }
 
-            //console.debug(`manual fuzzy: found: ${found}`);
-            if(!found && (!trueType || (trueType && !trueType.endsWith('Series')))) {
+            //console.debug('title, trueType, sTitle, found:', title, trueType, sTitle, found);
+            if(!found && (!trueType || (trueType == 'Movie' || trueType == 'not TV Series'))) {
               if(possibleIdxWithCloseDate == -1) {
+                //console.debug('trying manual fuzzy...');
                 //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
                 if(title.length > fuzzyThresholdLength) {
                   if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
@@ -187,7 +188,7 @@ class ParseJW {
           }
         });
 
-        //console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
@@ -215,20 +216,23 @@ class ParseJW {
         }
         else if(idx == -1) {  //검색 결과 없음
           if(reSearching) {
-            //원제로 재검색 중인데 원제가 같고 날짜가 아주 비슷하면 그냥 걔 선택
-            if(Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
+            //재검색 중인데 날짜가 아주 비슷하면 그냥 걔 선택
+            if(possibleIdxWithCloseDate && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
               idx = possibleIdxWithCloseDate;
               console.warn(`${title} (${trueYear}) is not found, but the same title (${sYears[idx]}) with rating is found. so taking it.`);
               otData[i].otFlag = '?';
             }
           }
-          else if(trueOrgTitle) {
-            //원제가 있다면 원제로 재검색
-            toast.log(`re-searching using org. title (${trueOrgTitle}) from jw again...`);
+          else if(trueOrgTitle || title.match(/ \([1-2][0-9]{3}\)$/)) {
+            //원제가 있거나 원제가 없어도 제목에 연도가 있다면 연도 빼고 재검색
+            if(trueOrgTitle) toast.log(`re-searching using org. title (${trueOrgTitle}) from jw again...`);
+            else toast.log(`re-searching using title without date from jw again...`);
 
-            const qTitles = [trueOrgTitle];
+            const qTitles = [trueOrgTitle || title.replace(/ \([1-2][0-9]{3}\)$/, '')];
             const urls = [OT_URL];
-            const otReSearchResults = await fetchAll(urls, {}, qTitles, {country: 'US', lang: 'en'});
+            let otReSearchResults;
+            if(trueOrgTitle) otReSearchResults = await fetchAll(urls, {}, qTitles, {country: 'US', lang: 'en'});
+            else otReSearchResults = await fetchAll(urls, {}, qTitles);
 
             const localOtData = [{...otData[i]}];
             await fyJW.parseJwSearchResults_(otReSearchResults, localOtData, trueData, qTitles, true);
@@ -304,8 +308,23 @@ class ParseJW {
                   otData[i].otFlag = '?';
                 }
                 else {
-                  idx = 0;
-                  console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first (the most popular) result: ${sTitles[idx]}`);
+                  if(trueType) {
+                    if(trueType.startsWith('not ')) {
+                      maybeIdxWithSameDateOrType = sTypes.indexOf('Movie');
+                    }
+                    else {
+                      maybeIdxWithSameDateOrType = sTypes.indexOf('trueType');
+                    }
+                    if(maybeIdxWithSameDateOrType > -1) {
+                      idx = maybeIdxWithSameDateOrType;
+                      console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result (rating not considered) with the same type: ${sTitles[idx]}`);
+                    }
+                  }
+                  if(idx == -1) {
+                    idx = 0;
+                    console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first (the most popular) result: ${sTitles[idx]}`);
+                  }
+
                   if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';
                   else otData[i].otFlag = '??';
                 }

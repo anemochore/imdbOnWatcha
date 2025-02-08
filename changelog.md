@@ -435,3 +435,5 @@
     //    wavve: fix large-div edit()
     // ver 0.10.11 @ 2025-01-27
     //    disneyplus: fix large-div update (bug of circa v0.10.3)
+    // ver 0.10.12 @ 2025-02-08
+    //    jw: improve re-searching (mainly for wavve)
