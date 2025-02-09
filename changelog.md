@@ -437,3 +437,5 @@
     //    disneyplus: fix large-div update (bug of circa v0.10.3)
     // ver 0.10.12 @ 2025-02-08
     //    jw: improve re-searching (mainly for wavve)
+    // ver 0.10.13 @ 2025-02-09
+    //    jw: fix editting jw-url not working

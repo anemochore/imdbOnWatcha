@@ -65,7 +65,8 @@ class ParseJW {
       let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999;
 
       if(trueJwUrl) {
-        //jw url을 알고 있다면 간단~
+        //jw url을 알고 있다면 간단...
+        console.debug('trueJwUrl, sUrls', trueJwUrl, sUrls);
         idx = sUrls.indexOf(decodeURI(trueJwUrl));
         if(idx > -1) {
           otData[i].otFlag = '';
@@ -81,7 +82,14 @@ class ParseJW {
             console.log('url was manually provided and actually found:', decodeURI(trueJwUrl));
           }
         }
-        //todo: else... what to do now???
+        else {
+          //근데 원제 재검색을 통해 얻은 jw url이 있을 수 있다. 이 경우는 어쩔 수 없이 그냥 넘어간다. jwId는 모름...
+          otData[i].otFlag = '';
+          console.log('url was manually provided but cannot be validated:', decodeURI(trueJwUrl));
+
+          otData[i].jwUrl = sUrls[idx];
+          reSearching = 'no need';  //no update other data
+        }
       }
       else if(trueImdbId) {
         //아니면 imdb id를 알고 있다면
@@ -217,9 +225,9 @@ class ParseJW {
         else if(idx == -1) {  //검색 결과 없음
           if(reSearching) {
             //재검색 중인데 날짜가 아주 비슷하면 그냥 걔 선택
-            if(possibleIdxWithCloseDate && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
+            if(possibleIdxWithCloseDate > -1 && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
               idx = possibleIdxWithCloseDate;
-              console.warn(`${title} (${trueYear}) is not found, but the same title (${sYears[idx]}) with rating is found. so taking it.`);
+              console.warn(`${title} (${trueYear}) is not found, but the same title with close date (${sYears[idx]}) with rating present is found. so taking it.`);
               otData[i].otFlag = '?';
             }
           }
