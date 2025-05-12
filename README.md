@@ -25,7 +25,7 @@
 3. www.disneyplus.com/ko-kr/
 4. www.waave.com: /player & /my pages
 5. m.kinolights.com/title pages
-6. www.tving.com
+6. www.tving.com (not maintained anymore)
 8. www.coupangplay.com
 9. www.imdb.com/title/ pages
 

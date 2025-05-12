@@ -439,3 +439,5 @@
     //    jw: improve re-searching (mainly for wavve)
     // ver 0.10.13 @ 2025-02-09
     //    jw: fix editting jw-url not working
+    // ver 0.10.14 @ 2025-05-12
+    //    kino: remove getting org-title due to their change
