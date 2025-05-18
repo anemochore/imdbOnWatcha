@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.14
+// @version      0.10.15
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -399,9 +399,11 @@ class FyGlobal {
       const year = getTextFromNode_(largeDiv.querySelector(selectors.meta)).split(' · ').pop();
       const type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
-      console.debug('year, type, imdbRating', year, type, imdbRating);
+      let orgTitle = [...document.querySelectorAll('.metadata__item')].filter(el => el.firstChild.innerText == '원제')[0];
+      if(orgTitle) orgTitle = orgTitle.querySelector('.item__body').innerText;
+      console.debug('orgTitle, year, type, imdbRating', orgTitle, year, type, imdbRating);
 
-      await cb(largeDiv, {selectors, year, type, imdbRating});
+      await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
     },
 
     'www.netflix.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
