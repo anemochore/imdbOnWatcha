@@ -21,7 +21,7 @@ SETTINGS['watcha.com'] = {
   //singlePageWithoutListItems: false,  //no need since 23-10-29
 
   //more selectors are hard-coded. below are mainly for edit() on single-page
-  selectorOnSinglePage: `section:not([${FU}])>div>div h1`,  //for single-page
+  selectorOnSinglePage: `section:not([${FU}])>div:has(h1)`,  //for single-page
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',
     title: 'h1',

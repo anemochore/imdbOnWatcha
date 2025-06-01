@@ -443,3 +443,5 @@
     //    kino: remove getting org-title due to their change
     // ver 0.10.15 @ 2025-05-18
     //    kino: restore getting org-title according to their change
+    // ver 0.10.16 @ 2025-06-01
+    //    watcha: fix not updating large-div at the first time

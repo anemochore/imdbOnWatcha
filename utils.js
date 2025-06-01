@@ -39,40 +39,66 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function elementReady(selector, baseEl = document.documentElement, options = fy.elementReadyOption || {}) {
+function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {}) {
   return new Promise((resolve, reject) => {
     let els = [...baseEl.querySelectorAll(selector)];
-    if(els.length > 0 && !options.waitFirst) {
+    console.debug('els', els);
+    if(els.length > 0 && !options.waitFirstAndWaitForAllChildrenAdded) {
       //console.debug('resolved at first call', els);
       if(options.returnAll) resolve(els);
       else resolve(els[els.length-1]);
     }
 
-    //console.debug('this.prevElNumber, els.length', this.prevElNumber, els.length);
-    this.prevElNumber = els.length;
+    const lastEl = els.at(-1);
+    this.prevChildElementCount = lastEl?.childElementCount;
+    
+    let mutated = null;
+    const timerId = setTimeout(async function tick() {
+      if(!mutated) {
+        console.warn('elementReadey failed!!??', selector, els);
+        observer.disconnect();
+        if(options.returnAll) resolve(els);
+        else resolve(els[els.length-1]);
+      }
+      clearTimeout(timerId);
+    }, 3000);
 
-    new MutationObserver(async (mutationRecords, observer) => {
+    const observer = new MutationObserver(async (mutationRecords, observer) => {
+      mutated = true;
+      //console.debug('mutated!');
+
       let els = [...baseEl.querySelectorAll(selector)];
+      const lastEl = els.at(-1);
+      if(options.waitFirstAndWaitForAllChildrenAdded) {
+        console.debug('lastEl.children, prevChildElementCount:', lastEl.children, this.prevChildElementCount);
+      }
+
       if(els.length > 0) {
-        if(!options.checkIfAllChildrenAreAdded) {
+        if(!options.waitFirstAndWaitForAllChildrenAdded) {
           //console.debug('resolved for checkIfAllChildrenAreAdded false', els);
           observer.disconnect();
           if(options.returnAll) resolve(els);
           else resolve(els[els.length-1]);
         }
-        else if(els.length >= this.prevElNumber) {
-          this.prevElNumber = els.length;
+        else if(lastEl.childElementCount >= this.prevChildElementCount) {
+          this.prevChildElementCount = lastEl.childElementCount;
           await sleep(1000);  //dirty hack
-          if([...baseEl.querySelectorAll(selector)].length == this.prevElNumber) {
-            //console.debug('resolved for checkIfAllChildrenAreAdded true', els);
-            observer.disconnect();
-            if(options.returnAll) resolve(els);
-            else resolve(els[els.length-1]);
+          els = [...baseEl.querySelectorAll(selector)];
+          //console.debug('lastEl.children, prevChildElementCount:', lastEl.children, this.prevChildElementCount);
+          if(els.at(-1).childElementCount == this.prevChildElementCount) {
+            console.debug('resolved for checkIfAllChildrenAreAdded true', els);
           }
+          else {
+            console.warn('elementReadey failed.');
+          }
+          observer.disconnect();
+          if(options.returnAll) resolve(els);
+          else resolve(els[els.length-1]);
         }
       }
-    })
-    .observe(baseEl, {
+    });
+
+    observer.observe(baseEl, {
       childList: true,
       subtree: true
     });
@@ -236,7 +262,7 @@ function getTypeFromDiv_(selectors, baseEl) {
 
 function getParentsFrom_(div, numberOrRoot) {
   if(isNaN(numberOrRoot))
-    div = document.documentElement;
+    div = document;
   else
     for(let i = 0; i < numberOrRoot; i++) {
       if(!div) {

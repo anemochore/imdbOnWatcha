@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.15
+// @version      0.10.16
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -167,7 +167,7 @@ class FyGlobal {
     fy.observer.disconnect();
     console.debug('observer disconncted on entry()!');
 
-    fy.root = document.querySelector(fy.rootSelector) || document.documentElement;
+    fy.root = document.querySelector(fy.rootSelector) || document;
     const curLocation = document.location;
 
     //ignoring # or ?mappingSource... at the end
@@ -351,13 +351,6 @@ class FyGlobal {
       }
 
       if(type) console.log(`type is '${type}' (possibly based on url).`);  //dp
-      //dev
-      /*
-      if(fy.root.querySelector(FY_UNIQ_STRING)) {
-        console.log('selector', selector);
-        return;
-      }
-      */
       fy.search(itemDivs, {selectors: selectorObj, type: type});
     }
     else {
@@ -388,7 +381,10 @@ class FyGlobal {
       const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
-      //type이 스크레이핑 중 바뀌는 일은... 없겠지 아마...
+      //dom이 wp 스크레이핑 도중 바뀌는 일이 있어서 largeDiv를 갱신-_-
+      if(!largeDiv.closest(fy.rootSelector)) {
+        largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
+      }
       await cb(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
     },
 
@@ -488,11 +484,14 @@ class FyGlobal {
     }
   };
 
-  defaultBaseElementProc = (itemDivs, numberToBaseEl, remove = false) => {
+  defaultBaseElementProc = async (itemDivs, numberToBaseEl, remove = false) => {
+
     itemDivs.forEach(item => {
       const baseEl = getParentsFrom_(item, numberToBaseEl);
+      if(!baseEl.closest(fy.rootSelector)) {
+        console.debug('items are possible updated just before!');
+      }
 
-      //console.debug('preupdate: item, baseEl, numberToBaseEl', item, baseEl, numberToBaseEl, baseEl.getAttribute(FY_UNIQ_STRING));
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null || remove) {
         if(remove) {
           baseEl.querySelector('.' + FY_UNIQ_STRING).style.visibility = 'hidden';
@@ -521,7 +520,7 @@ class FyGlobal {
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
     const numberToBaseEl = trueData.selectors?.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl;
-    fy.preUpdateDivs(itemDivs, numberToBaseEl);
+    await fy.preUpdateDivs(itemDivs, numberToBaseEl);
 
     //get titles, etc
     for(const [i, item] of itemDivs.entries()) {
@@ -540,7 +539,7 @@ class FyGlobal {
       else if(title == 'fy ignore this!') {
         console.debug('ignored item:', item);
         title = null;
-        fy.preUpdateDivs([item], numberToBaseEl, true);
+        await fy.preUpdateDivs([item], numberToBaseEl, true);
         continue;
       }
 
@@ -692,7 +691,6 @@ class FyGlobal {
     await setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
-    console.debug()
     if(fy.isUpdatingLargeDiv && itemDivs.length == 1) {
       console.debug('isUpdatingLargeDiv is set to false');
       fy.isUpdatingLargeDiv = false;
