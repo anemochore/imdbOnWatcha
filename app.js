@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.16
+// @version      0.10.18
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -206,6 +206,7 @@ class FyGlobal {
     if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino, cp
 
     toast.log('waiting for page loading (or changing)...');
+    console.debug('selector:', selector);
     fy.isFetching = true;
     await elementReady(selector, fy.root);
     fy.isFetching = false;
@@ -421,11 +422,14 @@ class FyGlobal {
       if(fyItem) fyItem.parentNode.removeChild(fyItem);
 
       //lazy loading이 극심해서 제목을 여기서 처리-_-
-      const titleEl = await elementReady(selectors.title, largeDiv); //, {notCountEmpty: true});
+      const titleEl = await elementReady(selectors.title, largeDiv.parentNode.parentNode);
       const title = getTextFromNode_(titleEl);
 
       const year = [...largeDiv.querySelectorAll('dd')].filter(el => el.innerText.startsWith('개봉연도:'))[0]?.innerText.split(':').pop().trim() ||  //my
       document.querySelector('table.detail-info-table>tr>th+td')?.innerText.split(',').pop().split('~')[0].trim();  //large-div
+      //tv show는 첫 화가 방영된 때가 개봉연도
+
+      console.debug('title & year', title, year);
 
       await cb(largeDiv, {selectors, title, year});
     },

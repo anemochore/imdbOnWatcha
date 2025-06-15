@@ -42,7 +42,12 @@ function sleep(ms) {
 function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {}) {
   return new Promise((resolve, reject) => {
     let els = [...baseEl.querySelectorAll(selector)];
-    console.debug('els', els);
+    /*
+    console.debug('selector on elementReady():', selector);
+    console.debug('baseEl on elementReady():', baseEl);
+    console.debug('els on elementReady():', els);
+    */
+
     if(els.length > 0 && !options.waitFirstAndWaitForAllChildrenAdded) {
       //console.debug('resolved at first call', els);
       if(options.returnAll) resolve(els);

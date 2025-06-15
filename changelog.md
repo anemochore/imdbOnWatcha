@@ -445,3 +445,6 @@
     //    kino: restore getting org-title according to their change
     // ver 0.10.16 @ 2025-06-01
     //    watcha: fix not updating large-div at the first time
+    // ver 0.10.18 @ 2025-06-15
+    //    wavve: fix not updating large-div due to dom change
+    //    jw: fix re-searching crash

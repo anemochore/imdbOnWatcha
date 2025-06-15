@@ -108,12 +108,6 @@ SETTINGS['www.wavve.com'] = {
   + `div.swiper-wrapper>div:not([${FU}])>div.landscape, `                 //my/ upper
   + `div.swiper-wrapper>div:not([${FU}])>div.portrait`,                   //my/ lower
 
-  /*
-  elementReadyOption: {
-    notCountEmpty: true,
-  },
-  */
-
   largeDivSamePathName: true,
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
 
@@ -122,7 +116,7 @@ SETTINGS['www.wavve.com'] = {
   },
 
   //large-div works like a single-page. don't use both.
-  selectorOnSinglePage: `section.player-contents>div.video-wrap:not([${FU}])`,
+  selectorOnSinglePage: `section.player-section-layout>div.video-wrap:not([${FU}])`,
 
   //more selectors are hard-coded. below are mainly for edit()
   selectorsForSinglePage: {
@@ -130,10 +124,10 @@ SETTINGS['www.wavve.com'] = {
     title: 'h1>em',
     isTVSeries: {
       numberToBaseEl: 2,
-      selector: 'div.player-nav>ul>li',
+      selector: 'div.player-nav-layout>ul>li',
       contains: '에피소드',
     },
-    targetEl: `section.player-contents>div.video-wrap>div:not(.${FU})`,  //class of last div varies.
+    targetEl: `section.player-section-layout>div.video-wrap>div:not(.${FU})`,  //class of last div varies.
   },
 };
 

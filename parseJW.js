@@ -249,13 +249,13 @@ class ParseJW {
               console.log('jw re-searching result is empty.');
               reSearching = 'failed';
             }
-            else if(localOtData[i].imdbFlag == '??') {
+            else if(localOtData?.imdbFlag == '??') {
               console.log('jw re-searching failed. :(');
               reSearching = 'failed';
             }
             else {
-              localOtData[i].query = otData[i].query;
-              otData[i] = {...localOtData[i]};
+              localOtData.query = otData[i].query;
+              otData[i] = {...localOtData};
               console.log('jw re-searching done.');
               console.debug('jw re-searching result', otData[i]);
               reSearching = 'done';
