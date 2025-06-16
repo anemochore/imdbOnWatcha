@@ -397,3 +397,25 @@ function dateDiffInDays(a, b) {
   const _MS_PER_DAY = 1000 * 60 * 60 * 24;
   return Math.floor((utc2 - utc1) / _MS_PER_DAY);
 }
+
+function convertToEnglish(text) {
+  const charMap = {
+    'ø': 'o',
+    'æ': 'a',
+    'å': 'a',
+    'ä': 'a',
+    'ö': 'o',
+    'ü': 'u',
+    'ß': 's'
+  };
+
+  const normalizedText = text.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+  return normalizedText.replace(/[\øæåäöüß]/g, (match) => charMap[match] || match);
+}
+
+function lowercaseFirstLetter(str) {
+  if (!str) {
+    return str; // Return if string is empty or null
+  }
+  return str.charAt(0).toLowerCase() + str.slice(1);
+}

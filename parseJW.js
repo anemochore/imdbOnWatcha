@@ -54,6 +54,7 @@ class ParseJW {
       let sTitles =    result.map(el => el.content.title);
       let sYears =     result.map(el => el.content.originalReleaseYear);
       let sOrgTitles = result.map(el => el.content.originalTitle);
+      let sAltTitles = result.map(el => el.content.fullPath.split('/').pop().split('-').join(' '));  //for non-english titles
 
       let sRatings = result.map(el => el.content?.scoring?.imdbScore);  //scoring may not present
       let sImdbIds = result.map(el => el.content?.externalIds?.imdbId);  //this too??? idk.
@@ -127,7 +128,8 @@ class ParseJW {
             }
 
             const sOrgTitle = sOrgTitles[j];
-            //console.debug('trueType, sTypes[j], title, sTitle, trueOrgTitle, sOrgTitle:', trueType, sTypes[j], '/', title, sTitle, '/', trueOrgTitle, sOrgTitle);
+            const sAltTitle = sAltTitles[j];
+            //console.debug('title, sTitle, trueOrgTitle, sOrgTitle, sAltTitle:', title, sTitle, trueOrgTitle, sOrgTitle, sAltTitle);
             let found = false;
             if(!trueType || (!trueType.startsWith('not') && trueType.endsWith('Series') && sTypes[j] == 'TV Series' && !title.startsWith('극장판 '))) {
               //TV물이면(혹은 type을 아예 모르면) 제목(원제)이 일치해야 함(시즌 무시. 연도 무시)
@@ -138,7 +140,12 @@ class ParseJW {
 
             //console.debug('title, trueType, sTitle, found:', title, trueType, sTitle, found);
             if(!found) {
-              if(title == sTitle || 
+              //원제로 재검색 중이고 비영어 제목이 jw 경로명과 일치한다면
+              if(title == trueOrgTitle && lowercaseFirstLetter(convertToEnglish(title)) == sAltTitle) {
+                console.info('non-English org-title matched:', title);
+                found = true;
+              }
+              else if(title == sTitle || 
                 title.replace(' - ', ': ') == sTitle || title.replace(': ', ' - ') == sTitle || 
                 title.replace(/\-/g, '~') == sTitle || trueOrgTitle?.replace(/～/g, '~') == sOrgTitle) {
                 //TV물이 아니거나 못 찾았으면, 제목(or 원제)이 일치하는 건 물론 trueYear가 있다면 연도도 일치해야 함.
@@ -249,15 +256,15 @@ class ParseJW {
               console.log('jw re-searching result is empty.');
               reSearching = 'failed';
             }
-            else if(localOtData?.imdbFlag == '??') {
+            else if(localOtData[0]?.imdbFlag == '??') {
               console.log('jw re-searching failed. :(');
               reSearching = 'failed';
             }
             else {
-              localOtData.query = otData[i].query;
-              otData[i] = {...localOtData};
               console.log('jw re-searching done.');
-              console.debug('jw re-searching result', otData[i]);
+              console.debug('jw re-searching result (original)', JSON.stringify(localOtData[0]));
+              localOtData[0].query = otData[i].query;
+              otData[i] = {...localOtData[0]};
               reSearching = 'done';
             }
           }

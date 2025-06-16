@@ -448,3 +448,7 @@
     // ver 0.10.18 @ 2025-06-15
     //    wavve: fix not updating large-div due to dom change
     //    jw: fix re-searching crash
+    // ver 0.10.21 @ 2025-06-16
+    //    jw: fix re-searching bug of v0.10.18
+    //    jw: add support for non-English org-titles (for watcha)
+    //    watcha: fix dom selector (maybe due to dom change)
