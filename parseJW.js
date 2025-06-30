@@ -13,7 +13,7 @@ class ParseJW {
       const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
       const fuzzyThresholdRating = 4.1;  //discard result with rating less than this
 
-      const YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH = 2;  //accept re-search result with year-diffence less than this
+      const YEAR_DIFFERENCE_THRESHOLD = 2;  //accept result with year-diffence less than this
 
       const tvString = 'SHOW';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
 
@@ -63,7 +63,7 @@ class ParseJW {
       const sourceWords = [...JW_TITLE_FIX_DICT.keys()], targetWords = [...JW_TITLE_FIX_DICT.values()];
 
       //todo: being improved...
-      let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDate = 9999;
+      let idx = -1, exactMatchCount = 0, maybeIdxWithSameDateOrType = -1, possibleIdxWithCloseDate = -1, closeDifference = 9999;
 
       if(trueJwUrl) {
         //jw url을 알고 있다면 간단...
@@ -152,9 +152,9 @@ class ParseJW {
                 found = true;
                 if(trueYear && trueYear != sYears[j]) {
                   found = false;
-                  const curCloseDate = Math.abs(trueYear - sYears[j]);
-                  if(curCloseDate < closeDate && isValidRating_(sRatings[j])) {
-                    closeDate = curCloseDate;
+                  const curCloseDifference = Math.abs(trueYear - sYears[j]);
+                  if(curCloseDifference < closeDifference && curCloseDifference < YEAR_DIFFERENCE_THRESHOLD && isValidRating_(sRatings[j])) {
+                    closeDifference = curCloseDifference;
                     possibleIdxWithCloseDate = j;
                   }
                 }
@@ -171,7 +171,7 @@ class ParseJW {
               if(possibleIdxWithCloseDate == -1) {
                 //console.debug('trying manual fuzzy...');
                 //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
-                if(title.length > fuzzyThresholdLength) {
+                if(title != sTitle && title.length > fuzzyThresholdLength) {
                   if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
                     found = true;
                     console.info(`spaces were ignored for ${title} and ${sTitle}`);
@@ -203,11 +203,11 @@ class ParseJW {
           }
         });
 
-        console.debug('idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        console.debug('trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
-          //검색이 완벽하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
+          //검색이 완전하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
           console.log(`jw search is not perfect. keep the imdb data (from manual visit): ${cacheTrueImdbId}`);
           otData[i].otFlag = orgOtFlag;  //probably '??'
           reSearching = 'no need';
@@ -232,7 +232,7 @@ class ParseJW {
         else if(idx == -1) {  //검색 결과 없음
           if(reSearching) {
             //재검색 중인데 날짜가 아주 비슷하면 그냥 걔 선택
-            if(possibleIdxWithCloseDate > -1 && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD_RE_SEARCH) {
+            if(possibleIdxWithCloseDate > -1 && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD) {
               idx = possibleIdxWithCloseDate;
               console.warn(`${title} (${trueYear}) is not found, but the same title with close date (${sYears[idx]}) with rating present is found. so taking it.`);
               otData[i].otFlag = '?';

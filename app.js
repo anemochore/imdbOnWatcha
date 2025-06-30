@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.21
+// @version      0.10.22
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -397,8 +397,13 @@ class FyGlobal {
       const type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
       let orgTitle = [...document.querySelectorAll('.metadata__item')].filter(el => el.firstChild.innerText == '원제')[0];
-      if(orgTitle) orgTitle = orgTitle.querySelector('.item__body').innerText;
-      console.debug('orgTitle, year, type, imdbRating', orgTitle, year, type, imdbRating);
+      if(orgTitle) {
+        orgTitle = orgTitle.querySelector('.item__body').innerText;
+        if(orgTitle == '') orgTitle = null;
+        //window.__NUXT__가 로드되면 다음으로 알아낼 수 있지만 fy div 업데이트 끝날 때까지 로드가 안 됨
+        //window.__NUXT__.state.movies.movie[0].titleEn || window.__NUXT__.state.movies.movie[0].titleOri;
+      }
+      console.debug('in largeDivUpdate(): orgTitle, year, type, imdbRating', orgTitle, year, type, imdbRating);
 
       await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
     },

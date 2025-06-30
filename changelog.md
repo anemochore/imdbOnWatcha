@@ -452,3 +452,5 @@
     //    jw: fix re-searching bug of v0.10.18
     //    jw: add support for non-English org-titles (for watcha)
     //    watcha: fix dom selector (maybe due to dom change)
+    // ver 0.10.22 @ 2025-06-30
+    //    jw: fix minor logic
