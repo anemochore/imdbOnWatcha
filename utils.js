@@ -75,7 +75,7 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
       let els = [...baseEl.querySelectorAll(selector)];
       const lastEl = els.at(-1);
       if(options.waitFirstAndWaitForAllChildrenAdded) {
-        console.debug('lastEl.children, prevChildElementCount:', lastEl.children, this.prevChildElementCount);
+        console.debug('lastEl.children, prevChildElementCount:', lastEl?.children, this.prevChildElementCount);
       }
 
       if(els.length > 0) {

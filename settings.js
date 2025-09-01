@@ -41,7 +41,6 @@ SETTINGS['m.kinolights.com'] = {
   includingPaths: ['/title'],
   rootSelector: 'html',
   selectorOnSinglePage: 'div.movie-title-wrap',  //'selector' is not used for kino
-  preventMultipleUrlChanges: true,  //hack for kino
   noAppendDiv: true,  //hack for kino
 
   numberToBaseElWhenUpdating: 0,
@@ -185,8 +184,6 @@ SETTINGS['www.tving.com'] = {
 
 SETTINGS['www.coupangplay.com'] = {
   includingPaths: ['/my-profile', '/mylist', '/search', '/query', '/titles', '/movies', '/buy', '/tv'],
-
-  //preventMultipleUrlChanges: true,
 
   selector: `div[class^="MyProfile_mainContent__"]>div>div>ul>li:not([${FU}])>a[href^="/titles/"], `  //my-profile
   + `div[class*="TitleListContainer_gridContainer__"]>div[data-cy="titleListItem"]>div>div>div:not([${FU}])>a[href^="/titles/"],  `  //mylist

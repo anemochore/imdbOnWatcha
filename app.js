@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.22
+// @version      0.10.26
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -203,10 +203,7 @@ class FyGlobal {
     if(fy.selectorOnSinglePage) selector += ', ' + fy.selectorOnSinglePage;
     selector = selector.replace(/^, /, '');
 
-    if(fy.preventMultipleUrlChanges) fy.isFetching = true;  //hack for kino, cp
-
     toast.log('waiting for page loading (or changing)...');
-    console.debug('selector:', selector);
     fy.isFetching = true;
     await elementReady(selector, fy.root);
     fy.isFetching = false;
@@ -281,9 +278,12 @@ class FyGlobal {
 
   handlers = {
     'm.kinolights.com': async () => {
-      fy.isFetching = false;  //hack for kino
+      fy.isFetching = true;
+      const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root, {waitFirstAndWaitForAllChildrenAdded: true});
+      fy.isFetching = false;
 
-      const largeDiv = document.querySelector(fy.selectorOnSinglePage);
+      console.debug('largeDiv', largeDiv);
+      console.debug('title in handler:', largeDiv.querySelector('h2').innerText);
       if(largeDiv) await fy.largeDivUpdate(largeDiv);
     },
 
@@ -397,13 +397,14 @@ class FyGlobal {
       const type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
       let orgTitle = [...document.querySelectorAll('.metadata__item')].filter(el => el.firstChild.innerText == '원제')[0];
+      console.debug('in largeDivUpdate(), orgTitle el:', orgTitle);
       if(orgTitle) {
         orgTitle = orgTitle.querySelector('.item__body').innerText;
         if(orgTitle == '') orgTitle = null;
         //window.__NUXT__가 로드되면 다음으로 알아낼 수 있지만 fy div 업데이트 끝날 때까지 로드가 안 됨
         //window.__NUXT__.state.movies.movie[0].titleEn || window.__NUXT__.state.movies.movie[0].titleOri;
       }
-      console.debug('in largeDivUpdate(): orgTitle, year, type, imdbRating', orgTitle, year, type, imdbRating);
+      console.debug('in largeDivUpdate(), orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
 
       await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
     },
@@ -705,7 +706,7 @@ class FyGlobal {
       fy.isUpdatingLargeDiv = false;
     }
     toast.log();
-    if(!fy.preventMultipleUrlChanges) fy.observer.observe(fy.root, fy.observerOption);
+    fy.observer.observe(fy.root, fy.observerOption);
 
     //end of flow
 

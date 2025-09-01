@@ -337,7 +337,7 @@ class ParseJW {
                   }
                   if(idx == -1) {
                     idx = 0;
-                    console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first (the most popular) result: ${sTitles[idx]}`);
+                    console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first (the most popular) result: ${sTitles[0]} (${sYears[0]})`);
                   }
 
                   if(sTitles.filter(el => el).length == 1) otData[i].otFlag = '?';

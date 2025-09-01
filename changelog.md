@@ -454,3 +454,8 @@
     //    watcha: fix dom selector (maybe due to dom change)
     // ver 0.10.22 @ 2025-06-30
     //    jw: fix minor logic
+    // ver 0.10.26 @ 2025-09-01
+    //    jw: change minor log
+    //    kino: add getting org-title again (was removed at v0.10.14)
+    //    kino: fix not newly being updated when navigating
+    //    setting, util: fix minor things accordingly
