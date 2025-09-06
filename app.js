@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.26
+// @version      0.10.28
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -172,16 +172,16 @@ class FyGlobal {
 
     //ignoring # or ?mappingSource... at the end
     //console.debug(`location on entry: ${fy.prevLocation.href} -> ${curLocation.href}`);
-    let urlChanged = false;
+    fy.urlChanged = false;
     if(fy.isFetching && 
       ((fy.largeDivSamePathName && fy.prevLocation.href != curLocation.href) ||
       (!fy.largeDivSamePathName && fy.prevLocation.origin+fy.prevLocation.pathname != curLocation.origin+curLocation.pathname))) {
       toast.log('url changed. so aborting current possible fetching...');
       fy.xhrAbort();
-      urlChanged = true;
+      fy.urlChanged = true;
     }
 
-    if(urlChanged || fy.forceLargeDivUpdateOnUrlChange) {
+    if(fy.urlChanged || fy.forceLargeDivUpdateOnUrlChange) {
       //reset fy-item attributs
       const itemDivs = [...fy.root.querySelectorAll('['+FY_UNIQ_STRING+']')];
       itemDivs.forEach((item, i) => {
@@ -191,6 +191,7 @@ class FyGlobal {
 
     //init
     toast.log();
+    fy.urlChanged = null;
 
     const isExit = determineExit_();
     if(isExit || fy.isFetching) {
@@ -207,7 +208,8 @@ class FyGlobal {
     fy.isFetching = true;
     await elementReady(selector, fy.root);
     fy.isFetching = false;
-    fy.handler();  //force first run
+
+    await fy.handler();  //force first run
 
     function determineExit_() {
       let result = false;
@@ -252,7 +254,7 @@ class FyGlobal {
       || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
       if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {
         //if already updated, no more update when scrolling, etc
-        toast.log('large-div already updated.');
+        console.log('large-div already updated.');
         if(fy.singlePageWithoutListItems) {
           toast.log();
           fy.observer.observe(fy.root, fy.observerOption);
@@ -278,13 +280,17 @@ class FyGlobal {
 
   handlers = {
     'm.kinolights.com': async () => {
+      //hack for kino
+      //fy.observer.disconnect();
+      //console.debug('observer disconncted on kino handler!');
+
       fy.isFetching = true;
       const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root, {waitFirstAndWaitForAllChildrenAdded: true});
-      fy.isFetching = false;
 
       console.debug('largeDiv', largeDiv);
-      console.debug('title in handler:', largeDiv.querySelector('h2').innerText);
+      console.debug('title in handler:', largeDiv?.querySelector('h2').innerText);
       if(largeDiv) await fy.largeDivUpdate(largeDiv);
+      fy.isFetching = false;
     },
 
     'www.netflix.com': async () => {
@@ -341,7 +347,7 @@ class FyGlobal {
 
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
-    
+
     if(itemNum > 0) {
       console.log('itemNum', itemNum);
       let type;
@@ -401,12 +407,16 @@ class FyGlobal {
       if(orgTitle) {
         orgTitle = orgTitle.querySelector('.item__body').innerText;
         if(orgTitle == '') orgTitle = null;
-        //window.__NUXT__가 로드되면 다음으로 알아낼 수 있지만 fy div 업데이트 끝날 때까지 로드가 안 됨
-        //window.__NUXT__.state.movies.movie[0].titleEn || window.__NUXT__.state.movies.movie[0].titleOri;
       }
       console.debug('in largeDivUpdate(), orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
 
       await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
+
+      //hack for kino
+      if(fy.urlChanged != false) {
+        fy.urlChanged = false;
+        console.log('fy.urlChanged was set false.');
+      }
     },
 
     'www.netflix.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
@@ -458,12 +468,19 @@ class FyGlobal {
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
+    if(fy.urlChanged == false) {  //not null, but false
+      console.log('url not changed.');
+      return;
+    }
     const baseEl = getParentsFrom_(largeDiv, trueData.selectors?.numberToBaseEl || fy.numberToBaseEl);
     if(!trueData.type)  //watcha 등 이미 가져온 상태면 패스
       trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);
 
     let sEl = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
     let otFlag, imdbFlag, forceUpdate = true;
+
+    if(!sEl) sEl = baseEl.querySelector('.fy-edit')?.parentNode;  //키노의 경우
+
     if(sEl) {
       //already updated (maybe)
       otFlag = sEl.querySelector('.fy-external-site')?.getAttribute('flag');
@@ -483,6 +500,7 @@ class FyGlobal {
     }
 
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
+    console.debug('determining...', otFlag, imdbFlag, sEl);
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       trueData.forceUpdate = forceUpdate;
       toast.log('large div on single-page update triggered.');
@@ -898,8 +916,6 @@ class FyGlobal {
     let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //the last is for kino only
 
     let targetEl = baseEl;
-    //hack for kino
-    //if(fy.noAppendDiv) targetEl = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
     //console.debug('baseEl, targetEl on edit', baseEl, targetEl);
 
     //search title, etc
