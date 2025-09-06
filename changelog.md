@@ -459,3 +459,6 @@
     //    kino: add getting org-title again (was removed at v0.10.14)
     //    kino: fix not newly being updated when navigating
     //    setting, util: fix minor things accordingly
+    // ver 0.10.28 @ 2025-09-06
+    //    jw: fix infinite running (bug of v0.10.26)
+    //    util: fix log causing error

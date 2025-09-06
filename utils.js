@@ -56,7 +56,7 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
 
     const lastEl = els.at(-1);
     this.prevChildElementCount = lastEl?.childElementCount;
-    
+
     let mutated = null;
     const timerId = setTimeout(async function tick() {
       if(!mutated) {
@@ -85,12 +85,12 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
           if(options.returnAll) resolve(els);
           else resolve(els[els.length-1]);
         }
-        else if(lastEl.childElementCount >= this.prevChildElementCount) {
+        else if(lastEl?.childElementCount >= this.prevChildElementCount) {
           this.prevChildElementCount = lastEl.childElementCount;
           await sleep(1000);  //dirty hack
           els = [...baseEl.querySelectorAll(selector)];
           //console.debug('lastEl.children, prevChildElementCount:', lastEl.children, this.prevChildElementCount);
-          if(els.at(-1).childElementCount == this.prevChildElementCount) {
+          if(els.at(-1)?.childElementCount == this.prevChildElementCount) {
             console.debug('resolved for checkIfAllChildrenAreAdded true', els);
           }
           else {
