@@ -465,6 +465,6 @@
     // ver 0.10.30 @ 2025-11-14
     //    jw: fix minor scraping logic
     //    watcha: fix minor logic in edit() on large div
-    // ver 0.11.0 @ 2025-11-14
+    // ver 0.11.1 @ 2025-11-14
     //    internal: minor wrap-up
     //    get rating (which is not on jw) directly from imdb via opening tab (rare case)

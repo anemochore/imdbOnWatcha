@@ -115,7 +115,7 @@ class ImdbRun {
         replaceCacheValueIfNeeded_('type', trueType);
 
         //for automatic update
-        if(GM_getValue('URLS_TO_DL').includes(location.href)) {
+        if(GM_getValue('URLS_TO_DL')?.includes(location.href)) {
           GM_setValue('temp_imdb_data_ready', cache);
           console.log('set temp_imdb_data_ready');
         }
