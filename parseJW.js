@@ -6,7 +6,7 @@ class ParseJW {
       if(!title) continue;
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      if(result.length > 0) console.info(`result for ${title} (${trueData.year || otData[i].year}, type: ${trueData.type || otData[i].type}):`, result);
+      if(result.length > 0) console.info(`result for ${title} (year: ${trueData.year || otData[i].year}, type: ${trueData.type || otData[i].type}):`, result);
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -100,14 +100,25 @@ class ParseJW {
           idx = sImdbIds.indexOf(trueImdbId);
         }
         else {
-          toast.log(`imdb id ${trueImdbId} was manually provided, but info is not found in jw. plz visit imdb page to get rating. :(`);
+          toast.log(`imdb id ${trueImdbId} was manually provided, but rating is not found in jw. now opening imdb and getting rating...`);
 
-          idx = -1;
-          otData[i].imdbRating = 'visit';
+          const url =  getImdbUrlFromId_(trueImdbId);
+          GM_setValue('URLS_TO_DL', [url]);
+          await openTab(url);
+
+          const newCache = GM_getValue('temp_imdb_data_ready');
+          GM_deleteValue('temp_imdb_data_ready');
+          GM_deleteValue('URLS_TO_DL');
+
           otData[i].imdbId = trueImdbId;
-          //if(trueOrgTitle) otData[i].orgTitle = trueOrgTitle;
-          //if(trueYear)     otData[i].year = trueYear;
           otData[i].imdbUrl = getImdbUrlFromId_(trueImdbId);
+
+          //실패할 경우는 생각하지 않는다.
+          if(isValidRating_(newCache.imdbRating)) otData[i].imdbRating = newCache.imdbRating;
+          if(newCache.orgTitle) otData[i].orgTitle = newCache.orgTitle;
+          if(newCache.year)     otData[i].year = newCache.year;
+          if(newCache.type)     otData[i].type = newCache.type;
+
           reSearching = 'no need';
         }
       }
@@ -140,8 +151,8 @@ class ParseJW {
 
             //console.debug('title, trueType, sTitle, found:', title, trueType, sTitle, found);
             if(!found) {
-              //원제로 재검색 중이고 비영어 제목이 jw 경로명과 일치한다면
-              if(title == trueOrgTitle && lowercaseFirstLetter(convertToEnglish(title)) == sAltTitle) {
+              //원제로 재검색 중이고 유형이 같고 비영어 제목이 jw 경로명과 일치한다면
+              if(title == trueOrgTitle && lowercaseFirstLetter(convertToEnglish(title)) == sAltTitle && trueType == sTypes[j]) {
                 console.info('non-English org-title matched:', title);
                 found = true;
               }
@@ -359,7 +370,7 @@ class ParseJW {
         otData[i].orgTitle = sOrgTitles[idx];
 
         if(sImdbIds[idx]) otData[i].imdbId = sImdbIds[idx];
-        else if(!otData[i].imdbId) otData[i].imdbFlag = '??';  //if imdb id is not present, not set imdbId.
+        else if(!otData[i].imdbId) otData[i].imdbFlag = '??';  //if imdb id is not present, don't set imdbId.
 
         if((otData[i].otFlag == '??' || !isValidRating_(sRatings[idx])) && isValidRating_(otData[i].imdbRating) && trueOrgTitle) {
           //if search failed but present (on kino), use it.
@@ -372,7 +383,9 @@ class ParseJW {
             otData[i].imdbRating = sRatings[idx] || (isValidRating_(otData[i].imdbRating) ? otData[i].imdbRating : '??');
           }
 
+          //console.debug('otData[i].imdbId, otData[i].orgTitle, title:', otData[i].imdbId, otData[i].orgTitle, title);
           otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle || title);
+          //console.debug('otData[i].imdbUrl:', otData[i].imdbUrl);
           otData[i].imdbRatingFetchedDate = new Date().toISOString();
 
           if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.

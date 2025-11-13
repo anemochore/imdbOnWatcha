@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.10.28
+// @version      0.11.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -28,6 +28,11 @@
 // @grant        GM_getValue
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
+// @grant        GM_deleteValue
+// @grant        GM_openInTab
+// @grant        GM_closeTab
+// @grant        GM_addValueChangeListener
+// @grant        GM_removeValueChangeListener
 // @connect      apis.justwatch.com
 // @connect      pedia.watcha.com
 
@@ -36,7 +41,6 @@
 
 //singletons
 const toast = new FadingAlert();
-toast.log();
 
 
 //global consts
@@ -50,15 +54,14 @@ const MAX_SEARCH_ITEMS = 100;
 const OT_URL = `https://apis.justwatch.com/graphql`;
 
 class FyGlobal {
-
   async run() {
-    fy.site = document.location.host;
+    fy.site = location.host;
 
     //for this.edit(), etc
     unsafeWindow.GM_getValue = GM_getValue;
     unsafeWindow.GM_setValue = GM_setValue;
 
-      //imdb 접속 시 캐시 업데이트
+    //imdb 접속 시 캐시 업데이트
     if(fy.site == 'www.imdb.com') {
       fyImdbRun.imdbRun();
       return;
@@ -110,16 +113,16 @@ class FyGlobal {
     }
 
     //global vars & flags
-    this.prevLocation = document.location;
+    this.prevLocation = location;
     this.isFetching = false;
     this.isUpdatingLargeDiv = false;
     this.indexCaches = [];
     this.keyCaches = [];
 
     //캐시 없으면 생성
-    const tempCache = await GM_getValue(GM_CACHE_KEY);
+    const tempCache = GM_getValue(GM_CACHE_KEY);
     if(!tempCache) {
-      await GM_setValue(GM_CACHE_KEY, {});
+      GM_setValue(GM_CACHE_KEY, {});
     }
 
     //to get the previous url. https://stackoverflow.com/a/52809105
@@ -129,8 +132,8 @@ class FyGlobal {
     });
 
     history.pushState = (f => function pushState() {
-      //console.debug(`location on pushState: ${fy.prevLocation.href} -> ${document.location.href}`);
-      fy.prevLocation = document.location;
+      //console.debug(`location on pushState: ${fy.prevLocation.href} -> ${location.href}`);
+      fy.prevLocation = location;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('pushstate'));
       window.dispatchEvent(new Event('locationchange'));
@@ -138,8 +141,8 @@ class FyGlobal {
     })(history.pushState);
 
     history.replaceState = (f => function replaceState() {
-      //console.debug(`location on replaceState: ${fy.prevLocation.href} -> ${document.location.href}`);
-      fy.prevLocation = document.location;
+      //console.debug(`location on replaceState: ${fy.prevLocation.href} -> ${location.href}`);
+      fy.prevLocation = location;
       var ret = f.apply(this, arguments);
       window.dispatchEvent(new Event('replacestate'));
       window.dispatchEvent(new Event('locationchange'));
@@ -168,7 +171,7 @@ class FyGlobal {
     console.debug('observer disconncted on entry()!');
 
     fy.root = document.querySelector(fy.rootSelector) || document;
-    const curLocation = document.location;
+    const curLocation = location;
 
     //ignoring # or ?mappingSource... at the end
     //console.debug(`location on entry: ${fy.prevLocation.href} -> ${curLocation.href}`);
@@ -249,7 +252,7 @@ class FyGlobal {
   }
 
   defaultHandler = async (m, o) => {
-    if(fy.selectorsForSinglePage && document.location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
+    if(fy.selectorsForSinglePage && location.pathname.startsWith(fy.selectorsForSinglePage.determinePathnameBy)) {
       let largeDiv = fy.root.querySelector(fy.selectorOnSinglePage)
       || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
       if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {
@@ -372,13 +375,18 @@ class FyGlobal {
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
-      const wpId = getIdFromValidUrl_(document.location.href);
-      const title = getTextFromNode_(getParentsFrom_(largeDiv, selectors.numberToBaseEl).querySelector(selectors.title));
-      const type = getTypeFromDiv_(selectors, getParentsFrom_(largeDiv, selectors.numberToBaseEl));
+      const root = getParentsFrom_(largeDiv, selectors.numberToBaseEl)
+      const title = getTextFromNode_(root.querySelector(selectors.title));
+      const type = getTypeFromDiv_(selectors, root);
+
+      let wYear;
+      if(selectors.year) wYear = await elementReady(selectors.year, root, {suppressTimeoutWarning: true}).innerText;  //lazy-loaded
+
+      const wpId = getIdFromValidUrl_(location.href);
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
-      toast.log(`scraping wp for org. title, etc for ${title} (${wpId})...`);
-      //연도를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
+      toast.log(`scraping wp for org. title and year for ${title} (year: ${wYear}, id: ${wpId})...`);
+      //원제를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
       const otScrapeResults = await fetchAll([wpUrl], {
         headers: {'Accept-Language': 'en-US'},
       });
@@ -386,6 +394,7 @@ class FyGlobal {
       const watchaLargeOtData = [{wpId, wpUrl, type}];
       await fyWP.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, type != 'Movie');
       const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
+      if(wYear && wYear != year) console.log(`mild warning: year mismatched. watcha: ${wYear} vs wp: ${year}`);
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
 
       //dom이 wp 스크레이핑 도중 바뀌는 일이 있어서 largeDiv를 갱신-_-
@@ -500,7 +509,7 @@ class FyGlobal {
     }
 
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
-    console.debug('determining...', otFlag, imdbFlag, sEl);
+    console.debug('determining on large div update...', otFlag, imdbFlag, sEl);
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       trueData.forceUpdate = forceUpdate;
       toast.log('large div on single-page update triggered.');
@@ -541,7 +550,7 @@ class FyGlobal {
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
-    const otCache = await GM_getValue(GM_CACHE_KEY);
+    const otCache = GM_getValue(GM_CACHE_KEY);
 
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
@@ -743,9 +752,9 @@ class FyGlobal {
         }
       });
 
-      const targetObj = await GM_getValue(GMKey);
+      const targetObj = GM_getValue(GMKey);
       Object.assign(targetObj, obj);
-      await GM_setValue(GMKey, targetObj);
+      GM_setValue(GMKey, targetObj);
       if(Object.keys(obj).length > 0)
         console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
     }
@@ -792,9 +801,6 @@ class FyGlobal {
       if(otDatum.imdbRating == '??') {
         rating = '??';  //possibly not yet updated
         otDatum.imdbFlag = '';  //???? -> ??
-      }
-      else if(otDatum.imdbRating == 'visit') {
-        rating = 'visit';
       }
       else if(isValidRating_(otDatum.imdbRating)) {
         rating = parseFloat(otDatum.imdbRating);
@@ -910,7 +916,7 @@ class FyGlobal {
     event.stopPropagation();
     //event.preventDefault();
 
-    const otCache = await GM_getValue(GM_CACHE_KEY);  //exported earlier
+    const otCache = GM_getValue(GM_CACHE_KEY);  //exported earlier
     const el = event.target;
     const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
     let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //the last is for kino only
@@ -930,6 +936,7 @@ class FyGlobal {
       titleEl = querySelectorFiFo_(baseEl, selectors.title);
       title = getTextFromNode_(titleEl);
       type = getTypeFromDiv_(selectors, baseEl);
+      year = baseEl.querySelector(selectors.year)?.innerText;  //for watcha
     }
     else if(!type && fy.selectorsForSinglePage?.useHardcodedFunc) {  //dp only (as of 24-12-28)
       const largeDiv = fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, `[${FY_UNIQ_STRING}]`));
@@ -1006,7 +1013,7 @@ class FyGlobal {
 
   //utils used for watcha
   async getObjFromWpId_(id) {
-    const otCache = await GM_getValue(GM_CACHE_KEY);
+    const otCache = GM_getValue(GM_CACHE_KEY);
     const cacheTitles = Object.keys(otCache);
     const cacheIds = Object.values(otCache).map(el => el.wpUrl ? getIdFromValidUrl_(el.wpUrl) : null);
 

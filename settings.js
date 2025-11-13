@@ -25,6 +25,7 @@ SETTINGS['watcha.com'] = {
   selectorsForSinglePage: {
     determinePathnameBy: '/contents/',
     title: 'h1',
+    year: 'section>div+div>p>span:not([class])>span',
     isTVSeries: {
       numberToBaseEl: 1,
       selector: 'h1+p>span',

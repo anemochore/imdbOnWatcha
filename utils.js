@@ -1,4 +1,4 @@
-//common global util classes
+//common global utils
 class FadingAlert {
   constructor() {
     this.div = document.createElement('div');
@@ -32,6 +32,8 @@ class FadingAlert {
         console.log(...txt);
       }
     };
+
+    this.log();
   }
 }
 
@@ -60,7 +62,7 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
     let mutated = null;
     const timerId = setTimeout(async function tick() {
       if(!mutated) {
-        console.warn('elementReadey failed!!??', selector, els);
+        if(!options.suppressTimeoutWarning) console.warn('elementReadey failed!!??', selector, els);
         observer.disconnect();
         if(options.returnAll) resolve(els);
         else resolve(els[els.length-1]);
@@ -211,6 +213,32 @@ fragment SuggestedTitle on MovieOrShow {
 }
 
 
+//for imdb
+async function openTab(url) {
+  const index = GM_getValue('URLS_TO_DL').indexOf(url);  //무조건 0
+  if (index == -1) return;
+
+  console.debug(`opening: ${url}`);  //dev+++
+  const tab = GM_openInTab(url, { active: false, setParent: true });
+  await waitForValueChange('temp_imdb_data_ready');
+  tab.close();
+
+  //return is not needed
+
+
+  function waitForValueChange(key) {
+    return new Promise(resolve => {
+      const listenerId = GM_addValueChangeListener(key, async (name, oldValue, newValue, remote) => {
+        if (remote && newValue !== null) {
+          GM_removeValueChangeListener(listenerId);
+          resolve(newValue);
+        }
+      });
+    });
+  }
+}
+
+
 //small utils
 function getTypeFromDiv_(selectors, baseEl) {
   let nestedSelector = selectors.isTVSeries || selectors.types;  //either. not and/or
@@ -339,7 +367,6 @@ function getWpUrlFromId_(wpId) {
   return 'https://pedia.watcha.com/ko-KR/contents/' + wpId;
 }
 
-//common(?) publics
 function getCleanTitle(title) {
   if(title) {
     title = title.replace(/^\[자막\] ?/, '').replace(/^\[더빙\] ?/, '');
@@ -356,7 +383,6 @@ function getCleanTitle(title) {
 function getCleanTokens(title) {
   return title.replace(/[:-]/g, '').split(' ').filter(el => el);
 }
-
 
 function isValidRating_(rating = 'n/a') {
   return rating != 'n/a' && !isNaN(parseFloat(rating))

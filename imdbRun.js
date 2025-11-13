@@ -1,8 +1,8 @@
 class ImdbRun {
   async imdbRun() {
-    const otCache = await GM_getValue(GM_CACHE_KEY);
+    const otCache = GM_getValue(GM_CACHE_KEY);
 
-    const path = document.location.pathname.replace(/\/$/, '');
+    const path = location.pathname.replace(/\/$/, '');
     if(!path.startsWith('/title/') || path.endsWith('/episodes') || path.split('/').length > 3) {
       toast.log();
       return;
@@ -113,13 +113,19 @@ class ImdbRun {
         replaceCacheValueIfNeeded_('orgTitle', trueOrgTitle);
         replaceCacheValueIfNeeded_('year', trueYear);
         replaceCacheValueIfNeeded_('type', trueType);
+
+        //for automatic update
+        if(GM_getValue('URLS_TO_DL').includes(location.href)) {
+          GM_setValue('temp_imdb_data_ready', cache);
+          console.log('set temp_imdb_data_ready');
+        }
       }
 
       //wrap-up
       cache.imdbRatingFetchedDate = new Date().toISOString();
       cache.imdbVisitedDate = new Date().toISOString();
       otCache[keys[idx]] = cache;
-      await GM_setValue(GM_CACHE_KEY, otCache);
+      GM_setValue(GM_CACHE_KEY, otCache);
 
       function replaceCacheValueIfNeeded_(sourceKey, targetValue) {
         if(cache[sourceKey] != targetValue) {
