@@ -20,7 +20,7 @@ class FadingAlert {
     s.zIndex = '1000'; //z-index on css is 999
 
     this.log = async (...txt) => {
-      if (txt.length == 0) {
+      if (txt.length == 0 || !txt[0]) {
         await sleep(1);
         this.div.style.opacity = 0;
         this.div.style.transition = 'opacity 2s ease-in';
