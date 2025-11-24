@@ -322,14 +322,7 @@ function getTextFromNode_(el = null) {
     }
     result = texts.join("");
 
-    if(!result || !result.trim()) result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
-
-    /*
-    if(result == 'Image') {
-      result = el.innerText;  //cp
-      console.log('result for cp', result);
-    }
-    */
+    if(!result || !result.trim()) result = el.alt || el.getAttribute('aria-label') || el.querySelector('img')?.alt || el.querySelector('img')?.getAttribute('aria-label') || el.querySelector('a')?.getAttribute('aria-label') || el.innerText;
   }
 
   if(fy.selectorsForListItems?.ignoreItemIfMatches) {

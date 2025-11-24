@@ -186,7 +186,7 @@ SETTINGS['www.tving.com'] = {
 SETTINGS['www.coupangplay.com'] = {
   includingPaths: ['/my-profile', '/mylist', '/search', '/query', '/titles', '/movies', '/buy', '/tv'],
 
-  selector: `div[class^="MyProfile_mainContent__"]>div>div>ul>li:not([${FU}])>a[href^="/titles/"], `  //my-profile
+  selector: `div[class^="MyProfile_mainContent__"]>div>div>ul>li:not([${FU}])>a[href^="/titles/"], `  //my-profile(개별구매는 X)
   + `div[class*="TitleListContainer_gridContainer__"]>div[data-cy="titleListItem"]>div>div>div:not([${FU}])>a[href^="/titles/"],  `  //mylist
   + `div[class^="SearchTopTrending_topTrendingContainer__"]>div div:not([${FU}])>a[href^="/titles/"], `  //search
   + `div[class^="SearchResultGrouped_results__"]>div div:not([${FU}])>a[href^="/titles/"], `  //query
@@ -197,7 +197,7 @@ SETTINGS['www.coupangplay.com'] = {
   selectorsForListItems: {
     ignoreStrings: ['thumbnail ', '(자막)', '(더빙)'],
     title: `div>img[aria-label], `  //my-profile
-    + `img[class^="TitleListItem_listItemThumbnail__"][alt], `  //mylist, search
+    + `div[class^="MyListRail_thumbnailContainer__"]>img[alt], `  //mylist, search
     + `div>p[class^="CarouselThumbnail_spareContainerText__"], `  //query
     + `div[class^="TitleV2_shared_title__"], `  //titles main
     + `div[class^="RelatedTitleListItem_metadataWrapper__"]>h1, `  //titles list (prefer text)
@@ -209,18 +209,19 @@ SETTINGS['www.coupangplay.com'] = {
       selector: 'div>h1[class^="SearchResultGrouped_rowTitle__"], a[class^="TitlePlayCTAButton_"]',  //query page, titles main
       mapping: {'스토어': 'Movie'},  //query page only
     },
+    /*
     typeMatch: {
       tagName: 'A',
       attr: 'href',
       matches: ['/tvshow?', '/movie?'],
       results: ['TV Series', 'Movie'],
     },
+    */
     getYearFromTitle: true,
   },
 
   typePerPath: {
-    '/buy': 'Movie',
-    '/movies': 'Movie',
+//    '/buy': 'Movie',
     '/tv': 'TV Series',
   },
 };

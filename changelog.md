@@ -468,3 +468,5 @@
     // ver 0.11.1 @ 2025-11-14
     //    internal: minor wrap-up
     //    get rating (which is not on jw) directly from imdb via opening tab (rare case)
+    // ver 0.11.2 @ 2025-11-24
+    //    coupang play: fix my-profile (in progress...)

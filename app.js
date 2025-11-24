@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.11.1
+// @version      0.11.2
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -522,11 +522,10 @@ class FyGlobal {
   };
 
   defaultBaseElementProc = async (itemDivs, numberToBaseEl, remove = false) => {
-
     itemDivs.forEach(item => {
       const baseEl = getParentsFrom_(item, numberToBaseEl);
       if(!baseEl.closest(fy.rootSelector)) {
-        console.debug('items are possible updated just before!');
+        console.debug('item is updated just before!');
       }
 
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null || remove) {
@@ -566,7 +565,8 @@ class FyGlobal {
       let title = trueData.title, titleEl;
       if(!title && baseEl) {
         titleEl = querySelectorFiFo_(baseEl, trueData.selectors.title);
-        title = getTextFromNode_(titleEl);
+        if(!titleEl) title = getTextFromNode_(baseEl);
+        else         title = getTextFromNode_(titleEl);
       }
 
       if(!title) {
@@ -695,6 +695,7 @@ class FyGlobal {
   
       toast.log(`getting infos from jw... length: ${searchLength}`);
       const urls = qTitles.map(title => title ? OT_URL: null)
+      console.debug('fetching for:', qTitles);
       const otSearchResults = await fetchAll(urls, {}, qTitles);
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
 
