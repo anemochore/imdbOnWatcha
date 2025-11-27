@@ -16,7 +16,7 @@ class FadingAlert {
     s.border = 0;
     s.color = 'Black';
     s.backgroundColor = 'LawnGreen';
-    s.overflow = 'auto';
+    //s.overflow = 'auto';
     s.zIndex = '1000'; //z-index on css is 999
 
     this.log = async (...txt) => {
