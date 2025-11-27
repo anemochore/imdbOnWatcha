@@ -1,12 +1,12 @@
 class ParseJW {
   //parsing and scraping funcs
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
-    console.debug('before for');
+    //console.debug('before for');
     for(const [i, r] of results.entries()) {
       let title = titles[i];
-      console.debug('before continue');
+      //console.debug('before continue');
       if(!title) continue;
-      console.debug('not continued');
+      //console.debug('not continued');
 
       const result = r?.data?.popularTitles?.edges.map(el => el.node);
       if(result.length > 0) console.debug(`result for ${title} (year: ${trueData.year || otData[i].year}, type: ${trueData.type || otData[i].type}):`, result);

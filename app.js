@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.11.2
+// @version      0.11.3
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -287,10 +287,15 @@ class FyGlobal {
       //fy.observer.disconnect();
       //console.debug('observer disconncted on kino handler!');
 
+      if(fy.urlChanged == false) {  //not null, but false
+        console.debug('url not changed.');
+        return;
+      }
+
       fy.isFetching = true;
       const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root, {waitFirstAndWaitForAllChildrenAdded: true});
 
-      console.debug('largeDiv', largeDiv);
+      //console.debug('largeDiv', largeDiv);
       console.debug('title in handler:', largeDiv?.querySelector('h2').innerText);
       if(largeDiv) await fy.largeDivUpdate(largeDiv);
       fy.isFetching = false;
@@ -477,10 +482,6 @@ class FyGlobal {
   };
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
-    if(fy.urlChanged == false) {  //not null, but false
-      console.log('url not changed.');
-      return;
-    }
     const baseEl = getParentsFrom_(largeDiv, trueData.selectors?.numberToBaseEl || fy.numberToBaseEl);
     if(!trueData.type)  //watcha 등 이미 가져온 상태면 패스
       trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);

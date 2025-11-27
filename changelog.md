@@ -470,3 +470,5 @@
     //    get rating (which is not on jw) directly from imdb via opening tab (rare case)
     // ver 0.11.2 @ 2025-11-24
     //    coupang play: fix my-profile (in progress...)
+    // ver 0.11.3 @ 2025-11-27
+    //    kino: fix logging multiple times
