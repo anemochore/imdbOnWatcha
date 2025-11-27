@@ -22,15 +22,15 @@ class FadingAlert {
     this.log = async (...txt) => {
       if (txt.length == 0 || !txt[0]) {
         await sleep(1);
-        this.div.style.opacity = 0;
-        this.div.style.zIndex = -999;
         this.div.style.transition = 'opacity 2s ease-in';
+        this.div.style.opacity = 0;
+        this.div.style.pointerEvents = 'none';
       }
       else {
         this.div.textContent = txt.join(' ');
         this.div.style.transition = '';
         this.div.style.opacity = 1;
-        this.div.style.zIndex = 1000;
+        this.div.style.pointerEvents = 'auto';
         console.log(...txt);
       }
     };
