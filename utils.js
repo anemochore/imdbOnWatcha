@@ -159,51 +159,50 @@ async function fetchAll(urls, headers = {}, querys = [], locale = {country: fy.c
 
           //imdbVotes is included, but not used.
           const params = {
-            "operationName": "GetSuggestedTitles",
-            "variables": {
-              "country": locale.country,
-              "language": locale.lang,
-              "first": 10,
-              "filter": {
-                "searchQuery": query
+            operationName: "GetSearchTitles",
+            variables: {
+              country: locale.country,
+              language: locale.lang,
+              first: 10,
+              source: "WEB",              // ✅ 필수
+              filter: {
+                searchQuery: query       // ✅ 여기로 들어와야 함
               }
             },
-            "query": `query GetSuggestedTitles($country: Country!, $language: Language!, $first: Int!, $filter: TitleFilter) {
-  popularTitles(country: $country, first: $first, filter: $filter) {
+            query: `
+query GetSearchTitles(
+  $country: Country!,
+  $language: Language!,
+  $first: Int!,
+  $source: String!,
+  $filter: TitleFilter
+) {
+  searchTitles(
+    country: $country,
+    first: $first,
+    source: $source,
+    filter: $filter
+  ) {
     edges {
       node {
-        ...SuggestedTitle
-        __typename
+        objectType
+        content(country: $country, language: $language) {
+          title
+          originalReleaseYear
+          originalTitle
+          fullPath
+          scoring {
+            imdbScore
+            imdbVotes
+          }
+          externalIds {
+            imdbId
+          }
+        }
       }
-      __typename
     }
-    __typename
   }
-}
-
-fragment SuggestedTitle on MovieOrShow {
-  id
-  objectType
-  objectId
-  content(country: $country, language: $language) {
-    fullPath
-    title
-    originalReleaseYear
-    originalTitle
-    scoring {
-      imdbScore
-      imdbVotes
-      __typename
-    }
-    externalIds {
-      imdbId
-      __typename
-    }
-    __typename
-  }
-  __typename
-}
-`
+}`
           };
           payload.data = JSON.stringify(params);
         }

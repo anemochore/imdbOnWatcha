@@ -472,3 +472,5 @@
     //    coupang play: fix my-profile (in progress...)
     // ver 0.11.3 @ 2025-11-27
     //    kino: fix logging multiple times
+    // ver 0.12.0 @ 2025-12-02
+    //    jw: fix query (due to their change)

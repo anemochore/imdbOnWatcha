@@ -8,8 +8,9 @@ class ParseJW {
       if(!title) continue;
       //console.debug('not continued');
 
-      const result = r?.data?.popularTitles?.edges.map(el => el.node);
-      if(result.length > 0) console.debug(`result for ${title} (year: ${trueData.year || otData[i].year}, type: ${trueData.type || otData[i].type}):`, result);
+      //console.debug(`raw result`, r);
+      const result = r?.data?.searchTitles?.edges.map(el => el.node);
+      if (result) console.debug(`result for ${title}:`, result);
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -18,7 +19,7 @@ class ParseJW {
 
       const YEAR_DIFFERENCE_THRESHOLD = 2;  //accept result with year-diffence less than this
 
-      const tvString = 'SHOW';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음.
+      const tvString = 'SHOW';  //jw는 미니 시리즈와 그냥 tv 시리즈를 구분하지 않음
 
       //discard season url
       let trueJwUrl = trueData.jwUrl;
@@ -30,11 +31,17 @@ class ParseJW {
       //to update cache
       otData[i].query = title;
 
-      //edit의 경우(캐시의 값을 쓰면 안 됨)
+      //edit의 경우
       const trueOrgTitle = trueData.orgTitle;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
       const trueImdbId = trueData.imdbId;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
-      const trueType = trueData.type || otData[i].type;
-      const trueYear = trueData.year || otData[i].year;
+
+      //타입과 연도는 캐시가 건강하다면 사용
+      //console.debug('trueType and trueYear from cache or selector:', otData[i].type, otData[i].year);
+      let trueType = trueData.type;
+      let trueYear = trueData.year;
+      if (!trueType && (!otData[i].otFlag || otData[i].otFlag == '')) trueType = otData[i].type;
+      if (!trueYear && (!otData[i].otFlag || otData[i].otFlag == '')) trueYear = otData[i].year;
+      console.debug('trueType and trueYear:', trueType, trueYear);
 
       let cacheTrueImdbId = null, orgOtFlag;
       if(!trueData.imdbId && otData[i]?.imdbId != 'n/a' && otData[i].type && otData[i].year && otData[i].imdbRating && otData[i].imdbVisitedDate) {
@@ -45,7 +52,7 @@ class ParseJW {
 
       //검색 결과 없다면
       if(!result || result.length == 0) {
-        console.warn('search for',title,'on jw failed! no result at all!');
+        console.warn('search for',title,'on jw failed! no result at all!', result);
         otData[i].otFlag = '??';
       }
 

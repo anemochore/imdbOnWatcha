@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.11.3
+// @version      0.12.0
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -595,7 +595,7 @@ class FyGlobal {
       if((!trueData.year && trueData.selectors.year) || trueData.selectors?.getYearFromTitle) {
         let year = (querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText ||
           querySelectorFiFo_(baseEl, trueData.selectors.year)?.textContent)?.trim();
-        
+
         //year 셀렉터가 우선
         if(trueData.selectors.year && year) {
           year = year.replace(/^.+ · /, '');  //왓챠 search
@@ -603,17 +603,17 @@ class FyGlobal {
             if(year.replace(/\n/g, ' ').match(/• \d{4} •/)) year = year.replace(/\n/g, ' ').match(/• (\d{4}) •/)[1];  //쿠팡플레이 titles list
             else if(year.match(/• \d{4}/)) year = year.match(/• (\d{4})/)[1];  //쿠팡플레이 titles list
           }
-          //console.debug('got possible year from selector:', year);
+          //console.debug(`got possible year ${year} from selector for ${title}`);
         }
         else if(trueData.selectors.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
             title = title.replace(match[0], '').trim();
-            //console.debug('got possible year from title', title, year);
+            //console.debug(`got possible year ${year} from title itself: ${title}`);
           }
         }
-        
+
         if(!isNaN(parseInt(year)) && Number.isInteger(parseInt(year))) otData[i].year = year;
       }
 
@@ -623,7 +623,7 @@ class FyGlobal {
         if(type && !type.startsWith('not ')) {
           //캐시에 타입이 없거나, 캐시가 의심스러우면 목록의 타입(not으로 안 시작하는) 사용
           if(!otData[i].type || otData[i].otFlag != '') {
-            console.debug(`got type in searchByTitle: ${type} for ${title}`);
+            //console.debug(`got type in searchByTitle: ${type} for ${title}`);
             otData[i].type = type;
           }
         }
@@ -672,7 +672,7 @@ class FyGlobal {
     let searchLength = fy.setInternalCache_(titles, otData);
 
     if(searchLength == 0) {
-      console.log(`nothing to search or scrape on jw.`);
+      console.log('nothing to search or scrape on jw.');
     }
     else {  //if(!trueData.id) {
       //업데이트!
@@ -696,7 +696,7 @@ class FyGlobal {
   
       toast.log(`getting infos from jw... length: ${searchLength}`);
       const urls = qTitles.map(title => title ? OT_URL: null)
-      console.debug('fetching for:', qTitles);
+      //console.debug('fetching for:', qTitles.filter(el => el));
       const otSearchResults = await fetchAll(urls, {}, qTitles);
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
 
