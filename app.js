@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.0
+// @version      0.12.1
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -212,6 +212,7 @@ class FyGlobal {
     await elementReady(selector, fy.root);
     fy.isFetching = false;
 
+    console.debug('forcing first run of handler...');
     await fy.handler();  //force first run
 
     function determineExit_() {
@@ -344,6 +345,12 @@ class FyGlobal {
   };
 
   handlerWrapUp = async (selectorObj) => {
+    if (fy.handlerWrapUpRunning == true) {
+      console.log('handlerWrapUp already running. skipping...');
+      return;
+    }
+    fy.handlerWrapUpRunning = true;
+
     let selector;
     if(!selectorObj) {
       selectorObj = fy.selectorsForListItems;
@@ -357,7 +364,8 @@ class FyGlobal {
     const itemNum = itemDivs.length;
 
     if(itemNum > 0) {
-      console.log('itemNum', itemNum);
+      console.log('itemNum, fy.handlerWrapUpRunning', itemNum, fy.handlerWrapUpRunning);
+      //alert('pause');
       let type;
       if(fy.typePerPath) {
         for (const [key, value] of Object.entries(fy.typePerPath)) {
@@ -366,12 +374,14 @@ class FyGlobal {
       }
 
       if(type) console.log(`type is '${type}' (possibly based on url).`);  //dp
-      fy.search(itemDivs, {selectors: selectorObj, type: type});
+      await fy.search(itemDivs, {selectors: selectorObj, type: type});
+      fy.handlerWrapUpRunning = false;
     }
     else {
       //nothing to do
       toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
+      fy.handlerWrapUpRunning = false;
     }
   };
 
@@ -550,8 +560,14 @@ class FyGlobal {
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
-    const otCache = GM_getValue(GM_CACHE_KEY);
+    console.debug('itemDivs & fy.prevItemDivs', itemDivs, fy.prevItemDivs);
+    if(itemDivs.every(item => fy.prevItemDivs?.includes(item))) {
+      console.log('itemDivs unchanged from previous searchByTitle(). skipping...');
+      return;
+    }
+    fy.prevItemDivs = itemDivs.slice();  //cloning
 
+    const otCache = GM_getValue(GM_CACHE_KEY);
     let otData = [];
     let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
@@ -694,10 +710,12 @@ class FyGlobal {
         searchLength = MAX_SEARCH_ITEMS;
       }
   
+      //fy.isFetching = true;
       toast.log(`getting infos from jw... length: ${searchLength}`);
       const urls = qTitles.map(title => title ? OT_URL: null)
       //console.debug('fetching for:', qTitles.filter(el => el));
       const otSearchResults = await fetchAll(urls, {}, qTitles);
+      //fy.isFetching = false;
       await fyJW.parseJwSearchResults_(otSearchResults, otData, trueData, titles);
 
       searchLength = otSearchResults.filter(el => el).length;

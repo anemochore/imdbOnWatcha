@@ -138,9 +138,8 @@ SETTINGS['www.disneyplus.com'] = {
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"], `      //main??
-  + `div>div>section>div[data-testid]>div:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"]`,  //browse/... except large-div
-  
+  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"]>div div[data-testid="poster-vertical-title-art"]>img[alt]`,  //main
+
   numberToBaseElWhenUpdating: 0,
 
   elementReadyOption: {

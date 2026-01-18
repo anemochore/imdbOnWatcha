@@ -474,3 +474,7 @@
     //    kino: fix logging multiple times
     // ver 0.12.0 @ 2025-12-02
     //    jw: fix query (due to their change)
+    // ver 0.12.1 @ 2026-01-18
+    //    disneyplus: fix infinite loading temporalily (main only)
+    //    TODO: make browse/movies work again
+    //    TODO: fix css for main page
