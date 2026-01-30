@@ -138,8 +138,10 @@ SETTINGS['www.disneyplus.com'] = {
   rootSelector: 'div#webAppRoot',
 
   //'the last element'(fyItem) selection.
-  selector: `section>div>div>div[data-testid="set-shelf-item"]:not([${FU}])>a[aria-label][href^="/ko-kr/browse/entity-"]>div div[data-testid="poster-vertical-title-art"]>img[alt]`,  //main
+  selector: `div[data-testid="set-shelf-item"]:not([${FU}]):has(a[aria-label][href^="/ko-kr/browse/entity-"]>div img[alt]), `  //main
+  + `div:not([${FU}]):has(>a[aria-label][href^="/ko-kr/browse/entity-"]>div img)`,  //browse
 
+  numberToBaseEl: 0,
   numberToBaseElWhenUpdating: 0,
 
   elementReadyOption: {
@@ -148,8 +150,10 @@ SETTINGS['www.disneyplus.com'] = {
 
   selectorsForListItems: {
     ignoreItemIfMatches: [/^STAR Original$/, / 예고편 콘텐츠를 시청하려면 선택하세요/, / 예고편$/],
-    ignoreStrings: [' STAR Original', ' | 특별 영상', ': 특별 영상', ' Disney+ Original', '이 콘텐츠에 대한 정보를 보려면 선택하세요.'],
-    title: 'a[data-item-id][aria-label], img:not([alt=""])',  //this should be the child of 'the last element' or itself!.
+    ignoreStrings: [/(\||:) 특별 영상/, '이 콘텐츠에 대한 정보를 보려면 선택하세요.', 
+      /^(새로운|NEW) .+ 배지/, '시즌 마지막 에피소드 배지 ', 
+      'Disney+ Original', /STAR (Original|Generic)/, /Hulu (Original|Original Series|Generic)/, ],
+    title: 'img:not([alt=""]), a[data-item-id][aria-label]',  //this should be the child of 'the last element' or itself!.
   },
 
   selectorOnSinglePage: `section#explore-ui-main-content-container:not([${FU}])>div`,  //browse/... large-div`,

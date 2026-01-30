@@ -478,3 +478,6 @@
     //    disneyplus: fix infinite loading temporalily (main only)
     //    TODO: make browse/movies work again
     //    TODO: fix css for main page
+    // ver 0.12.3 @ 2026-01-30
+    //    disneyplus: fix selectors, css, etc
+    //    disneyplus: fix /browse pages except /browse/originals (partially displayed)

@@ -336,7 +336,7 @@ function getTextFromNode_(el = null) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
     if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) ignoreStrings = [ignoreStrings];
     for(const ignoreString of ignoreStrings)
-      result = result?.replace(ignoreString, '');
+      result = result?.replace(ignoreString, '').trim();
   }
 
   return result?.trim();

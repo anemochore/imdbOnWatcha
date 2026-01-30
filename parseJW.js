@@ -10,7 +10,8 @@ class ParseJW {
 
       //console.debug(`raw result`, r);
       const result = r?.data?.searchTitles?.edges.map(el => el.node);
-      if (result) console.debug(`result for ${title}:`, result);
+      //if (result) console.debug(`result for ${title}:`, result);
+      if (!result) console.debug('no result at all!');
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -41,7 +42,7 @@ class ParseJW {
       let trueYear = trueData.year;
       if (!trueType && (!otData[i].otFlag || otData[i].otFlag == '')) trueType = otData[i].type;
       if (!trueYear && (!otData[i].otFlag || otData[i].otFlag == '')) trueYear = otData[i].year;
-      console.debug('trueType and trueYear:', trueType, trueYear);
+      //console.debug('trueType and trueYear:', trueType, trueYear);
 
       let cacheTrueImdbId = null, orgOtFlag;
       if(!trueData.imdbId && otData[i]?.imdbId != 'n/a' && otData[i].type && otData[i].year && otData[i].imdbRating && otData[i].imdbVisitedDate) {
@@ -224,7 +225,7 @@ class ParseJW {
           }
         });
 
-        console.debug('trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        console.debug(title, 'trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {

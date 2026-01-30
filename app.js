@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.1
+// @version      0.12.3
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -363,8 +363,9 @@ class FyGlobal {
     const itemDivs = [...fy.root.querySelectorAll(selector)];
     const itemNum = itemDivs.length;
 
+    console.debug('itemNum', itemNum);
     if(itemNum > 0) {
-      console.log('itemNum, fy.handlerWrapUpRunning', itemNum, fy.handlerWrapUpRunning);
+      //console.log('itemNum, fy.handlerWrapUpRunning', itemNum, fy.handlerWrapUpRunning);
       //alert('pause');
       let type;
       if(fy.typePerPath) {
@@ -560,9 +561,9 @@ class FyGlobal {
   };
 
   async searchByTitle(itemDivs, trueData = {}) {
-    console.debug('itemDivs & fy.prevItemDivs', itemDivs, fy.prevItemDivs);
+    //console.debug('itemDivs & fy.prevItemDivs', itemDivs, fy.prevItemDivs);
     if(itemDivs.every(item => fy.prevItemDivs?.includes(item))) {
-      console.log('itemDivs unchanged from previous searchByTitle(). skipping...');
+      console.debug('itemDivs unchanged from previous searchByTitle(). skipping...');
       return;
     }
     fy.prevItemDivs = itemDivs.slice();  //cloning
@@ -584,6 +585,7 @@ class FyGlobal {
         titleEl = querySelectorFiFo_(baseEl, trueData.selectors.title);
         if(!titleEl) title = getTextFromNode_(baseEl);
         else         title = getTextFromNode_(titleEl);
+        //console.debug('baseEl & titleEl & title', baseEl, titleEl, title);
       }
 
       if(!title) {
@@ -942,7 +944,7 @@ class FyGlobal {
     let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //the last is for kino only
 
     let targetEl = baseEl;
-    //console.debug('baseEl, targetEl on edit', baseEl, targetEl);
+    console.debug('baseEl, targetEl on edit', baseEl, targetEl);
 
     //search title, etc
     let type = getTypeFromDiv_(selectors, baseEl), year;
