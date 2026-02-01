@@ -481,3 +481,6 @@
     // ver 0.12.3 @ 2026-01-30
     //    disneyplus: fix selectors, css, etc
     //    disneyplus: fix /browse pages except /browse/originals (partially displayed)
+    // ver 0.12.5 @ 2026-02-01
+    //    disneyplus: fix edit() not working
+    //    disneyplus: fix /browse/originals (dirty hack. incomplete)

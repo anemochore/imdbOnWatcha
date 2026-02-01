@@ -145,19 +145,19 @@ SETTINGS['www.disneyplus.com'] = {
   numberToBaseElWhenUpdating: 0,
 
   elementReadyOption: {
-    checkIfAllChildrenAreAdded: true,
+    waitAgain: true,
   },
 
   selectorsForListItems: {
     ignoreItemIfMatches: [/^STAR Original$/, / 예고편 콘텐츠를 시청하려면 선택하세요/, / 예고편$/],
     ignoreStrings: [/(\||:) 특별 영상/, '이 콘텐츠에 대한 정보를 보려면 선택하세요.', 
       /^(새로운|NEW) .+ 배지/, '시즌 마지막 에피소드 배지 ', 
-      'Disney+ Original', /STAR (Original|Generic)/, /Hulu (Original|Original Series|Generic)/, ],
+      'Disney+ Original', /STAR (Original|Generic)/, /Hulu (Original Series|Original|Generic)/, ],
     title: 'img:not([alt=""]), a[data-item-id][aria-label]',  //this should be the child of 'the last element' or itself!.
   },
 
-  selectorOnSinglePage: `section#explore-ui-main-content-container:not([${FU}])>div`,  //browse/... large-div`,
-  
+  selectorOnSinglePage: `section#explore-ui-main-content-container>div`,  //browse/... large-div
+
   typePerPath: {
     '/ko-kr/browse/movies': 'Movie',
     '/ko-kr/browse/series': 'TV Series',

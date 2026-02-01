@@ -225,7 +225,7 @@ class ParseJW {
           }
         });
 
-        console.debug(title, 'trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        console.debug(`[${title}]`, 'trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {

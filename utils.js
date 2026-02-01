@@ -46,20 +46,18 @@ function sleep(ms) {
 function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {}) {
   return new Promise((resolve, reject) => {
     let els = [...baseEl.querySelectorAll(selector)];
+    const lastEl = els.at(-1);
     /*
     console.debug('selector on elementReady():', selector);
     console.debug('baseEl on elementReady():', baseEl);
     console.debug('els on elementReady():', els);
     */
 
-    if(els.length > 0 && !options.waitFirstAndWaitForAllChildrenAdded) {
+    if(els.length > 0 && !options.waitAgain) {
       //console.debug('resolved at first call', els);
       if(options.returnAll) resolve(els);
-      else resolve(els[els.length-1]);
+      else resolve(lastEl);
     }
-
-    const lastEl = els.at(-1);
-    this.prevChildElementCount = lastEl?.childElementCount;
 
     let mutated = null;
     const timerId = setTimeout(async function tick() {
@@ -67,43 +65,33 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
         if(!options.suppressTimeoutWarning) console.warn('elementReadey failed!!??', selector, els);
         observer.disconnect();
         if(options.returnAll) resolve(els);
-        else resolve(els[els.length-1]);
+        else resolve(lastEl);
       }
       clearTimeout(timerId);
-    }, 3000);
+    }, 5000);
 
     const observer = new MutationObserver(async (mutationRecords, observer) => {
       mutated = true;
       //console.debug('mutated!');
 
       let els = [...baseEl.querySelectorAll(selector)];
-      const lastEl = els.at(-1);
-      if(options.waitFirstAndWaitForAllChildrenAdded) {
-        console.debug('lastEl.children, prevChildElementCount:', lastEl?.children, this.prevChildElementCount);
+      let lastEl = els.at(-1);
+      if (els.length > 0 && !options.waitAgain) {
+        //console.debug('resolved for waitAgain false', els);
+        observer.disconnect();
+        if(options.returnAll) resolve(els);
+        else resolve(lastEl);
       }
+      else if (options.waitAgain) {
+        console.debug('waiting again hoping for all children added...');
+        await sleep(3000);  //dirty hack
 
-      if(els.length > 0) {
-        if(!options.waitFirstAndWaitForAllChildrenAdded) {
-          //console.debug('resolved for checkIfAllChildrenAreAdded false', els);
-          observer.disconnect();
-          if(options.returnAll) resolve(els);
-          else resolve(els[els.length-1]);
-        }
-        else if(lastEl?.childElementCount >= this.prevChildElementCount) {
-          this.prevChildElementCount = lastEl.childElementCount;
-          await sleep(1000);  //dirty hack
-          els = [...baseEl.querySelectorAll(selector)];
-          //console.debug('lastEl.children, prevChildElementCount:', lastEl.children, this.prevChildElementCount);
-          if(els.at(-1)?.childElementCount == this.prevChildElementCount) {
-            console.debug('resolved for checkIfAllChildrenAreAdded true', els);
-          }
-          else {
-            console.warn('elementReadey failed.');
-          }
-          observer.disconnect();
-          if(options.returnAll) resolve(els);
-          else resolve(els[els.length-1]);
-        }
+        els = [...baseEl.querySelectorAll(selector)];
+        lastEl = els.at(-1);
+
+        observer.disconnect();
+        if(options.returnAll) resolve(els);
+        else resolve(lastEl);
       }
     });
 
@@ -335,8 +323,10 @@ function getTextFromNode_(el = null) {
   if(fy.selectorsForListItems?.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
     if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) ignoreStrings = [ignoreStrings];
-    for(const ignoreString of ignoreStrings)
+    const prevResult = result;
+    for(const ignoreString of ignoreStrings) 
       result = result?.replace(ignoreString, '').trim();
+    //if(prevResult != result) console.debug('ignoreStrings changed result:', prevResult, '->', result);
   }
 
   return result?.trim();

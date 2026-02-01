@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.3
+// @version      0.12.5
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -320,8 +320,7 @@ class FyGlobal {
         //함께 시청된 콘텐츠
         if(selectors.additionalSelector) {
           toast.log('waiting for additional titles...');
-          const additionalTitles = await elementReady(selectors.additionalSelector.selector);
-          
+          await elementReady(selectors.additionalSelector.selector);
           await fy.handlerWrapUp(selectors.additionalSelector);
         }
       }
@@ -376,14 +375,13 @@ class FyGlobal {
 
       if(type) console.log(`type is '${type}' (possibly based on url).`);  //dp
       await fy.search(itemDivs, {selectors: selectorObj, type: type});
-      fy.handlerWrapUpRunning = false;
     }
     else {
       //nothing to do
       toast.log();
       fy.observer.observe(fy.root, fy.observerOption);
-      fy.handlerWrapUpRunning = false;
     }
+    fy.handlerWrapUpRunning = false;
   };
 
   largeDivUpdates = {
@@ -508,20 +506,28 @@ class FyGlobal {
       imdbFlag = sEl.querySelector('.fy-imdb-rating')?.getAttribute('flag');
     }
     else {
-      //not yet updated (first loading). watcha
-      if(trueData.wpId) {
-        const cache = await fy.getObjFromWpId_(trueData.wpId);
+      //not yet updated (first loading)
+      if(trueData.wpId) {  //watcha
+        const cache = fy.getObjFromWpId_(trueData.wpId);
         otFlag = cache.otFlag;
         imdbFlag = cache.imdbFlag;
-
-        if(otFlag == '' && imdbFlag == '') {
-          forceUpdate = false;  //캐시가 건강하다면(수동 수정되었을 수도 있고) 강제 업데이트는 안 함
+      }
+      else {  //cache에서 제목으로 찾기
+        const otCache = GM_getValue(GM_CACHE_KEY);
+        const cacheTitles = Object.keys(otCache);
+        if(cacheTitles.includes(trueData.title)) {
+          otFlag = otCache[trueData.title].otFlag;
+          imdbFlag = otCache[trueData.title].imdbFlag;
         }
+      }
+
+      if(otFlag == '' && imdbFlag == '') {
+        forceUpdate = false;  //캐시가 건강하다면(수동 수정되었을 수도 있고) 강제 업데이트는 안 함
       }
     }
 
     //ot 플래그가 ?/??이거나 imdb 플래그가 ?/??면 다시 검색. 혹은 아직 업데이트가 안 됐더라도.
-    console.debug('determining on large div update...', otFlag, imdbFlag, sEl);
+    //console.debug('determining on large div update...', otFlag, imdbFlag, sEl);
     if(otFlag != '' || imdbFlag != '' || !sEl) {
       trueData.forceUpdate = forceUpdate;
       toast.log('large div on single-page update triggered.');
@@ -729,25 +735,46 @@ class FyGlobal {
       }
     }
 
-    await fy.searchWrapUp_(itemDivs, otData, trueData);
+    await fy.searchWrapUp_(itemDivs, otData);
   }
 
-  async searchWrapUp_(itemDivs, otData, trueData) {
+  async searchWrapUp_(itemDivs, otData) {
     //내부 캐시 사용했다면 적용
     fy.getInternalCache_(otData);
 
     //change flow: update divs
-    await fy.updateDivs(itemDivs, otData, trueData.selectors);
+    await fy.updateDivs(itemDivs, otData);
   }
 
-  async updateDivs(itemDivs, otData, selectors = {}) {
+  setGMCache_(GM_CACHE_KEY, array) {
+    //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
+    //다른 비동기 호출이 실행 도중일 수도 있으므로... really?? -> 일단 async 뺐음
+
+    //array to obj
+    const obj = {};
+    array.forEach((el, i) => {
+      const title = el.query;
+      if(title) {
+        delete el.query;
+        obj[title] = el;
+      }
+    });
+
+    const targetObj = GM_getValue(GM_CACHE_KEY);
+    Object.assign(targetObj, obj);
+    GM_setValue(GM_CACHE_KEY, targetObj);
+    if(Object.keys(obj).length > 0)
+      console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
+  }
+
+  async updateDivs(itemDivs, otData) {
     for(const [i, item] of itemDivs.entries()) {
-      await updateDiv_(item, otData[i], itemDivs.length, selectors);
+      await updateDiv_(item, otData[i], itemDivs.length);
     }
     toast.log(itemDivs.length + ' divs updated!');
 
     //캐시 반영
-    await setGMCache_(GM_CACHE_KEY, otData);
+    fy.setGMCache_(GM_CACHE_KEY, otData);
 
     //wrap up
     if(fy.isUpdatingLargeDiv && itemDivs.length == 1) {
@@ -760,28 +787,7 @@ class FyGlobal {
     //end of flow
 
 
-    async function setGMCache_(GMKey, array) {
-      //캐시에 쓰기 전에 최신 캐시를 읽은 다음 거기에 추가된 애들만 덧붙인다.
-      //다른 비동기 호출이 실행 도중일 수도 있으므로... really??
-
-      //array to obj
-      const obj = {};
-      array.forEach((el, i) => {
-        const title = el.query;
-        if(title) {
-          delete el.query;
-          obj[title] = el;
-        }
-      });
-
-      const targetObj = GM_getValue(GMKey);
-      Object.assign(targetObj, obj);
-      GM_setValue(GMKey, targetObj);
-      if(Object.keys(obj).length > 0)
-        console.debug(Object.keys(obj).length + ' items possibly updated on cache.');
-    }
-
-    async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber, selectors) {
+    async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
       let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
       if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, numberToParent);
@@ -961,7 +967,7 @@ class FyGlobal {
       year = baseEl.querySelector(selectors.year)?.innerText;  //for watcha
     }
     else if(!type && fy.selectorsForSinglePage?.useHardcodedFunc) {  //dp only (as of 24-12-28)
-      const largeDiv = fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, `[${FY_UNIQ_STRING}]`));
+      const largeDiv = fy.root.querySelector(fy.selectorOnSinglePage);
       if(!largeDiv) {
         toast.log('no large-div detected!');
         return;
@@ -992,7 +998,9 @@ class FyGlobal {
       if(url == otDatum.jwUrl || decodeURIComponent(url) == otDatum.jwUrl) {
         if(otDatum.otFlag != '') {
           toast.log('JW flag was reset (JW url is confirmed).');
-          otDatum.otFlag = '';
+          fy.prevItemDivs = [];  //for force update divs
+          otCache[title].otFlag = '';
+          GM_setValue(GM_CACHE_KEY, otCache);  //to reflect immediately
         }
         else {
           console.debug('input was the same as the cache.');
@@ -1015,7 +1023,9 @@ class FyGlobal {
       if(imdbUrl == otDatum.imdbUrl) {
         //if(otDatum.imdbFlag != '') {
           toast.log('imdb flag was reset (imdb url is confirmed).');
-          otDatum.imdbFlag = '';
+          fy.prevItemDivs = [];  //for force update divs
+          otCache[title].imdbFlag = '';
+          GM_setValue(GM_CACHE_KEY, otCache);  //to reflect immediately
         //}
         //else
           //return;
@@ -1034,7 +1044,7 @@ class FyGlobal {
 
 
   //utils used for watcha
-  async getObjFromWpId_(id) {
+  getObjFromWpId_(id) {
     const otCache = GM_getValue(GM_CACHE_KEY);
     const cacheTitles = Object.keys(otCache);
     const cacheIds = Object.values(otCache).map(el => el.wpUrl ? getIdFromValidUrl_(el.wpUrl) : null);
