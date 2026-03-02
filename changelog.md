@@ -484,3 +484,5 @@
     // ver 0.12.5 @ 2026-02-01
     //    disneyplus: fix edit() not working
     //    disneyplus: fix /browse/originals (dirty hack. incomplete)
+    // ver 0.12.6 @ 2026-03-02
+    //    internal: use external fading alert

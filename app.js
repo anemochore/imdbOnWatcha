@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.5
+// @version      0.12.6
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -15,6 +15,7 @@
 // @match        https://www.coupangplay.com/*
 // @match        https://www.imdb.com/title/*
 // @resource     CSS https://anemochore.github.io/imdbOnWatcha/fy_css.css
+// @require      https://anemochore.github.io/fading-alert/src/fading-alert.js
 // @require      https://anemochore.github.io/imdbOnWatcha/parseJW.js
 // @require      https://anemochore.github.io/imdbOnWatcha/parseWP.js
 // @require      https://anemochore.github.io/imdbOnWatcha/imdbRun.js

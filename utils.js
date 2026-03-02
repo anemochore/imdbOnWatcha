@@ -1,44 +1,4 @@
 //common global utils
-class FadingAlert {
-  constructor() {
-    this.div = document.createElement('div');
-    this.div.id = 'alertBoxDiv';
-    document.body.appendChild(this.div);
-
-    const s = this.div.style;
-    s.position = 'fixed';
-    s.top = '40%';
-    s.left = '45%';
-    s.textAlign = 'center';
-    s.width = '300px';
-    s.height = 'auto';
-    s.padding = '2px';
-    s.border = 0;
-    s.color = 'Black';
-    s.backgroundColor = 'LawnGreen';
-    //s.overflow = 'auto';
-    s.zIndex = '1000'; //z-index on css is 999
-
-    this.log = async (...txt) => {
-      if (txt.length == 0 || !txt[0]) {
-        await sleep(1);
-        this.div.style.transition = 'opacity 2s ease-in';
-        this.div.style.opacity = 0;
-        this.div.style.pointerEvents = 'none';
-      }
-      else {
-        this.div.textContent = txt.join(' ');
-        this.div.style.transition = '';
-        this.div.style.opacity = 1;
-        this.div.style.pointerEvents = 'auto';
-        console.log(...txt);
-      }
-    };
-
-    this.log();
-  }
-}
-
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
