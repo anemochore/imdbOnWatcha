@@ -486,3 +486,5 @@
     //    disneyplus: fix /browse/originals (dirty hack. incomplete)
     // ver 0.12.6 @ 2026-03-02
     //    internal: use external fading alert
+    // ver 0.12.7 @ 2026-03-22
+    //    internal: fix alert not fading

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.6
+// @version      0.12.7
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -200,6 +200,7 @@ class FyGlobal {
     const isExit = determineExit_();
     if(isExit || fy.isFetching) {
       if(fy.isFetching) console.debug('already fetching (or waiting).');
+      toast.log();
       return;
     }
 
