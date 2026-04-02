@@ -4,7 +4,7 @@ function sleep(ms) {
 }
 
 function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {}) {
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     let els = [...baseEl.querySelectorAll(selector)];
     const lastEl = els.at(-1);
     /*
@@ -15,8 +15,8 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
 
     if(els.length > 0 && !options.waitAgain) {
       //console.debug('resolved at first call', els);
-      if(options.returnAll) resolve(els);
-      else resolve(lastEl);
+      if(options.returnAll) return resolve(els);
+      else return resolve(lastEl);
     }
 
     let mutated = null;
@@ -24,8 +24,8 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
       if(!mutated) {
         if(!options.suppressTimeoutWarning) console.warn('elementReadey failed!!??', selector, els);
         observer.disconnect();
-        if(options.returnAll) resolve(els);
-        else resolve(lastEl);
+        if(options.returnAll) return resolve(els);
+        else return resolve(lastEl);
       }
       clearTimeout(timerId);
     }, 5000);
@@ -39,8 +39,8 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
       if (els.length > 0 && !options.waitAgain) {
         //console.debug('resolved for waitAgain false', els);
         observer.disconnect();
-        if(options.returnAll) resolve(els);
-        else resolve(lastEl);
+        if(options.returnAll) return resolve(els);
+        else return resolve(lastEl);
       }
       else if (options.waitAgain) {
         console.debug('waiting again hoping for all children added...');
@@ -50,8 +50,8 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
         lastEl = els.at(-1);
 
         observer.disconnect();
-        if(options.returnAll) resolve(els);
-        else resolve(lastEl);
+        if(options.returnAll) return resolve(els);
+        else return resolve(lastEl);
       }
     });
 
@@ -276,7 +276,7 @@ function getTextFromNode_(el = null) {
 
   if(fy.selectorsForListItems?.ignoreItemIfMatches) {
     let ignoreStrings = fy.selectorsForListItems.ignoreItemIfMatches;
-    if(!Array.isArray(fy.selectorsForListItems.ignoreItemIfMatches)) ignoreStrings = [ignoreItemIfMatches];
+    if(!Array.isArray(ignoreStrings)) ignoreStrings = [ignoreStrings];
     if(ignoreStrings.some(ignoreString => result.match(ignoreString))) result = 'fy ignore this!';
   }
 

@@ -488,3 +488,5 @@
     //    internal: use external fading alert
     // ver 0.12.7 @ 2026-03-22
     //    internal: fix alert not fading
+    // ver 0.12.8 @ 2026-04-02
+    //    internal: fix minor bugs

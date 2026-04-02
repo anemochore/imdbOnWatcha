@@ -63,7 +63,7 @@ class ParseWP {
               const season1div = [...seriesSection.querySelectorAll('ul>li div[class*="StyledText"]')].filter(el => el.innerText.endsWith(' Season 1') || el.innerText.endsWith(' 1기'));
               if(season1div.length > 0) {
                 newId = getIdFromValidUrl_(season1div[0].closest('a').href);
-                newUrl = getUrlFromId_(newId);
+                newUrl = getWpUrlFromId_(newId);
                 console.log(`found season 1 url for ${orgTitle}: ${newId}. will be re-scraped...`); 
 
                 found = true;
@@ -96,9 +96,8 @@ class ParseWP {
       if(toReSearch.filter(el => el).length == 0)
         break;  //for while
 
-      localResults = await fetchAll(toReSearch), {
-        headers: {'Accept-Language': 'en-KR'},  //not working
-      };
+      //작동하지 않았었는데 내가 잘못 짜서인지 아닌지 이제는 중요하지 않게 됐다...
+      localResults = await fetchAll(toReSearch, {'Accept-Language': 'en-KR'});
     }  //of while
 
     function isAllLatinChars(str) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.7
+// @version      0.12.8
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -396,7 +396,10 @@ class FyGlobal {
       const type = getTypeFromDiv_(selectors, root);
 
       let wYear;
-      if(selectors.year) wYear = await elementReady(selectors.year, root, {suppressTimeoutWarning: true}).innerText;  //lazy-loaded
+      if(selectors.year) {
+        wYear = await elementReady(selectors.year, root, {suppressTimeoutWarning: true});  //lazy-loaded
+        wYear = wYear?.innerText;
+      }
 
       const wpId = getIdFromValidUrl_(location.href);
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
@@ -792,7 +795,7 @@ class FyGlobal {
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
       let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
-      if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, numberToParent);
+      if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, fy.numberToBaseElWhenUpdating);
 
       //hack for kino
       if(fy.noAppendDiv) div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);

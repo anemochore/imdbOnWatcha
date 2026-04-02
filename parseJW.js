@@ -350,7 +350,7 @@ class ParseJW {
                       maybeIdxWithSameDateOrType = sTypes.indexOf('Movie');
                     }
                     else {
-                      maybeIdxWithSameDateOrType = sTypes.indexOf('trueType');
+                      maybeIdxWithSameDateOrType = sTypes.indexOf(trueType);
                     }
                     if(maybeIdxWithSameDateOrType > -1) {
                       idx = maybeIdxWithSameDateOrType;
