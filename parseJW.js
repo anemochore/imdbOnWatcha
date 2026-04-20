@@ -3,15 +3,21 @@ class ParseJW {
   async parseJwSearchResults_(results, otData, trueData, titles, reSearching = false) {
     //console.debug('before for');
     for(const [i, r] of results.entries()) {
+      //제목 없다면 continue
       let title = titles[i];
-      //console.debug('before continue');
       if(!title) continue;
       //console.debug('not continued');
 
       //console.debug(`raw result`, r);
+
+      //검색 결과 없다면 continue
       const result = r?.data?.searchTitles?.edges.map(el => el.node);
       //if (result) console.debug(`result for ${title}:`, result);
-      if (!result) console.debug('no result at all!');
+      if(!result || result.length == 0) {
+        console.warn('search for',title,'on jw failed! no result at all!', result);
+        otData[i].otFlag = '??';
+        continue;
+      }
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
@@ -49,12 +55,6 @@ class ParseJW {
         //직접 imdb 방문한 게 캐시에 있다면, 검색이 실패할 경우 그걸 쓴다.
         cacheTrueImdbId = otData[i].imdbId;
         orgOtFlag = otData[i].otFlag;
-      }
-
-      //검색 결과 없다면
-      if(!result || result.length == 0) {
-        console.warn('search for',title,'on jw failed! no result at all!', result);
-        otData[i].otFlag = '??';
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
