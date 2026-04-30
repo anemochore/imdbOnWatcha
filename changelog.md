@@ -491,4 +491,7 @@
     // ver 0.12.8 @ 2026-04-02
     //    internal: fix minor bugs
     // ver 0.12.9 @ 2026-04-20
-    //    internal: fix minor bugs with codex
+    //    internal: fix minor bugs (codex introduced at this point)
+    // ver 0.12.11 @ 2026-04-20
+    //    internal: fix minor bugs
+    //    jw: fix minor logic

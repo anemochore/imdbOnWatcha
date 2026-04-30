@@ -65,14 +65,17 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
 async function fetchAll(urls, headers = {}, querys = [], locale = {country: fy.country, lang: fy.lang}) {
   fy.isFetching = true;
 
-  const results = [];
-  const promises = urls.map(async (url, i) => {
-    results[i] = await fetchOne_(url, headers, querys[i], locale);
-  });
-  await Promise.all(promises);
-
-  fy.isFetching = false;
-  return results;
+  try {
+    const results = [];
+    const promises = urls.map(async (url, i) => {
+      results[i] = await fetchOne_(url, headers, querys[i], locale);
+    });
+    await Promise.all(promises);
+    return results;
+  }
+  finally {
+    fy.isFetching = false;
+  }
 
 
   async function fetchOne_(url, headers, query, locale) {
@@ -277,16 +280,14 @@ function getTextFromNode_(el = null) {
   if(fy.selectorsForListItems?.ignoreItemIfMatches) {
     let ignoreStrings = fy.selectorsForListItems.ignoreItemIfMatches;
     if(!Array.isArray(ignoreStrings)) ignoreStrings = [ignoreStrings];
-    if(ignoreStrings.some(ignoreString => result.match(ignoreString))) result = 'fy ignore this!';
+    if(ignoreStrings.some(ignoreString => result?.match(ignoreString))) result = 'fy ignore this!';
   }
 
   if(fy.selectorsForListItems?.ignoreStrings) {
     let ignoreStrings = fy.selectorsForListItems.ignoreStrings;
     if(!Array.isArray(fy.selectorsForListItems.ignoreStrings)) ignoreStrings = [ignoreStrings];
-    const prevResult = result;
     for(const ignoreString of ignoreStrings) 
       result = result?.replace(ignoreString, '').trim();
-    //if(prevResult != result) console.debug('ignoreStrings changed result:', prevResult, '->', result);
   }
 
   return result?.trim();

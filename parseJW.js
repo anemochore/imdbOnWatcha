@@ -34,6 +34,7 @@ class ParseJW {
         const trueSeason = trueJwUrl.split('/').slice(6)[0];  //or undefined
         if(trueSeason) trueJwUrl = trueJwUrl.replace('/' + trueSeason, '')
       }
+      const decodedTrueJwUrl = trueJwUrl ? decodeURI(trueJwUrl) : null;
 
       //to update cache
       otData[i].query = title;
@@ -48,6 +49,7 @@ class ParseJW {
       let trueYear = trueData.year;
       if (!trueType && (!otData[i].otFlag || otData[i].otFlag == '')) trueType = otData[i].type;
       if (!trueYear && (!otData[i].otFlag || otData[i].otFlag == '')) trueYear = otData[i].year;
+      const isTrueSeries = trueType && !trueType.startsWith('not') && trueType.endsWith('Series');
       //console.debug('trueType and trueYear:', trueType, trueYear);
 
       let cacheTrueImdbId = null, orgOtFlag;
@@ -79,10 +81,10 @@ class ParseJW {
       if(trueJwUrl) {
         //jw url을 알고 있다면 간단...
         console.debug('trueJwUrl, sUrls', trueJwUrl, sUrls);
-        idx = sUrls.indexOf(decodeURI(trueJwUrl));
+        idx = sUrls.indexOf(decodedTrueJwUrl);
         if(idx > -1) {
           otData[i].otFlag = '';
-          if(cacheTrueImdbId && !trueType.startsWith('not') && trueType.endsWith('Series') && cacheTrueImdbId != sImdbIds[idx]) {
+          if(cacheTrueImdbId && isTrueSeries && cacheTrueImdbId != sImdbIds[idx]) {
             //tv 물의 경우 jw 데이터가 직접 imdb 방문해서 얻은 캐시 데이터랑 다르다면 무시한다!!! ex: 쓰르라미 울 적에
             console.log(`jw imdb id (${sImdbIds[idx]}) is different than cache imdb data from manual visit (${cacheTrueImdbId}), so keep the cache imdb data!`);
 
@@ -91,15 +93,15 @@ class ParseJW {
             reSearching = 'no need';  //no update other data
           }
           else {
-            console.log('url was manually provided and actually found:', decodeURI(trueJwUrl));
+            console.log('url was manually provided and actually found:', decodedTrueJwUrl);
           }
         }
         else {
           //근데 원제 재검색을 통해 얻은 jw url이 있을 수 있다. 이 경우는 어쩔 수 없이 그냥 넘어간다. jwId는 모름...
           otData[i].otFlag = '';
-          console.log('url was manually provided but cannot be validated:', decodeURI(trueJwUrl));
+          console.log('url was manually provided but cannot be validated:', decodedTrueJwUrl);
 
-          otData[i].jwUrl = sUrls[idx];
+          otData[i].jwUrl = decodedTrueJwUrl;
           reSearching = 'no need';  //no update other data
         }
       }
@@ -234,30 +236,21 @@ class ParseJW {
           otData[i].otFlag = orgOtFlag;  //probably '??'
           reSearching = 'no need';
         }
-        else if(exactMatchCount > 1) {  //검색 결과 많음
-          if(idx > -1) {
-            console.debug(`mild warning: ${exactMatchCount} multiple exact title matches for ${title} found on jw.`);
-            otData[i].otFlag = '';
-          }
-          else if(possibleIdxWithCloseDate > -1) {
-            //true year가 있으면 연도 가까운 걸 선택
-            idx = possibleIdxWithCloseDate;
-            console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
-            otData[i].otFlag = '';
-          }
-          else {
-            //연도를 알 수 없으면 첫 번째 거(rating 있는 거)
-            console.warn(`${exactMatchCount} multiple exact matches for ${titleForWarning} found on jw. so taking the first result with rating present: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
-            otData[i].otFlag = '?';
-          }
+        else if(exactMatchCount > 1) {  //검색 결과 많음(idx는 -1이 아닐 것이다)
+          console.debug(`mild warning: ${exactMatchCount} multiple exact title matches for ${title} found on jw.`);
+          otData[i].otFlag = '';
         }
         else if(idx == -1) {  //검색 결과 없음
-          if(reSearching) {
+          if (reSearching == true) {
             //재검색 중인데 날짜가 아주 비슷하면 그냥 걔 선택
             if(possibleIdxWithCloseDate > -1 && Math.abs(trueYear - sYears[possibleIdxWithCloseDate]) < YEAR_DIFFERENCE_THRESHOLD) {
               idx = possibleIdxWithCloseDate;
               console.warn(`${title} (${trueYear}) is not found, but the same title with close date (${sYears[idx]}) with rating present is found. so taking it.`);
               otData[i].otFlag = '?';
+            }
+            else {
+              console.warn(`${titleForWarning} is not found on jw. re-searching failed either. :(`);
+              reSearching = 'failed';
             }
           }
           else if(trueOrgTitle || title.match(/ \([1-2][0-9]{3}\)$/)) {
@@ -297,7 +290,7 @@ class ParseJW {
               console.warn(`${titleForWarning} seems not found on jw among many (or one). so just taking the first result with rating present and with the closest date: ${sOrgTitles[idx]} (${sYears[idx]}) id: ${sImdbIds[idx]}`);
               otData[i].otFlag = '?';
             }
-            else if(result.length > 0) {
+            else {
               if(title.length > fuzzyThresholdLength) {
                 //https://github.com/farzher/fuzzysort
                 let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
@@ -369,6 +362,7 @@ class ParseJW {
             }
           }
         }
+        // else는 필요 없다. 정확히 하나의 결과가 잘 매칭된 경우이므로 그냥 진행하면 된다.
       }
 
       //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)

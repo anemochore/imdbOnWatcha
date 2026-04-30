@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.9
+// @version      0.12.11
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -487,8 +487,8 @@ class FyGlobal {
       if(metaEl) {
         const testStrings = metaEl.innerText.split('•').map(el => el.trim());
         year = testStrings[0];
-        if(testStrings[1].startsWith('시즌 ')) type = 'TV Series';
-        else type = 'Movie';
+        if(testStrings[1]?.startsWith('시즌 ')) type = 'TV Series';
+        else if(testStrings[1]) type = 'Movie';
       }
 
       await cb(largeDiv, {title, type, year});
@@ -497,7 +497,7 @@ class FyGlobal {
 
   largeDivUpdateWrapUp = async (largeDiv, trueData) => {
     const baseEl = getParentsFrom_(largeDiv, trueData.selectors?.numberToBaseEl || fy.numberToBaseEl);
-    if(!trueData.type)  //watcha 등 이미 가져온 상태면 패스
+    if(!trueData.type && trueData.selectors)  //watcha 등 이미 가져온 상태면 패스
       trueData.type = getTypeFromDiv_(trueData.selectors, baseEl);
 
     let sEl = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
@@ -547,6 +547,11 @@ class FyGlobal {
   defaultBaseElementProc = async (itemDivs, numberToBaseEl, remove = false) => {
     itemDivs.forEach(item => {
       const baseEl = getParentsFrom_(item, numberToBaseEl);
+      if(!baseEl) {
+        console.warn('baseEl not found for', item);
+        return;
+      }
+
       if(!baseEl.closest(fy.rootSelector)) {
         console.debug('item is updated just before!');
       }
@@ -581,7 +586,6 @@ class FyGlobal {
 
     const otCache = GM_getValue(GM_CACHE_KEY);
     let otData = [];
-    let allTitles = Array(itemDivs.length).fill(null);  //all titles
     let titles = Array(itemDivs.length).fill(null);     //titles to search
 
     const numberToBaseEl = trueData.selectors?.numberToBaseEl || fy.numberToBaseElWhenUpdating || fy.numberToBaseEl;
@@ -614,7 +618,6 @@ class FyGlobal {
         title = title.replace(/ \(에피소드 [0-9]+\)$/, '');
         console.info('(에피소드 x) was stripped.', title);
       }
-      allTitles[i] = title;
 
       //일단 캐시에 있다면 그 정보가 뭐든 div 업데이트에는 사용한다.
       otData[i] = otCache[title] || {};  //referenced-cloning is okay.
@@ -622,8 +625,8 @@ class FyGlobal {
 
       //year 구할 수 있으면 구한다.
       if((!trueData.year && trueData.selectors.year) || trueData.selectors?.getYearFromTitle) {
-        let year = (querySelectorFiFo_(baseEl, trueData.selectors.year)?.innerText ||
-          querySelectorFiFo_(baseEl, trueData.selectors.year)?.textContent)?.trim();
+        const yearEl = querySelectorFiFo_(baseEl, trueData.selectors.year);
+        let year = (yearEl?.innerText || yearEl?.textContent)?.trim();
 
         //year 셀렉터가 우선
         if(trueData.selectors.year && year) {
