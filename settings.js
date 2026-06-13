@@ -172,7 +172,7 @@ SETTINGS['www.disneyplus.com'].includingPaths = SETTINGS['www.disneyplus.com'].i
 
 
 SETTINGS['www.tving.com'] = {
-  includingPaths: ['/contents', '/movie', '/series', '/paramount'],
+  includingPaths: ['/', '/my', '/movie', '/drama', '/animation'],
   rootSelector: 'main',  //required
 
   selector: `section>article>article>div:not([${FU}])>div:has(h2), `  //contents main
@@ -181,6 +181,7 @@ SETTINGS['www.tving.com'] = {
   + `div.swiper-wrapper>div.swiper-slide:not([${FU}])>a:only-child:has(p.atom-text-wrapper):not(:has(div.special-button-item-wrapper)):not(:has(div.live-ranking-item-wrapper)):not(:has(div.content-item-wrapper)):not([href^="/contents/E"])`, //movie, etc lower
 
   selectorsForListItems: {
+    ignoreStrings: ['(자막)', ' (자막)'],
     title: 'dt, p.atom-text-wrapper, p.item__title, img[alt]',  //prefer text
   },
 };
