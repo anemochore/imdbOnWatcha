@@ -21,7 +21,7 @@ class ParseJW {
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
-      const fuzzyThresholdScore = -10000;  //score to exclude for bad results. 0 is exact match.
+      const fuzzyThresholdScore = -30000;  //score to exclude for bad results. 0 is exact match.
       const fuzzyThresholdRating = 4.1;  //discard result with rating less than this
 
       const YEAR_DIFFERENCE_THRESHOLD = 2;  //accept result with year-diffence less than this
@@ -193,17 +193,24 @@ class ParseJW {
             //console.debug('title, trueType, sTitle, found:', title, trueType, sTitle, found);
             if(!found && (!trueType || (trueType == 'Movie' || trueType == 'not TV Series'))) {
               if(possibleIdxWithCloseDate == -1) {
-                //console.debug('trying manual fuzzy...');
-                //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
-                if(title != sTitle && title.length > fuzzyThresholdLength) {
+                if(title != sTitle && title.length) {
+                  //못 찾았고 날짜 비슷한 것도 못 찾았으면 manual fuzzy matching (tv 시리즈는 X)
+                  //console.debug(`trying manual fuzzy (not TV Series) for ${title} and ${sTitle}`);
+
                   if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '')) {
                     found = true;
                     console.info(`spaces were ignored for ${title} and ${sTitle}`);
                   }
                   else if(sTitle.replace(/ ?: ?/, '') == title.replace(/ ?: ?/, '') ||
+                          title.replace(/：/, ': ') == sTitle ||  // 티빙
                           sTitle.replace(/ ?: ?/, '') == title.replace(/ ?~?/, '')) {
                     found = true;
-                    console.info(`colon (and possibly tilde) were ignored for ${title} and ${sTitle}`);
+                    console.info(`half/full colons and/or tildes were ignored for ${title} and ${sTitle}`);
+                  }
+                  else if(sTitle.replaceAll(' ', '') == title.replaceAll(' ', '').replace(/：/, ':')) {
+                    // 티빙
+                    found = true;
+                    console.info(`spaces and/or full colons were ignored for ${title} and ${sTitle}`);
                   }
                   else if(title.includes(':') && sTitle.includes(':')) {
                     const subTitle = title.split(':').pop().trim();
@@ -227,7 +234,7 @@ class ParseJW {
           }
         });
 
-        console.debug(`[${title}]`, 'trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
+        //console.debug(`[${title}]`, 'trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType:', trueOrgTitle, idx, exactMatchCount, possibleIdxWithCloseDate, maybeIdxWithSameDateOrType);
         const titleForWarning = `${title} (trueYear: ${trueYear}, trueType: ${trueType})`;
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
@@ -294,6 +301,7 @@ class ParseJW {
               if(title.length > fuzzyThresholdLength) {
                 //https://github.com/farzher/fuzzysort
                 let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
+                //let first = fuzzysort.go(title, sTitles);
                 if(first.length > 0) {
                   console.debug('fuzzysort first result for title:', first);
 
@@ -307,7 +315,7 @@ class ParseJW {
                       //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
                       //ex: 인비테이션
                       idx = -1;
-                      console.info('fuzzysort result is discarded since year is too different:', first.target);
+                      console.info('fuzzysort result is discarded since years are too different:', first.target);
                     }
                     else if(sTitles[maybeIdxWithSameDateOrType] == sOrgTitles[maybeIdxWithSameDateOrType] && sRatings[idx] < fuzzyThresholdRating) {
                       //다른 실제 연도 일치 결과가 한국어 제목이 없는데 퍼지 매칭 결과 평점이 너무 구려도 버린다.

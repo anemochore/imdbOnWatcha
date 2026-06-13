@@ -175,14 +175,19 @@ SETTINGS['www.tving.com'] = {
   includingPaths: ['/', '/my', '/movie', '/drama', '/animation'],
   rootSelector: 'main',  //required
 
-  selector: `section>article>article>div:not([${FU}])>div:has(h2), `  //contents main
-  + `div.swiper-wrapper>div.swiper-slide:not([${FU}])>a:has(dt), `     //contents lower
-  + `div.swiper-wrapper>div.swiper-slide>div:not([${FU}])>a[class]+a:has(p.atom-text-wrapper), ` //movie, etc main
-  + `div.swiper-wrapper>div.swiper-slide:not([${FU}])>a:only-child:has(p.atom-text-wrapper):not(:has(div.special-button-item-wrapper)):not(:has(div.live-ranking-item-wrapper)):not(:has(div.content-item-wrapper)):not([href^="/contents/E"])`, //movie, etc lower
+  selector: 
+    `div.swiper-wrapper>div.swiper-slide:not([${FU}]) a[href^="/contents/"]:has(p.atom-text-wrapper), ` //my, movie
+  + `div.swiper-wrapper>div.swiper-slide:not([${FU}]) a[href^="/player/"]:has(p.atom-text-wrapper), `   //main (watching)
+  + `div.swiper-slide:not([${FU}]) a[href^="https://www.tving.com/contents/"]:has(img[alt]), `  //my (wishlisted)
+  + `div.swiper-slide:not([${FU}]) a[href^="https://www.tving.com/player/"]:has(div[class^="mt-"])`,     //my (watching)
+
+  elementReadyOption: {
+    waitAgain: true,
+  },
 
   selectorsForListItems: {
-    ignoreStrings: ['(자막)', ' (자막)'],
-    title: 'dt, p.atom-text-wrapper, p.item__title, img[alt]',  //prefer text
+    ignoreStrings: ['[4K] ', '(자막)', ' (자막)'],
+    title: 'p.atom-text-wrapper, img[alt], div[class^="mt-"]>p:first-child',
   },
 };
 

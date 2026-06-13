@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.12
+// @version      0.12.13
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -41,13 +41,13 @@
 
 
 //singletons
-const toast = new FadingAlert();
+const toast = new FadingAlert({width: '300px', zIndex: '99999'});
 
 
 //global consts
 const GM_CACHE_KEY = 'OT_CACHE_WITH_IMDB_RATINGS';
 
-const UPDATE_INTERVAL_DAYS_ORG_TITLES = 30;  //in days
+const UPDATE_INTERVAL_DAYS_ORG_TITLES = 90;  //in days
 const UPDATE_INTERVAL_DAYS_IMDB_VISITED = 7;  //in days
 const YEAR_DIFFERENCE_THRESHOLD = 5;  //if year difference is larger than this const, discard it.
 const MAX_SEARCH_ITEMS = 100;
@@ -209,7 +209,7 @@ class FyGlobal {
     if(fy.selectorOnSinglePage) selector += ', ' + fy.selectorOnSinglePage;
     selector = selector.replace(/^, /, '');
 
-    toast.log('waiting for page loading (or changing)...');
+    toast.spin('waiting for page loading (or changing)...');
     fy.isFetching = true;
     await elementReady(selector, fy.root);
     fy.isFetching = false;
@@ -727,7 +727,7 @@ class FyGlobal {
       }
   
       //fy.isFetching = true;
-      toast.log(`getting infos from jw... length: ${searchLength}`);
+      toast.spin(`getting infos from jw... length: ${searchLength}`);
       const urls = qTitles.map(title => title ? OT_URL: null)
       //console.debug('fetching for:', qTitles.filter(el => el));
       const otSearchResults = await fetchAll(urls, {}, qTitles);
