@@ -315,7 +315,7 @@ class ParseJW {
                 // 대충 정규화...
                 const [idxs, info, order] = uf.search(sTitles, title.replace(/전편|후편|상편|하편/g, ''), 0);  // 검색어 단어 순서가 바뀌면 무시
 
-                if (!idxs) {
+                if (idxs.length ==0) {
                   console.info('fuzzysort epic failed for', title);
                 }
                 else {
