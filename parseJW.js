@@ -299,43 +299,53 @@ class ParseJW {
             }
             else {
               if(title.length > fuzzyThresholdLength) {
-                //https://github.com/farzher/fuzzysort
-                let first = fuzzysort.go(title, sTitles, {threshold: fuzzyThresholdScore});
-                //let first = fuzzysort.go(title, sTitles);
-                if(first.length > 0) {
-                  console.debug('fuzzysort first result for title:', first);
+                //https://github.com/leeoniya/uFuzzy
+                //console.debug(`trying uFuzzy for ${title} among ${sTitles.length} candidates...`, sTitles);
 
-                  first = first[0];
-                  idx = sTitles.indexOf(first.target);
+                // 한글/일본어/한자/여러 언어 제목
+                const uf = new uFuzzy({
+                  unicode: true,
+                  interSplit: "[^\\p{L}\\d']+",
+                  intraSplit: "\\p{Ll}\\p{Lu}",
+                  intraBound: "\\p{L}\\d|\\d\\p{L}|\\p{Ll}\\p{Lu}",
+                  intraChars: "[\\p{L}\\d']",
+                  intraContr: "'\\p{L}{1,2}\\b",
+                });
 
-                  console.debug('after fuzzysort. sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]:', sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]);
+                // 대충 정규화...
+                const [idxs, info, order] = uf.search(sTitles, title.replace(/전편|후편|상편|하편/g, ''), 0);  // 검색어 단어 순서가 바뀌면 무시
+
+                if (!idxs) {
+                  console.info('fuzzysort epic failed for', title);
+                }
+                else {
+                  const bestIndex = info ? info.idx[order[0]] : idxs[0];
+                  const first = sTitles[bestIndex];
+
+                  idx = bestIndex;
+                  //console.debug('after fuzzysort. sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]:', sTitles[idx], sYears[idx], sOrgTitles[idx], sRatings[idx]);
 
                   if(maybeIdxWithSameDateOrType > -1 && maybeIdxWithSameDateOrType != idx) {
                     if(Math.abs(trueYear - sYears[idx]) > YEAR_DIFFERENCE_THRESHOLD) {
                       //다른 실제 연도 일치 결과가 있는데 퍼지 매칭 결과는 실제 연도가 차이가 크다면 버린다.
                       //ex: 인비테이션
                       idx = -1;
-                      console.info('fuzzysort result is discarded since years are too different:', first.target);
+                      console.info('fuzzysort result is discarded since years are too different:', first);
                     }
                     else if(sTitles[maybeIdxWithSameDateOrType] == sOrgTitles[maybeIdxWithSameDateOrType] && sRatings[idx] < fuzzyThresholdRating) {
                       //다른 실제 연도 일치 결과가 한국어 제목이 없는데 퍼지 매칭 결과 평점이 너무 구려도 버린다.
                       //ex: 인터스텔라(jw에 한국어 제목이 영어 제목임-_-)
                       idx = -1;
-                      console.info('fuzzysort result is discarded since its rating is so poor and no korean title is present:', first.target);
+                      console.info('fuzzysort result is discarded since its rating is so poor and no korean title is present:', first);
                     }
                     else {
-                      console.info('fuzzysort result is taken:', first.target);
+                      console.info('fuzzysort result is taken:', first);
                     }
                   }
                   else {
-                    console.warn(`no exact match. so taking ${first.target} (${sYears[idx]}) with fuzzysort score ${first.score} for ${titleForWarning}`);
+                    console.info(`연도 정보 없는 상태에서 fuzzysort 결과 채택: ${first} (${sYears[idx]}) for ${titleForWarning}`);
                     otData[i].otFlag = '?';
                   }
-                }
-                else {
-                  console.info('fuzzysort epic failed for', title);
-                  ////검색 결과가 너무나 무관하면 같은 날짜나 타입 결과가 있더라도 버린다.
-                  //maybeIdxWithSameDateOrType = -1;
                 }
               }
 

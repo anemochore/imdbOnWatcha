@@ -498,3 +498,5 @@
     // ver 0.12.14 @ 2026-06-13
     //    tving: trying to support again
     //    tving: support main, /my, /movie, /drama, /animation, /search, /contents
+    // ver 0.13.0 @ 2026-06-13
+    //    jw: replace farzher/fuzzysort to uFuzzy
