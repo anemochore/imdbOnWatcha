@@ -495,6 +495,6 @@
     // ver 0.12.11 @ 2026-04-20
     //    internal: fix minor bugs
     //    jw: fix minor logic
-    // ver 0.12.13 @ 2026-06-13
+    // ver 0.12.14 @ 2026-06-13
     //    tving: trying to support again
-    //    tving: support main, /my, /movie, /drama
+    //    tving: support main, /my, /movie, /drama, /animation, /search, /contents

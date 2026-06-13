@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.12.13
+// @version      0.12.14
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -239,7 +239,13 @@ class FyGlobal {
       let isIncludingPath = false;
       if(Array.isArray(fy.includingPaths)) {
         fy.includingPaths.some(path => {
-          if(curLocation.pathname.startsWith(path)) {
+          if(path == '/') {
+            if(curLocation.pathname == '/') {
+              isIncludingPath = true;
+              return true;  //break
+            }
+          }
+          else if (curLocation.pathname.startsWith(path)) {
             isIncludingPath = true;
             return true;  //break
           }

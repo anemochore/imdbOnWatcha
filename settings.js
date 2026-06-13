@@ -172,22 +172,24 @@ SETTINGS['www.disneyplus.com'].includingPaths = SETTINGS['www.disneyplus.com'].i
 
 
 SETTINGS['www.tving.com'] = {
-  includingPaths: ['/', '/my', '/movie', '/drama', '/animation'],
+  includingPaths: ['/', '/my', '/movie', '/drama', '/animation', '/search', '/contents'],
   rootSelector: 'main',  //required
 
   selector: 
-    `div.swiper-wrapper>div.swiper-slide:not([${FU}]) a[href^="/contents/"]:has(p.atom-text-wrapper), ` //my, movie
-  + `div.swiper-wrapper>div.swiper-slide:not([${FU}]) a[href^="/player/"]:has(p.atom-text-wrapper), `   //main (watching)
+    `div.swiper-slide:not([${FU}]):not([data-band-name="콘텐츠 클립 검색 결과"]) a[href^="/contents/"]:has(p.atom-text-wrapper), ` //my, movie, search
+  + `div.swiper-slide:not([${FU}]) a[href^="/player/"]:has(p.atom-text-wrapper), `   //main (watching)
   + `div.swiper-slide:not([${FU}]) a[href^="https://www.tving.com/contents/"]:has(img[alt]), `  //my (wishlisted)
-  + `div.swiper-slide:not([${FU}]) a[href^="https://www.tving.com/player/"]:has(div[class^="mt-"])`,     //my (watching)
+  + `div.swiper-slide:not([${FU}]) a[href^="https://www.tving.com/player/"]:has(div[class^="mt-"]), `     //my (watching)
+  + `article div:not([${FU}]):has(>h1), `     //contents (large-div)
+  + `div.swiper-slide:not([${FU}]) a[href^="/contents/"]:has(dt)`,     //contents (similar)
 
   elementReadyOption: {
     waitAgain: true,
   },
 
   selectorsForListItems: {
-    ignoreStrings: ['[4K] ', '(자막)', ' (자막)'],
-    title: 'p.atom-text-wrapper, img[alt], div[class^="mt-"]>p:first-child',
+    ignoreStrings: ['[4K] ', '(자막)', ' (자막)', '(더빙)', ' (더빙)', '[자막] ', '[더빙] ', '[극장판] '],
+    title: 'p.atom-text-wrapper, img[alt], div[class^="mt-"]>p:first-child, p.item__title',
   },
 };
 
