@@ -500,3 +500,6 @@
     //    tving: support main, /my, /movie, /drama, /animation, /search, /contents
     // ver 0.13.1 @ 2026-06-13
     //    jw: replace farzher/fuzzysort to uFuzzy
+    // ver 0.13.3 @ 2026-06-22
+    //    jw: open imdb when search is successful but rating is not present
+    //    wavve: improve setting and title parsing

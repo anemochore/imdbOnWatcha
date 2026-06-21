@@ -115,23 +115,7 @@ class ParseJW {
         else {
           toast.log(`imdb id ${trueImdbId} was manually provided, but rating is not found in jw. now opening imdb and getting rating...`);
 
-          const url =  getImdbUrlFromId_(trueImdbId);
-          GM_setValue('URLS_TO_DL', [url]);
-          await openTab(url);
-
-          const newCache = GM_getValue('temp_imdb_data_ready');
-          GM_deleteValue('temp_imdb_data_ready');
-          GM_deleteValue('URLS_TO_DL');
-
-          otData[i].imdbId = trueImdbId;
-          otData[i].imdbUrl = getImdbUrlFromId_(trueImdbId);
-
-          //실패할 경우는 생각하지 않는다.
-          if(isValidRating_(newCache.imdbRating)) otData[i].imdbRating = newCache.imdbRating;
-          if(newCache.orgTitle) otData[i].orgTitle = newCache.orgTitle;
-          if(newCache.year)     otData[i].year = newCache.year;
-          if(newCache.type)     otData[i].type = newCache.type;
-
+          await visitImdbAndGetRating_(trueImdbId, otData[i]);
           reSearching = 'no need';
         }
       }
@@ -401,20 +385,42 @@ class ParseJW {
           if(!otData[i].imdbVisitedDate) otData[i].imdbFlag = '??';
           if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle || title);
         }
-        else {
-          if(idx > -1) {
-            otData[i].imdbRating = sRatings[idx] || (isValidRating_(otData[i].imdbRating) ? otData[i].imdbRating : '??');
-          }
-
-          //console.debug('otData[i].imdbId, otData[i].orgTitle, title:', otData[i].imdbId, otData[i].orgTitle, title);
+        else if(idx > -1) {
+          otData[i].imdbRating = sRatings[idx] || (isValidRating_(otData[i].imdbRating) ? otData[i].imdbRating : '??');
           otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle || title);
-          //console.debug('otData[i].imdbUrl:', otData[i].imdbUrl);
-          otData[i].imdbRatingFetchedDate = new Date().toISOString();
+          //console.debug(`[${title}]`, 'idx, otData[i].imdbId, otData[i].imdbRating:', idx, otData[i].imdbId, otData[i].imdbRating);
+          if (otData[i].imdbId && !isValidRating_(otData[i].imdbRating)) {
+            toast.log(`imdb id ${otData[i].imdbId} was found, but rating is not found in jw. now opening imdb and getting rating...`);
 
-          if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
-            otData[i].imdbFlag = '';
+            fy.setGMCache_(GM_CACHE_KEY, otData);  // 캐시에 항목이 있어야 imdb 페이지 열렸을 때 평점을 업데이트함
+            await visitImdbAndGetRating_(otData[i].imdbId, otData[i]);
+          }
         }
+        otData[i].imdbRatingFetchedDate = new Date().toISOString();
+
+        if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
+          otData[i].imdbFlag = '';
       }
     }
   }
+}
+
+async function visitImdbAndGetRating_(possibleTrueImdbId, otDatum) {
+  const url = getImdbUrlFromId_(possibleTrueImdbId);
+  console.debug('trueImdbId, url', possibleTrueImdbId, url);
+  GM_setValue('URLS_TO_DL', [url]);
+  await openTab(url);
+
+  const newCache = GM_getValue('temp_imdb_data_ready');
+  GM_deleteValue('temp_imdb_data_ready');
+  GM_deleteValue('URLS_TO_DL');
+
+  otDatum.imdbId = possibleTrueImdbId;
+  otDatum.imdbUrl = getImdbUrlFromId_(possibleTrueImdbId);
+
+  //실패할 경우는 생각하지 않는다.
+  if(isValidRating_(newCache.imdbRating)) otDatum.imdbRating = newCache.imdbRating;
+  if(newCache.orgTitle) otDatum.orgTitle = newCache.orgTitle;
+  if(newCache.year)     otDatum.year = newCache.year;
+  if(newCache.type)     otDatum.type = newCache.type;
 }

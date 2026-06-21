@@ -100,7 +100,7 @@ SETTINGS['www.netflix.com'] = {
 
 
 SETTINGS['www.wavve.com'] = {
-  includingPaths: ['/player', '/my', '/supermultisection'], 
+  includingPaths: ['/', '/player', '/my', '/supermultisection'], 
   rootSelector: 'div#app',
 
   //'the last element'(fyItem) selection.
@@ -112,7 +112,8 @@ SETTINGS['www.wavve.com'] = {
   forceLargeDivUpdateOnUrlChange: true,  //force large-div update when url changing even if not when fetching
 
   selectorsForListItems: {
-    title: 'strong.con-tit, span.title1, span.alt-text',  //this should be the child of 'the last element'.
+    ignoreStrings: ['[확장판] ', '[극장판] ', / \(4K\)$/, /\(더빙\)$/],
+    title: 'strong.con-tit, span.alt-text, span.title1',  //this should be the child of 'the last element'.
   },
 
   //large-div works like a single-page. don't use both.
