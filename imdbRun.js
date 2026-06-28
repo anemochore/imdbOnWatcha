@@ -98,7 +98,7 @@ class ImdbRun {
           toast.log('imdb rating is really not present for '+orgTitle+' ('+trueYear+')!');
         }
         else {
-          toast.log('imdb rating differs from the cache, so updating the cache rating (only) for '+orgTitle+' ('+cache.year+').');
+          toast.log('imdb rating differs from the cache, so updating the cache rating for '+orgTitle+' ('+cache.year+').');
         }
         cache.imdbRating = imdbRating;
       }

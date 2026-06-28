@@ -115,6 +115,7 @@ class ParseJW {
         else {
           toast.log(`imdb id ${trueImdbId} was manually provided, but rating is not found in jw. now opening imdb and getting rating...`);
 
+          fy.setGMCache_(GM_CACHE_KEY, otData);  // 캐시에 항목이 있어야 imdb 페이지 열렸을 때 평점을 업데이트함
           await visitImdbAndGetRating_(trueImdbId, otData[i]);
           reSearching = 'no need';
         }
@@ -169,8 +170,9 @@ class ParseJW {
               }
               else if(trueYear == sYears[j] && isValidRating_(sRatings[j])) {
                 //제목이 일치하는 게 없으면 연도 일치하는 거라도 건지자... 첫 번째만.
-                if(maybeIdxWithSameDateOrType == -1)
+                if (maybeIdxWithSameDateOrType == -1 && !sTypes[j].startsWith('not')) {
                   maybeIdxWithSameDateOrType = j;
+                }
               }
             }
 
@@ -223,7 +225,7 @@ class ParseJW {
 
         if(cacheTrueImdbId && (exactMatchCount > 1 || exactMatchCount == 0)) {
           //검색이 완전하지 못했고, 직접 imdb 방문한 게 캐시에 있다면, 그걸 쓴다.
-          console.log(`jw search is not perfect. keep the imdb data (from manual visit): ${cacheTrueImdbId}`);
+          console.log(`jw search was not perfect. keep the imdb data (from manual visit): ${cacheTrueImdbId}`);
           otData[i].otFlag = orgOtFlag;  //probably '??'
           reSearching = 'no need';
         }

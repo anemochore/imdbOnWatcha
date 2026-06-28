@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.1
+// @version      0.13.6
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -436,13 +436,21 @@ class FyGlobal {
       const year = getTextFromNode_(largeDiv.querySelector(selectors.meta)).split(' · ').pop();
       const type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
       const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
-      let orgTitle = [...document.querySelectorAll('.metadata__item')].filter(el => el.firstChild.innerText == '원제')[0];
-      console.debug('in largeDivUpdate(), orgTitle el:', orgTitle);
-      if(orgTitle) {
-        orgTitle = orgTitle.querySelector('.item__body').innerText;
+
+      const orgTitleSelector = '.metadata__item';
+      let orgTitleEl = [...document.querySelectorAll(orgTitleSelector)].filter(el => el.firstChild.innerText == '원제')[0];
+      if (!orgTitleEl) {
+        console.log('waiting for orgTitle el...');
+        await sleep(1000);  // maybe not needed
+        orgTitleEl = [...document.querySelectorAll(orgTitleSelector)].filter(el => el.firstChild.innerText == '원제')[0];
+      }
+
+      let orgTitle;
+      if(orgTitleEl) {
+        orgTitle = orgTitleEl.querySelector('.item__body').innerText;
         if(orgTitle == '') orgTitle = null;
       }
-      console.debug('in largeDivUpdate(), orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
+      console.debug('orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
 
       await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
 
