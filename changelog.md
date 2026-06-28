@@ -503,3 +503,5 @@
     // ver 0.13.3 @ 2026-06-22
     //    jw: open imdb when search is successful but rating is not present
     //    wavve: improve setting and title parsing
+    // ver 0.13.4 @ 2026-06-28
+    //    netflix: fix selectors

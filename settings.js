@@ -85,13 +85,13 @@ SETTINGS['www.netflix.com'] = {
   selectorForSinglePage: {
     determineSinglePageBy: 'div.previewModal--container>div',  //if edit link is the child of this el (ie. fy-item), it is single-page
     title: 'h3>strong',
-    year: 'div.videoMetadata--second-line>div.year',
+    year: 'div[class^="videoMetadata--"]>div.year',
     isTVSeries: {
-      selector: 'div.videoMetadata--second-line>span.duration',
+      selector: 'div[class^="videoMetadata--"]>span.duration',
       contains: /(시즌 \d+개|에피소드 \d+개)/,
     },
     additionalSelector: {
-      selector: `.moreLikeThis--container>.titleCard--container:not([${FU}])>div>div.ptrack-content`,
+      selector: `div.titleCard--container:not([${FU}])>div>div.ptrack-content`,
       title: 'img:not([alt=""]), p.fallback-text',
       year: 'div.year',
     },
