@@ -193,7 +193,7 @@ async function openTab(url) {
 
 //small utils
 function getTypeFromDiv_(selectors, baseEl) {
-  let nestedSelector = selectors.isTVSeries || selectors.types;  //either. not and/or
+  let nestedSelector = selectors?.isTVSeries || selectors?.types;  //either. not and/or
   if(nestedSelector) {
     let els;
     if(nestedSelector.numberToBaseEl) {

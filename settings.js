@@ -39,22 +39,12 @@ SETTINGS['watcha.com'] = {
 
 
 SETTINGS['m.kinolights.com'] = {
-  includingPaths: ['/title'],
+  includingPaths: ['/season'],
   rootSelector: 'html',
-  selectorOnSinglePage: 'div.movie-title-wrap',  //'selector' is not used for kino
+  selectorOnSinglePage: 'main>div',  //'selector' is not used for kino
   noAppendDiv: true,  //hack for kino
 
-  numberToBaseElWhenUpdating: 0,
-
-  selectorsForSinglePage: {
-    title: 'h2.title-kr',
-    isTVSeries: {
-      selector: 'span.tv-label',
-      contains: 'TV',
-    },
-    meta: 'p.metadata>span',
-    targetEl: '.imdb-wrap>div.score',
-  },
+  // 대부분 하드코딩
 };
 
 

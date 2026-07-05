@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.6
+// @version      0.13.7
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -305,7 +305,6 @@ class FyGlobal {
       const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root, {waitFirstAndWaitForAllChildrenAdded: true});
 
       //console.debug('largeDiv', largeDiv);
-      console.debug('title in handler:', largeDiv?.querySelector('h2').innerText);
       if(largeDiv) await fy.largeDivUpdate(largeDiv);
       fy.isFetching = false;
     },
@@ -430,29 +429,56 @@ class FyGlobal {
     },
 
     'm.kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
-      //on single content page
-      const selectors = fy.selectorsForSinglePage;
+      // on single content page
 
-      const year = getTextFromNode_(largeDiv.querySelector(selectors.meta)).split(' · ').pop();
-      const type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
-      const imdbRating = getTextFromNode_(largeDiv.querySelector('.imdb-wrap>.score'))?.replace(/ ·$/, '');
-
-      const orgTitleSelector = '.metadata__item';
-      let orgTitleEl = [...document.querySelectorAll(orgTitleSelector)].filter(el => el.firstChild.innerText == '원제')[0];
-      if (!orgTitleEl) {
-        console.log('waiting for orgTitle el...');
-        await sleep(1000);  // maybe not needed
-        orgTitleEl = [...document.querySelectorAll(orgTitleSelector)].filter(el => el.firstChild.innerText == '원제')[0];
+      // 영화만 이 객체가 있음
+      let scriptObj;
+      const scriptText = [...document.scripts].map(script => script.textContent).filter(text => text.includes('IMDB')).pop();
+      if (scriptText) {
+        try {
+          let tempArray = [];
+          const tExp = scriptText.replace(/^self\.__next_f\.push/, 'tempArray.push');
+          eval(tExp);
+          scriptObj = JSON.parse(tempArray[0][1])?.value.data.content;
+        }
+        catch (e) {
+          console.error('failed to parse kino script data:', e);
+        }
       }
 
-      let orgTitle;
-      if(orgTitleEl) {
-        orgTitle = orgTitleEl.querySelector('.item__body').innerText;
-        if(orgTitle == '') orgTitle = null;
-      }
-      console.debug('orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
+      // use scriptObj if possible
+      const title = scriptObj?.titleKr || document.title.split(' 다시보기 | ')[0];
 
-      await cb(largeDiv, {selectors, orgTitle, year, type, imdbRating});
+      let orgTitle = scriptObj?.titleOri, year = scriptObj?.openYear;
+      if (!orgTitle || !year) {
+        const description = document.querySelector('meta[name="description"]')?.content;
+        const match = description?.match(/^(.+?)\s*\((\d{4})\)/);  // ex: Heart eyes(2025) 지난 몇 년 동안...
+
+        orgTitle ||= match?.[1].trim();
+        year ||= match?.[2];
+      }
+
+      // 한국 영화 같은 경우 meta에 정보가 없어서 DOM에서 구함
+      if (!year) {
+        year = [...document.querySelectorAll('div:has(>p+p)')].map(el => el.innerText).filter(el => el.startsWith('·')).filter(el => el.match(/^·?\s*\d{4}$/)).pop();
+        if (year && year.match(/\d{4}$/)) year = year.replace('·', '').trim();
+      }
+
+      let type = scriptObj?.contentTypes?.pop();  // 영화는 배열에 '영화'가 있고 그 외 경우 contentTypes 자체가 없음
+      if (type == '영화') type = 'Movie';
+      //if (!type) type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
+
+      const imdbId = scriptObj?.externalSites?.find(site => site.siteType == 'IMDB')?.id.replace('imdb:', '');
+
+      // 어차피 imdb div는 구해야 평점 표시를 할 수 있음. 없으면 평점 표시를 할 수 없다. 고려하지 않음
+      // let imdbRating = scriptObj?.imdbScore;
+      const imdbDiv = [...document.querySelectorAll('div:has(>div>svg+p)')].filter(el => el.innerText.includes('IMDb')).pop();
+      const imdbRating = imdbDiv.querySelector('p')?.innerText;
+      fy.updateTargetEl = imdbDiv;
+
+      console.debug('orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
+
+      await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating, imdbId});
 
       //hack for kino
       if(fy.urlChanged != false) {
@@ -576,12 +602,12 @@ class FyGlobal {
         }
         else {
           baseEl.setAttribute(FY_UNIQ_STRING, '');
-          if(!fy.noAppendDiv) {
+          //if(!fy.noAppendDiv) {
             const infoEl = document.createElement('div');
             infoEl.classList.add(FY_UNIQ_STRING);
             infoEl.classList.add(fy.site.replace(/\./g, '_'));
             baseEl.insertBefore(infoEl, baseEl.firstChild);
-          }
+          //}
         }
       }
     });
@@ -638,12 +664,12 @@ class FyGlobal {
       //console.debug('otCache[title]', otCache[title]);
 
       //year 구할 수 있으면 구한다.
-      if((!trueData.year && trueData.selectors.year) || trueData.selectors?.getYearFromTitle) {
-        const yearEl = querySelectorFiFo_(baseEl, trueData.selectors.year);
+      if((!trueData.year && trueData.selectors?.year) || trueData.selectors?.getYearFromTitle) {
+        const yearEl = querySelectorFiFo_(baseEl, trueData.selectors?.year);
         let year = (yearEl?.innerText || yearEl?.textContent)?.trim();
 
         //year 셀렉터가 우선
-        if(trueData.selectors.year && year) {
+        if(trueData.selectors?.year && year) {
           year = year.replace(/^.+ · /, '');  //왓챠 search
           if(isNaN(parseInt(year)) || !Number.isInteger(year)) {
             if(year.replace(/\n/g, ' ').match(/• \d{4} •/)) year = year.replace(/\n/g, ' ').match(/• (\d{4}) •/)[1];  //쿠팡플레이 titles list
@@ -651,7 +677,7 @@ class FyGlobal {
           }
           //console.debug(`got possible year ${year} from selector for ${title}`);
         }
-        else if(trueData.selectors.getYearFromTitle) {
+        else if(trueData.selectors?.getYearFromTitle) {
           let match = title.match(/\((\d{4})\)$/);
           if(match) {
             year = match[1];
@@ -675,7 +701,7 @@ class FyGlobal {
         }
       }
 
-      if(!trueData.forceUpdate)
+      if(!trueData.forceUpdate) 
         titles[i] = fy.useCacheIfAvailable_(title, otData[i], trueData);
       else 
         titles[i] = title;
@@ -700,10 +726,10 @@ class FyGlobal {
       otData[0].jwUrl = trueData.jwUrl;
     }
 
-    //imdb manual update (edit)
+    //imdb manual update (edit) and etc (kino)
     if(trueData.imdbId) {
       otData[0].imdbId = trueData.imdbId;
-      otData[0].imdbUrl = trueData.imdbUrl;
+      otData[0].imdbUrl = trueData.imdbUrl || getImdbUrlFromId_(trueData.imdbId);  // kino는 imdbUrl이 없음
     }
 
     //kino update
@@ -815,7 +841,7 @@ class FyGlobal {
       if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, fy.numberToBaseElWhenUpdating);
 
       //hack for kino
-      if(fy.noAppendDiv) div = baseEl.querySelector(fy.selectorsForSinglePage?.targetEl);
+      if (fy.noAppendDiv) div = fy.root.querySelector(fy.selectorOnSinglePage);
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
@@ -865,6 +891,7 @@ class FyGlobal {
       }
 
       flag = otDatum.imdbFlag || '';
+      console.log('otDatum', otDatum);
       if(otDatum.imdbUrl) targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank"  onclick="event.stopPropagation()" title=${label}>`;
 
       targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;

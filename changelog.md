@@ -507,3 +507,6 @@
     //    netflix: fix selectors
     //    kino: fix scraping title
     //    jw: fix not updating imdb when visiting automatically
+    // ver 0.13.7 @ 2026-07-05
+    //    kino: change selectors according to dom change
+    //    todo: fix not updating or wrongly positioning after navigation
