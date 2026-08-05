@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.7
+// @version      0.13.8
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -302,7 +302,7 @@ class FyGlobal {
       }
 
       fy.isFetching = true;
-      const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root, {waitFirstAndWaitForAllChildrenAdded: true});
+      const largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
 
       //console.debug('largeDiv', largeDiv);
       if(largeDiv) await fy.largeDivUpdate(largeDiv);
@@ -431,8 +431,9 @@ class FyGlobal {
     'm.kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       // on single content page
 
-      // 영화만 이 객체가 있음
+      // 영화만 이 객체가 있음 -> 그런데 이 객체가 내비게이션 시 바로 업데이트가 되지 않아서 쓸 수는 없겠다...
       let scriptObj;
+      /*
       const scriptText = [...document.scripts].map(script => script.textContent).filter(text => text.includes('IMDB')).pop();
       if (scriptText) {
         try {
@@ -445,6 +446,7 @@ class FyGlobal {
           console.error('failed to parse kino script data:', e);
         }
       }
+      */
 
       // use scriptObj if possible
       const title = scriptObj?.titleKr || document.title.split(' 다시보기 | ')[0];
@@ -476,7 +478,7 @@ class FyGlobal {
       const imdbRating = imdbDiv.querySelector('p')?.innerText;
       fy.updateTargetEl = imdbDiv;
 
-      console.debug('orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
+      console.debug('[kino] orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
 
       await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating, imdbId});
 

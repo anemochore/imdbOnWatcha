@@ -44,7 +44,7 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
       }
       else if (options.waitAgain) {
         console.debug('waiting again hoping for all children added...');
-        await sleep(3000);  //dirty hack
+        await sleep(options.waitAgainDuration || 2000);  //dirty hack
 
         els = [...baseEl.querySelectorAll(selector)];
         lastEl = els.at(-1);

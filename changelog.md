@@ -509,4 +509,5 @@
     //    jw: fix not updating imdb when visiting automatically
     // ver 0.13.7 @ 2026-07-05
     //    kino: change selectors according to dom change
-    //    todo: fix not updating or wrongly positioning after navigation
+    // ver 0.13.8 @ 2026-08-05
+    //    kino: fix not updating after navigation (revert to not using more info)
