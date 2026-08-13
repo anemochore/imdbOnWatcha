@@ -511,3 +511,5 @@
     //    kino: change selectors according to dom change
     // ver 0.13.8 @ 2026-08-05
     //    kino: fix not updating after navigation (revert to not using more info)
+    // ver 0.13.9 @ 2026-08-13
+    //    kino: fix updating wrong div (added 1000ms delay) and minor bugs

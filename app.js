@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.8
+// @version      0.13.9
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -480,6 +480,9 @@ class FyGlobal {
 
       console.debug('[kino] orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
 
+      console.debug('waiting for kino dom to settle...');
+      await sleep(1000);  // kino는 dom이 바뀌는 게 늦어서 기다려야 함
+
       await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating, imdbId});
 
       //hack for kino
@@ -838,6 +841,8 @@ class FyGlobal {
 
 
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
+      console.debug('otDatum on updateDiv_() start', otDatum);
+
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
       let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
       if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, fy.numberToBaseElWhenUpdating);
@@ -893,7 +898,6 @@ class FyGlobal {
       }
 
       flag = otDatum.imdbFlag || '';
-      console.log('otDatum', otDatum);
       if(otDatum.imdbUrl) targetInnerHtml += `<a href="${otDatum.imdbUrl}" target="_blank"  onclick="event.stopPropagation()" title=${label}>`;
 
       targetInnerHtml += `<span class="fy-external-site">[</span><span class="fy-imdb-rating over-${ratingCss}" flag="${flag}">${rating}${flag}</span><span class="fy-external-site">]</span>`;
@@ -998,7 +1002,7 @@ class FyGlobal {
     const otCache = GM_getValue(GM_CACHE_KEY);  //exported earlier
     const el = event.target;
     const baseEl = el.closest(`[${FY_UNIQ_STRING}]`);
-    let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  //the last is for kino only
+    let selectors = fy.selectorsForListItems || fy.selectorsForSinglePage;  // the latter is maybe for kino only
 
     let targetEl = baseEl;
     console.debug('baseEl, targetEl on edit', baseEl, targetEl);
@@ -1006,11 +1010,19 @@ class FyGlobal {
     //search title, etc
     let type = getTypeFromDiv_(selectors, baseEl), year;
 
-    let titleEl = querySelectorFiFo_(baseEl, selectors.title);
+    let titleEl = querySelectorFiFo_(baseEl, selectors?.title);
     let title = getTextFromNode_(titleEl);
     if(type || title) console.debug('type, title on edit (first pass)', type, title);
 
-    if(!title && fy.selectorsForSinglePage) {
+    if(!selectors?.title) {
+      // kino hardcoding
+      title = document.title.split(' 다시보기 | ')[0];
+      let els = [...document.querySelectorAll('div:has(>p+p)')];
+      if (els.length == 0) els= [...document.querySelectorAll('div:has(>span+span)')];
+      year = els.map(el => el.innerText).filter(el => el.startsWith('·')).filter(el => el.match(/^·?\s*\d{4}$/)).pop();
+      if (year && year.match(/\d{4}$/)) year = year.replace('·', '').trim();
+    }
+    else if(!title && fy.selectorsForSinglePage) {
       selectors = fy.selectorsForSinglePage;
       titleEl = querySelectorFiFo_(baseEl, selectors.title);
       title = getTextFromNode_(titleEl);

@@ -421,7 +421,10 @@ async function visitImdbAndGetRating_(possibleTrueImdbId, otDatum) {
   otDatum.imdbUrl = getImdbUrlFromId_(possibleTrueImdbId);
 
   //실패할 경우는 생각하지 않는다.
-  if(isValidRating_(newCache.imdbRating)) otDatum.imdbRating = newCache.imdbRating;
+  if(isValidRating_(newCache.imdbRating)) {
+    otDatum.imdbRating = newCache.imdbRating;
+    otDatum.imdbFlag = '';
+  }
   if(newCache.orgTitle) otDatum.orgTitle = newCache.orgTitle;
   if(newCache.year)     otDatum.year = newCache.year;
   if(newCache.type)     otDatum.type = newCache.type;
