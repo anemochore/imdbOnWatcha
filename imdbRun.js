@@ -72,6 +72,7 @@ class ImdbRun {
 
             cache.imdbId = imdbId;
             cache.imdbUrl = getImdbUrlFromId_(imdbId, 'www.imdb.com');
+            cache.imdbRating = imdbRating;
           }
           else {
             if(imdbRating != cache.imdbRating) {

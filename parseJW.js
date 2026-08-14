@@ -369,11 +369,18 @@ class ParseJW {
         // else는 필요 없다. 정확히 하나의 결과가 잘 매칭된 경우이므로 그냥 진행하면 된다.
       }
 
-      //fields: ['id','full_path','title','object_type','original_release_year','scoring','external_ids','original_title'], (old)
+      // wrap-up
       if(reSearching != 'done' && reSearching != 'no need') {  //'no need' also means no update.
         console.debug(`reSearching: ${reSearching}, found idx: ${idx}`);
         otData[i].jwId = sIds[idx];
-        otData[i].jwUrl = sUrls[idx];
+        if (!sIds[idx]) {
+          toast.log(`jw search failed!!!`);
+          otData[i].jwUrl = 'https://www.justwatch.com/kr/검색?q=' + encodeURIComponent(title);
+          otData[i].otFlag = '??'
+        }
+        else {
+          otData[i].jwUrl = sUrls[idx];
+        }
         otData[i].type = sTypes[idx];
         otData[i].year = sYears[idx];
         otData[i].orgTitle = sOrgTitles[idx];
@@ -388,19 +395,27 @@ class ParseJW {
           if(!otData[i].imdbUrl)         otData[i].imdbUrl = getImdbUrlFromId_(null, trueOrgTitle || title);
         }
         else if(idx > -1) {
-          otData[i].imdbRating = sRatings[idx] || (isValidRating_(otData[i].imdbRating) ? otData[i].imdbRating : '??');
+          if (isValidRating_(sRatings[idx])) {
+            otData[i].imdbRating = sRatings[idx];
+            otData[i].imdbFlag = '';
+            otData[i].imdbRatingFetchedDate = new Date().toISOString();
+          }
+          else if (!isValidRating_(otData[i].imdbRating)) {
+            otData[i].imdbRating = 'n/a';
+            otData[i].imdbFlag = '??';
+          }
           otData[i].imdbUrl = getImdbUrlFromId_(otData[i].imdbId, otData[i].orgTitle || title);
           //console.debug(`[${title}]`, 'idx, otData[i].imdbId, otData[i].imdbRating:', idx, otData[i].imdbId, otData[i].imdbRating);
           if (otData[i].imdbId && !isValidRating_(otData[i].imdbRating)) {
+            console.debug('otData[i].imdbId and otData[i].imdbRating', otData[i].imdbId, otData[i].imdbRating);
             toast.log(`imdb id ${otData[i].imdbId} was found, but rating is not found in jw. now opening imdb and getting rating...`);
 
             fy.setGMCache_(GM_CACHE_KEY, otData);  // 캐시에 항목이 있어야 imdb 페이지 열렸을 때 평점을 업데이트함
             await visitImdbAndGetRating_(otData[i].imdbId, otData[i]);
           }
         }
-        otData[i].imdbRatingFetchedDate = new Date().toISOString();
 
-        if(sRatings[idx] && sImdbIds[idx])  //if imdb flag is not set at all.
+        if (sRatings[idx] && otData[i].imdbId && typeof otData[i].imdbFlag == 'undefined')  //if imdb flag is not set at all.
           otData[i].imdbFlag = '';
       }
     }
