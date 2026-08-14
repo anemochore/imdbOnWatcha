@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.10
+// @version      0.13.11
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -866,7 +866,7 @@ class FyGlobal {
 
       if(otDatum.jwUrl) targetInnerHtml += `<a href="${otDatum.jwUrl}" target="_blank" onclick="event.stopPropagation()">`;
 
-      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW]${flag}</span>`;
+      targetInnerHtml += `<span class="fy-external-site" year="${year}" flag="${flag}">[JW${flag}]</span>`;
 
       if(otDatum.jwUrl) targetInnerHtml += `</a>`;
 
@@ -882,9 +882,9 @@ class FyGlobal {
       }
 
       let rating = 'n/a', ratingCss = 'na';
-      if(otDatum.imdbRating == '??') {
-        rating = '??';  //possibly not yet updated
-        otDatum.imdbFlag = '';  //???? -> ??
+      if(otDatum.imdbRating == '??' || otDatum.imdbRating == 'n/a') {
+        rating = 'n/a';  //possibly not yet updated
+        //otDatum.imdbFlag = '';  //???? -> ??
       }
       else if(isValidRating_(otDatum.imdbRating)) {
         rating = parseFloat(otDatum.imdbRating);
@@ -940,6 +940,7 @@ class FyGlobal {
   //other utils...
   useCacheIfAvailable_(value, cache, trueData = {}) {
     //캐시에 원제가 있다면 캐시 사용 대상. wp 검색에만 쓰인다. 캐시를 쓴다면 null 반환.
+    console.debug('cache', cache);
     if(cache.orgTitle) {
       //단, 캐시가 오래되었다면 다시 페칭.
       if(dateDiffInDays(new Date(cache.imdbRatingFetchedDate), new Date()) > UPDATE_INTERVAL_DAYS_ORG_TITLES) {

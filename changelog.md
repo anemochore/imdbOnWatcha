@@ -513,5 +513,6 @@
     //    kino: fix not updating after navigation (revert to not using more info)
     // ver 0.13.9 @ 2026-08-13
     //    kino: fix updating wrong div (added 1000ms delay) and minor bugs
-    // ver 0.13.10 @ 2026-08-14
+    // ver 0.13.11 @ 2026-08-14
     //    watcha: change selectors according to url and dom change (needs testing on various urls)
+    //    jw & imdb: fix not updating rating
