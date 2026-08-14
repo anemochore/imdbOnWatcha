@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.9
+// @version      0.13.10
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -266,7 +266,7 @@ class FyGlobal {
       || fy.root.querySelector(fy.selectorOnSinglePage.replace(`:not([${FY_UNIQ_STRING}])`, ''));
       if(largeDiv && largeDiv.closest(`[${FY_UNIQ_STRING}]`)) {
         //if already updated, no more update when scrolling, etc
-        console.log('large-div already updated.');
+        console.debug('large-div already updated.');
         if(fy.singlePageWithoutListItems) {
           toast.log();
           fy.observer.observe(fy.root, fy.observerOption);
@@ -352,7 +352,7 @@ class FyGlobal {
 
   handlerWrapUp = async (selectorObj) => {
     if (fy.handlerWrapUpRunning == true) {
-      console.log('handlerWrapUp already running. skipping...');
+      console.debug('handlerWrapUp already running. skipping...');
       return;
     }
     fy.handlerWrapUpRunning = true;
@@ -393,6 +393,7 @@ class FyGlobal {
 
   largeDivUpdates = {
     'watcha.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
+      console.debug(`wp single page detected. largeDiv:`, largeDiv);
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
@@ -841,7 +842,7 @@ class FyGlobal {
 
 
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
-      console.debug('otDatum on updateDiv_() start', otDatum);
+      //console.debug('otDatum on updateDiv_() start', otDatum);
 
       const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
       let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);

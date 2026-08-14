@@ -6,24 +6,20 @@ const SETTINGS = {};
 //see the comments in detail on neflix
 
 SETTINGS['watcha.com'] = {
-  includingPaths: ['/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
+  includingPaths: ['/browse/all', '/browse/video', '/tag', '/explore', '/watched', '/library', '/watchings', '/ratings', '/arrivals', '/staffmades', '/contents', '/people', '/content_decks'],
   rootSelector: 'main',
-  selector: `section:not([class$="BrowseSection"])>div>ul>li>div[class*="-Cell"]:not([${FU}])>a[class][href^="/contents/"]>div:not(:has(>figure)), `  //list item
-  + `section>ul>li:not([${FU}])>a[href^="/contents/"]>div, `  //search
-  + `section ul>li>article:not([class]):not([${FU}])>a[href^="/contents/"]>div`,   //list item on single-page or libray
-
-  //numberToBaseEl: 2,  //when edit, this number + 1 is used (old)
+  selector: `div>ul>li>article:not([${FU}])>a[href^="/ko/contents/"]>div:not(:has(>figure)), `  //list item
+  + `section>ul>li:not([${FU}])>a[href^="/ko/contents/"]>div, `  //search
+  + `section ul>li>article:not([class]):not([${FU}])>a[href^="/ko/contents/"]>div`,   //list item on single-page or libray
 
   selectorsForListItems: {
     title: 'div[aria-hidden]>p',
   },
 
-  //singlePageWithoutListItems: false,  //no need since 23-10-29
-
   //more selectors are hard-coded. below are mainly for edit() on single-page
   selectorOnSinglePage: `section:not([${FU}])>div:has(h1)`,  //for single-page
   selectorsForSinglePage: {
-    determinePathnameBy: '/contents/',
+    determinePathnameBy: '/ko/contents/',
     title: 'h1',
     year: 'section>div+div>p>span:not([class])>span',
     isTVSeries: {
@@ -36,6 +32,7 @@ SETTINGS['watcha.com'] = {
     //id: 'a[href^="/watch/"]',  //this is not used when edit
   },
 };
+SETTINGS['watcha.com'].includingPaths = SETTINGS['watcha.com'].includingPaths.map(el => '/ko' + el);
 
 
 SETTINGS['m.kinolights.com'] = {
