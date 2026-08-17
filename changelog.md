@@ -516,3 +516,5 @@
     // ver 0.13.11 @ 2026-08-14
     //    watcha: change selectors according to url and dom change (needs testing on various urls)
     //    jw & imdb: fix not updating rating
+    // ver 0.13.12 @ 2026-08-17
+    //    kino: fix updating wrong div (removed delay)

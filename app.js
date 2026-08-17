@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.11
+// @version      0.13.12
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -481,9 +481,6 @@ class FyGlobal {
 
       console.debug('[kino] orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
 
-      console.debug('waiting for kino dom to settle...');
-      await sleep(1000);  // kino는 dom이 바뀌는 게 늦어서 기다려야 함
-
       await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating, imdbId});
 
       //hack for kino
@@ -591,8 +588,8 @@ class FyGlobal {
   };
 
   defaultBaseElementProc = async (itemDivs, numberToBaseEl, remove = false) => {
-    itemDivs.forEach(item => {
-      const baseEl = getParentsFrom_(item, numberToBaseEl);
+    for (const item of itemDivs) {
+      let baseEl = getParentsFrom_(item, numberToBaseEl);
       if(!baseEl) {
         console.warn('baseEl not found for', item);
         return;
@@ -600,6 +597,7 @@ class FyGlobal {
 
       if(!baseEl.closest(fy.rootSelector)) {
         console.debug('item is updated just before!');
+        console.debug('baseEl, baseEl.getAttribute(FY_UNIQ_STRING), baseEl.closest(fy.rootSelector)', baseEl, baseEl.getAttribute(FY_UNIQ_STRING), baseEl.closest(fy.rootSelector));
       }
 
       if(baseEl.getAttribute(FY_UNIQ_STRING) == null || remove) {
@@ -608,15 +606,16 @@ class FyGlobal {
         }
         else {
           baseEl.setAttribute(FY_UNIQ_STRING, '');
-          //if(!fy.noAppendDiv) {
+          if (!fy.noAppendDiv) {
             const infoEl = document.createElement('div');
+            console.debug('infoEl', infoEl);
             infoEl.classList.add(FY_UNIQ_STRING);
             infoEl.classList.add(fy.site.replace(/\./g, '_'));
             baseEl.insertBefore(infoEl, baseEl.firstChild);
-          //}
+          }
         }
       }
-    });
+    }
   };
 
   preUpdateDivses = {
@@ -844,12 +843,21 @@ class FyGlobal {
     async function updateDiv_(fyItemToUpdate, otDatum = {}, totalNumber) {
       //console.debug('otDatum on updateDiv_() start', otDatum);
 
-      const baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
-      let div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+      let baseEl = fyItemToUpdate.closest(`[${FY_UNIQ_STRING}]`);
+      let div = baseEl?.querySelector(`.${FY_UNIQ_STRING}`);
       if(fy.numberToBaseElWhenUpdating) div = getParentsFrom_(baseEl, fy.numberToBaseElWhenUpdating);
 
       //hack for kino
-      if (fy.noAppendDiv) div = fy.root.querySelector(fy.selectorOnSinglePage);
+      if (fy.noAppendDiv) {
+        baseEl = fy.root.querySelector(fy.selectorOnSinglePage);
+        baseEl.setAttribute(FY_UNIQ_STRING, '');
+        const infoEl = document.createElement('div');
+        infoEl.classList.add(FY_UNIQ_STRING);
+        infoEl.classList.add(fy.site.replace(/\./g, '_'));
+        baseEl.insertBefore(infoEl, baseEl.firstChild);
+        div = infoEl;
+        console.debug('kino hack div (update)', div);
+      }
 
       if(!div) {
         console.warn('no (fy-item) sub-div found for ', fyItemToUpdate);
