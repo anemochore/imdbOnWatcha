@@ -42,9 +42,12 @@ class ParseWP {
           }
         }
 
+        // 시즌이 여러 개인 경우
         const seriesH2 = [...targetDoc.querySelectorAll('header>h2')].filter(el => el.innerText == 'Series' || el.innerText == '시리즈');
-        if(seriesH2.length > 0)
-          otData[i].type = 'TV Series';
+        // 시즌이 한 개인 경우
+        const seriesTags = [...targetDoc.querySelectorAll('span[class^="_tag_"]')].filter(el => el.innerText == '#TVA');
+        if(seriesH2.length > 0 || seriesTags.length > 0) otData[i].type = 'TV Series';
+        //console.debug('trueType on wpdia:', otData[i].type);
 
         let found = false;
         if(needToGetSeason1) {
@@ -74,7 +77,7 @@ class ParseWP {
             }
 
             if(!found) {
-              console.warn(`cannot find season 1 when scraping on ${newUrl ? newUrl + ' on ' + otData[i].wpUrl : otData[i].wpUrl}. so assumes the current page is the season 1 page.`);
+              console.info(`cannot find season 1 when scraping on ${newUrl ? newUrl + ' on ' + otData[i].wpUrl : otData[i].wpUrl}. so assumes the current page is the season 1 page.`);
               //console.debug(targetDoc.documentElement.outerHTML);
               otData[i].otFlag = '?';
             }

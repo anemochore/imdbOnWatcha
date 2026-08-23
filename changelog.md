@@ -518,3 +518,5 @@
     //    jw & imdb: fix not updating rating
     // ver 0.13.12 @ 2026-08-17
     //    kino: fix updating wrong div (removed delay)
+    // ver 0.13.13 @ 2026-08-23
+    //    watcha: fix selectors and wrong behavior on updating large-div (removed delay)

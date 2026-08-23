@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.12
+// @version      0.13.13
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -274,11 +274,11 @@ class FyGlobal {
         }
       }
       else if(!fy.isUpdatingLargeDiv) {
-        console.log('(possibly) waiting for large-div...');
+        toast.spin('waiting for large-div...');
         fy.isUpdatingLargeDiv = true;
         largeDiv = await elementReady(fy.selectorOnSinglePage, fy.root);
         let largeDivTargetEl = largeDiv;
-        if(fy.selectorsForSinglePage.targetEl) {
+        if (fy.selectorsForSinglePage.targetEl) {
           largeDivTargetEl = await elementReady(fy.selectorsForSinglePage.targetEl, fy.root);
         }
         await fy.largeDivUpdate(largeDivTargetEl);
@@ -393,24 +393,26 @@ class FyGlobal {
 
   largeDivUpdates = {
     'watcha.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
-      console.debug(`wp single page detected. largeDiv:`, largeDiv);
+      //console.debug(`wp single page detected. largeDiv:`, largeDiv);
       //on single content (=large div) page
       const selectors = fy.selectorsForSinglePage;
 
       const root = getParentsFrom_(largeDiv, selectors.numberToBaseEl)
       const title = getTextFromNode_(root.querySelector(selectors.title));
-      const type = getTypeFromDiv_(selectors, root);
+      let type;
 
-      let wYear;
-      if(selectors.year) {
-        wYear = await elementReady(selectors.year, root, {suppressTimeoutWarning: true});  //lazy-loaded
-        wYear = wYear?.innerText;
+      if (selectors?.isTVSeries?.selector) {
+        toast.spin('waiting for type...');
+        const el = await elementReady(selectors.isTVSeries.selector, root, {observerOption: {childList: true, subtree: true, characterData: true}});  // text is lazy-loaded
+        console.debug('el for isTVSeries:', el, el.innerText);
+        type = getTypeFromDiv_(selectors.isTVSeries.selector, root);
+        console.debug('type from selector:', type);
       }
 
       const wpId = getIdFromValidUrl_(location.href);
       const wpUrl = 'https://pedia.watcha.com/en-US/contents/' + wpId;  //english page
 
-      toast.log(`scraping wp for org. title and year for ${title} (year: ${wYear}, id: ${wpId})...`);
+      toast.log(`scraping wp to get org. title and year for ${title} (id: ${wpId})...`);
       //원제를 얻어내서 jw 검색 정확도를 높이는 게 주목적이다. 무조건 스크레이핑하는 게 좀 걸리긴 하네...
       const otScrapeResults = await fetchAll([wpUrl], {
         headers: {'Accept-Language': 'en-US'},
@@ -419,8 +421,9 @@ class FyGlobal {
       const watchaLargeOtData = [{wpId, wpUrl, type}];
       await fyWP.parseWpScrapeResults_(otScrapeResults, watchaLargeOtData, type != 'Movie');
       const [orgTitle, year] = [watchaLargeOtData[0].orgTitle, watchaLargeOtData[0].year];
-      if(wYear && wYear != year) console.log(`mild warning: year mismatched. watcha: ${wYear} vs wp: ${year}`);
       console.log(`org. title scraping on wp done on single page: ${orgTitle} (${year}) type: ${watchaLargeOtData[0].type} `);
+      type = watchaLargeOtData[0].type;  // update type based on wp scraping result
+      console.debug('updated type on wp largeDivUpdate():', type);
 
       //dom이 wp 스크레이핑 도중 바뀌는 일이 있어서 largeDiv를 갱신-_-
       if(!largeDiv.closest(fy.rootSelector)) {
@@ -580,6 +583,7 @@ class FyGlobal {
       trueData.forceUpdate = forceUpdate;
       toast.log('large div on single-page update triggered.');
       await fy.search([largeDiv], trueData);
+      toast.log();
     }
     else {
       console.debug('nothing to do on large-div update.');
@@ -606,7 +610,7 @@ class FyGlobal {
         }
         else {
           baseEl.setAttribute(FY_UNIQ_STRING, '');
-          if (!fy.noAppendDiv) {
+          if (!fy.noAppendDiv) {  // kino hack
             const infoEl = document.createElement('div');
             console.debug('infoEl', infoEl);
             infoEl.classList.add(FY_UNIQ_STRING);
@@ -850,12 +854,17 @@ class FyGlobal {
       //hack for kino
       if (fy.noAppendDiv) {
         baseEl = fy.root.querySelector(fy.selectorOnSinglePage);
-        baseEl.setAttribute(FY_UNIQ_STRING, '');
-        const infoEl = document.createElement('div');
-        infoEl.classList.add(FY_UNIQ_STRING);
-        infoEl.classList.add(fy.site.replace(/\./g, '_'));
-        baseEl.insertBefore(infoEl, baseEl.firstChild);
-        div = infoEl;
+        if (baseEl.querySelector(`.${FY_UNIQ_STRING}`)) {
+          div = baseEl.querySelector(`.${FY_UNIQ_STRING}`);
+        }
+        else {
+          baseEl.setAttribute(FY_UNIQ_STRING, '');
+          const infoEl = document.createElement('div');
+          infoEl.classList.add(FY_UNIQ_STRING);
+          infoEl.classList.add(fy.site.replace(/\./g, '_'));
+          baseEl.insertBefore(infoEl, baseEl.firstChild);
+          div = infoEl;
+        }
         console.debug('kino hack div (update)', div);
       }
 
@@ -1025,11 +1034,11 @@ class FyGlobal {
     if(type || title) console.debug('type, title on edit (first pass)', type, title);
 
     if(!selectors?.title) {
-      // kino hardcoding
+      // kino hack hardcoding
       title = document.title.split(' 다시보기 | ')[0];
-      let els = [...document.querySelectorAll('div:has(>p+p)')];
-      if (els.length == 0) els= [...document.querySelectorAll('div:has(>span+span)')];
-      year = els.map(el => el.innerText).filter(el => el.startsWith('·')).filter(el => el.match(/^·?\s*\d{4}$/)).pop();
+      let els = [...document.querySelectorAll('div:has(>p+p)')].map(el => el.innerText).filter(el => el.startsWith('·'));
+      if (els.length == 0) els= [...document.querySelectorAll('div:has(>span+span)')].map(el => el.innerText).filter(el => el.startsWith('·'));
+      year = els.filter(el => el.match(/^·?\s*\d{4}$/)).pop();
       if (year && year.match(/\d{4}$/)) year = year.replace('·', '').trim();
     }
     else if(!title && fy.selectorsForSinglePage) {

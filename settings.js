@@ -21,10 +21,10 @@ SETTINGS['watcha.com'] = {
   selectorsForSinglePage: {
     determinePathnameBy: '/ko/contents/',
     title: 'h1',
-    year: 'section>div+div>p>span:not([class])>span',
+    //year: 'section>div+div>p>span:not([class])>span',
     isTVSeries: {
       numberToBaseEl: 1,
-      selector: 'h1+p>span',
+      selector: 'section>div:has(>h1+p)+div',
       contains: /시즌 \d+개/,
     },
     numberToBaseEl: 2,  //this is not used when edit()

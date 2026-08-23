@@ -3,7 +3,7 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {}) {
+function elementReady(selector, baseEl = document, options = fy.elementReadyOption || {observerOption: {childList: true, subtree: true}}) {
   return new Promise(resolve => {
     let els = [...baseEl.querySelectorAll(selector)];
     const lastEl = els.at(-1);
@@ -55,10 +55,7 @@ function elementReady(selector, baseEl = document, options = fy.elementReadyOpti
       }
     });
 
-    observer.observe(baseEl, {
-      childList: true,
-      subtree: true
-    });
+    observer.observe(baseEl, options.observerOptions || {childList: true, subtree: true});
   });
 }
 
