@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.13
+// @version      0.13.15
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -435,56 +435,43 @@ class FyGlobal {
     'm.kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       // on single content page
 
-      // 영화만 이 객체가 있음 -> 그런데 이 객체가 내비게이션 시 바로 업데이트가 되지 않아서 쓸 수는 없겠다...
-      let scriptObj;
-      /*
-      const scriptText = [...document.scripts].map(script => script.textContent).filter(text => text.includes('IMDB')).pop();
-      if (scriptText) {
-        try {
-          let tempArray = [];
-          const tExp = scriptText.replace(/^self\.__next_f\.push/, 'tempArray.push');
-          eval(tExp);
-          scriptObj = JSON.parse(tempArray[0][1])?.value.data.content;
-        }
-        catch (e) {
-          console.error('failed to parse kino script data:', e);
-        }
+      // 영화만 script에 정보 객체가 있는데 내비게이션 시 바로 업데이트가 되지 않아서 쓸 수는 없겠다...
+
+      // 어차피 imdb div는 구해야 평점 표시를 할 수 있음. 없으면 평점 표시를 할 수 없다. 없는 경우는 고려하지 않음
+      await elementReady('div:has(>div>svg+p)');
+
+      if (!document.title.includes(' 다시보기 ')) {
+        console.log('still loading... sleeping...');
+        await sleep(1000);
+        await fy.handler();  //force re-run
       }
-      */
+      const title = document.title.split(' 다시보기 | ')[0];
 
-      // use scriptObj if possible
-      const title = scriptObj?.titleKr || document.title.split(' 다시보기 | ')[0];
+      let orgTitle, year, type;
+      const description = document.querySelector('meta[name="description"]')?.content;
+      const match = description?.match(/^(.+?)\s*\((\d{4})\)/);  // ex: Heart eyes(2025) 지난 몇 년 동안...
 
-      let orgTitle = scriptObj?.titleOri, year = scriptObj?.openYear;
-      if (!orgTitle || !year) {
-        const description = document.querySelector('meta[name="description"]')?.content;
-        const match = description?.match(/^(.+?)\s*\((\d{4})\)/);  // ex: Heart eyes(2025) 지난 몇 년 동안...
+      orgTitle = match?.[1].trim();
+      year = match?.[2];
 
-        orgTitle ||= match?.[1].trim();
-        year ||= match?.[2];
-      }
-
+      const textSpans = [...document.querySelectorAll('h1+div div>span')].map(el => el.innerText).filter(el => el);
+      if (textSpans.includes('영화')) type = 'Movie';
+      else if (textSpans.includes('드라마')) type = 'TV Series';
+      
       // 한국 영화 같은 경우 meta에 정보가 없어서 DOM에서 구함
-      if (!year) {
-        year = [...document.querySelectorAll('div:has(>p+p)')].map(el => el.innerText).filter(el => el.startsWith('·')).filter(el => el.match(/^·?\s*\d{4}$/)).pop();
-        if (year && year.match(/\d{4}$/)) year = year.replace('·', '').trim();
-      }
+      if (!year) year = textSpans.filter(el => el.match(/^\d{4}$/)).pop();
 
-      let type = scriptObj?.contentTypes?.pop();  // 영화는 배열에 '영화'가 있고 그 외 경우 contentTypes 자체가 없음
-      if (type == '영화') type = 'Movie';
-      //if (!type) type = largeDiv.querySelector('.tv-label') ? 'TV Series' : 'Movie';
-
-      const imdbId = scriptObj?.externalSites?.find(site => site.siteType == 'IMDB')?.id.replace('imdb:', '');
-
-      // 어차피 imdb div는 구해야 평점 표시를 할 수 있음. 없으면 평점 표시를 할 수 없다. 고려하지 않음
-      // let imdbRating = scriptObj?.imdbScore;
       const imdbDiv = [...document.querySelectorAll('div:has(>div>svg+p)')].filter(el => el.innerText.includes('IMDb')).pop();
+      if (!imdbDiv) {
+        console.warn('imdbDiv not found. maybe loading not finished.');
+        return;
+      }
       const imdbRating = imdbDiv.querySelector('p')?.innerText;
       fy.updateTargetEl = imdbDiv;
 
-      console.debug('[kino] orgTitle, year, type, imdbRating, imdbId:', orgTitle, year, type, imdbRating, imdbId);
+      console.debug('[kino] orgTitle, year, type, imdbRating:', orgTitle, year, type, imdbRating);
 
-      await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating, imdbId});
+      await cb(largeDiv, {selectors: fy.selectorsForSinglePage, title, orgTitle, year, type, imdbRating});
 
       //hack for kino
       if(fy.urlChanged != false) {
@@ -645,7 +632,8 @@ class FyGlobal {
       const baseEl = item.closest(`[${FY_UNIQ_STRING}]`);
 
       let title = trueData.title, titleEl;
-      if(!title && baseEl) {
+      if(!title && baseEl && trueData.selectors?.title) {
+        console.log('ueData.selectors?.title', trueData.selectors?.title);
         titleEl = querySelectorFiFo_(baseEl, trueData.selectors.title);
         if(!titleEl) title = getTextFromNode_(baseEl);
         else         title = getTextFromNode_(titleEl);
@@ -720,10 +708,15 @@ class FyGlobal {
 
 
     //large div update
-    if(trueData.year && trueData.type && trueData.type != 'TV Series' && trueData.type != 'TV Mini Series') {
-      //TV물이면 연도를 수정하지 않음
-      if(otData[0].otFlag != '' || !otData[0].year)
-        otData[0].year = trueData.year;
+    if (otData.length == 1 && trueData.forceUpdate) {
+      if(trueData.year && trueData.type && trueData.type != 'TV Series' && trueData.type != 'TV Mini Series') {
+        //TV물이면 연도를 수정하지 않음
+        if(otData[0].otFlag != '' || !otData[0].year) otData[0].year = trueData.year;
+      }
+
+      if(trueData.type) otData[0].type = trueData.type;
+
+      console.debug('large-div update with forceUpdate true, type and year:', otData[0].type, otData[0].year);
     }
 
     //large div update or wp manual update

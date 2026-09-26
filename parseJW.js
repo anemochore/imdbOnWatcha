@@ -21,7 +21,7 @@ class ParseJW {
 
       //todo: being tested...
       const fuzzyThresholdLength = 3;  //minimum length of title to which fuzzysort can applied.
-      const fuzzyThresholdScore = -30000;  //score to exclude for bad results. 0 is exact match.
+      //const fuzzyThresholdScore = -30000;  //score to exclude for bad results. 0 is exact match.
       const fuzzyThresholdRating = 4.1;  //discard result with rating less than this
 
       const YEAR_DIFFERENCE_THRESHOLD = 2;  //accept result with year-diffence less than this
@@ -44,13 +44,13 @@ class ParseJW {
       const trueImdbId = trueData.imdbId;  //watcha/kino large-div 같은 경우(캐시의 값을 쓰면 안 됨)
 
       //타입과 연도는 캐시가 건강하다면 사용
-      console.debug('type and year from cache:', otData[i].type, otData[i].year);
+      console.debug('[parseJW] type and year from cache or trueData:', otData[i].type, otData[i].year);
       let trueType = trueData.type;
       let trueYear = trueData.year;
       if (!trueType && (!otData[i].otFlag || otData[i].otFlag == '')) trueType = otData[i].type;
       if (!trueYear && (!otData[i].otFlag || otData[i].otFlag == '')) trueYear = otData[i].year;
       const isTrueSeries = trueType && !trueType.startsWith('not') && trueType.endsWith('Series');
-      console.debug('trueType and trueYear:', trueType, trueYear);
+      console.debug('[parseJW] trueType and trueYear:', trueType, trueYear);
 
       let cacheTrueImdbId = null, orgOtFlag;
       if(!trueData.imdbId && otData[i]?.imdbId != 'n/a' && otData[i].type && otData[i].year && otData[i].imdbRating && otData[i].imdbVisitedDate) {
@@ -374,10 +374,17 @@ class ParseJW {
         console.debug(`reSearching: ${reSearching}, found idx: ${idx}`);
         otData[i].jwId = sIds[idx];
         if (!sIds[idx]) {
-          toast.log(`hmm... no id found on jw.`);
-          otData[i].jwUrl = 'https://www.justwatch.com/kr/검색?q=' + encodeURIComponent(title);
-          if (sImdbIds[idx]) otData[i].otFlag = '?';  // 신작은 jw id가 없는 경우가 있으나 imdb 정보는 들어 있다.
-          else otData[i].otFlag = '??';
+          //console.debug(`hmm... no id found on jw.`, otData[i].jwUrl);
+          if (!otData[i].jwUrl) {
+            if (sUrls[idx]) {
+              otData[i].jwUrl = sUrls[idx];
+            }
+            else {
+              if (sImdbIds[idx]) otData[i].otFlag = '?';  // 신작은 jw id가 없는 경우가 있으나 imdb 정보는 들어 있다.
+              else otData[i].otFlag = '??';
+              otData[i].jwUrl = 'https://www.justwatch.com/kr/검색?q=' + encodeURIComponent(title);
+            }
+          }
         }
         else {
           otData[i].jwUrl = sUrls[idx];

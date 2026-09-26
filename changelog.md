@@ -520,3 +520,6 @@
     //    kino: fix updating wrong div (removed delay)
     // ver 0.13.13 @ 2026-08-23
     //    watcha: fix selectors and wrong behavior on updating large-div (removed delay)
+    // ver 0.13.15 @ 2026-09-26
+    //    kino: fix selectors and logic (1s delay between navigation)
+    //    jw: fix logic. maybe they no longer provide jw id
