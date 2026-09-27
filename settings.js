@@ -37,6 +37,7 @@ SETTINGS['watcha.com'].includingPaths = SETTINGS['watcha.com'].includingPaths.ma
 
 SETTINGS['m.kinolights.com'] = {
   includingPaths: ['/season'],
+  excludingPaths: [/\/season\/\d+\/crew/],
   rootSelector: 'html',
   selectorOnSinglePage: 'main>div',  //'selector' is not used for kino
   noAppendDiv: true,  //hack for kino

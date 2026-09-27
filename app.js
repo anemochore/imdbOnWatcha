@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.15
+// @version      0.13.17
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
@@ -214,6 +214,7 @@ class FyGlobal {
     await elementReady(selector, fy.root);
     fy.isFetching = false;
 
+    toast.log('');
     console.debug('forcing first run of handler...');
     await fy.handler();  //force first run
 
@@ -224,7 +225,13 @@ class FyGlobal {
       let isExcludingPath = false;
       if(Array.isArray(fy.excludingPaths)) {
         fy.excludingPaths.some(path => {
-          if(curLocation.pathname.startsWith(path)) {
+          if (path instanceof RegExp) {
+            if(curLocation.pathname.match(path)) {
+              isExcludingPath = true;
+              return true;  //break
+            }
+          }
+          else if(curLocation.pathname.startsWith(path)) {
             isExcludingPath = true;
             return true;  //break
           }

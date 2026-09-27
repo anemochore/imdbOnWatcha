@@ -376,7 +376,7 @@ class ParseJW {
         if (!sIds[idx]) {
           //console.debug(`hmm... no id found on jw.`, otData[i].jwUrl);
           if (!otData[i].jwUrl) {
-            if (sUrls[idx]) {
+            if (sUrls[idx] && sUrls[idx] != 'https://www.justwatch.com') {
               otData[i].jwUrl = sUrls[idx];
             }
             else {

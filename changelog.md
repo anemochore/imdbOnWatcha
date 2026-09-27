@@ -523,3 +523,6 @@
     // ver 0.13.15 @ 2026-09-26
     //    kino: fix selectors and logic (1s delay between navigation)
     //    jw: fix logic. maybe they no longer provide jw id
+    // ver 0.13.17 @ 2026-09-27
+    //    kino: fix selector
+    //    jw: fix jwUrl logic
