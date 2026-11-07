@@ -526,3 +526,6 @@
     // ver 0.13.17 @ 2026-09-27
     //    kino: fix selector
     //    jw: fix jwUrl logic
+    // ver 0.13.18 @ 2026-09-27
+    //    kino: fix domain (remove m.) and selector
+    //    TODO: wavve: fix large-div when navigating below tabs

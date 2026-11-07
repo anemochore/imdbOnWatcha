@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         imdb on watcha_jw
 // @namespace    http://tampermonkey.net/
-// @version      0.13.17
+// @version      0.13.18
 // @updateURL    https://anemochore.github.io/imdbOnWatcha/app.js
 // @downloadURL  https://anemochore.github.io/imdbOnWatcha/app.js
 // @description  try to take over the world!
 // @author       fallensky@naver.com
 // @match        https://watcha.com/*
 // @match        https://www.netflix.com/*
-// @match        https://m.kinolights.com/*
+// @match        https://kinolights.com/*
 // @match        https://www.wavve.com/*
 // @match        https://www.disneyplus.com/ko-kr/*
 // @match        https://www.tving.com/*
@@ -298,7 +298,7 @@ class FyGlobal {
   };
 
   handlers = {
-    'm.kinolights.com': async () => {
+    'kinolights.com': async () => {
       //hack for kino
       //fy.observer.disconnect();
       //console.debug('observer disconncted on kino handler!');
@@ -439,7 +439,7 @@ class FyGlobal {
       await cb(largeDiv, {selectors, wpId, wpUrl, orgTitle, year, type});
     },
 
-    'm.kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
+    'kinolights.com': async (largeDiv, cb = fy.largeDivUpdateWrapUp) => {
       // on single content page
 
       // 영화만 script에 정보 객체가 있는데 내비게이션 시 바로 업데이트가 되지 않아서 쓸 수는 없겠다...
@@ -447,26 +447,22 @@ class FyGlobal {
       // 어차피 imdb div는 구해야 평점 표시를 할 수 있음. 없으면 평점 표시를 할 수 없다. 없는 경우는 고려하지 않음
       await elementReady('div:has(>div>svg+p)');
 
-      if (!document.title.includes(' 다시보기 ')) {
+      if (!document.title.includes('평점·다시보기')) {
         console.log('still loading... sleeping...');
         await sleep(1000);
         await fy.handler();  //force re-run
       }
-      const title = document.title.split(' 다시보기 | ')[0];
+      const title = document.title.split('평점·다시보기')[0].trim();
 
-      let orgTitle, year, type;
-      const description = document.querySelector('meta[name="description"]')?.content;
-      const match = description?.match(/^(.+?)\s*\((\d{4})\)/);  // ex: Heart eyes(2025) 지난 몇 년 동안...
+      const orgTitle = [...fy.root.querySelectorAll('section.sr-only>p')].filter(el => el.innerText.startsWith('원제'))[0]?.innerText.split('원제 ').pop().trim();
+      
+      let year, type;
+      const textSpans = [...fy.root.querySelectorAll('section+div div>div:has(span+span)')].filter(el => el.innerText.startsWith('·\n')).map(el => el.innerText.split('·\n').pop().trim());
+      const match = textSpans[0].match(/^\d{4}$/);
+      if (match) year = parseInt(match[0]);
 
-      orgTitle = match?.[1].trim();
-      year = match?.[2];
-
-      const textSpans = [...document.querySelectorAll('h1+div div>span')].map(el => el.innerText).filter(el => el);
       if (textSpans.includes('영화')) type = 'Movie';
       else if (textSpans.includes('드라마')) type = 'TV Series';
-      
-      // 한국 영화 같은 경우 meta에 정보가 없어서 DOM에서 구함
-      if (!year) year = textSpans.filter(el => el.match(/^\d{4}$/)).pop();
 
       const imdbDiv = [...document.querySelectorAll('div:has(>div>svg+p)')].filter(el => el.innerText.includes('IMDb')).pop();
       if (!imdbDiv) {

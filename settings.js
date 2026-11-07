@@ -35,10 +35,10 @@ SETTINGS['watcha.com'] = {
 SETTINGS['watcha.com'].includingPaths = SETTINGS['watcha.com'].includingPaths.map(el => '/ko' + el);
 
 
-SETTINGS['m.kinolights.com'] = {
+SETTINGS['kinolights.com'] = {
   includingPaths: ['/season'],
   excludingPaths: [/\/season\/\d+\/crew/],
-  rootSelector: 'html',
+  rootSelector: 'main',
   selectorOnSinglePage: 'main>div',  //'selector' is not used for kino
   noAppendDiv: true,  //hack for kino
 
